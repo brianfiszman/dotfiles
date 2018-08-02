@@ -1,0 +1,67 @@
+! URXVT GENERAL CONFIG
+! !------------------------------------------------
+ URxvt.geometry: 90x33
+! ! URXVT FONTS
+! !------------------------------------------------
+URxvt*font:xft:Source Code Pro for Powerline:regular:pixelsize=16:minspace=true:antialias=true,xft:"Font Awesome":pixelsize=16:minspace=True:antialias=true:slant=0:weight=100,xft:Emojione Color:size=16 
+URxvt*boldFont:xft:Source Code Pro for Powerline:bold:pixelsize=16:minspace=true:antialias=true,xft:"Font Awesome":bold:pixelsize=16:minspace=True:antialias=true:slant=0:weight=100,xft:Emojione Color:size=16
+URxvt*italicfont:xft:Source Code Pro for Powerline:italic:pixelsize=16:minspace=true:antialias=true,xft:"Font Awesome":italic:pixelsize=16:minspace=True:antialias=true:slant=0:weight=100,xft:Emojione Color:size=16
+URxvt*bolditalicFont:xft:Source Code Pro for Powerline:bold:italic:pixelsize=16:minspace=true:antialias=true,xft:"Font Awesome":bold:italic:pixelsize=16:minspace=True:antialias=true:slant=0:weight=100,xft:Emojione Color:size=16
+
+URxvt.allow_bold: true
+URxvt*letterSpace: 0 
+! ! URXVT FONT SETTINGS
+! !------------------------------------------------
+! 
+ Xft.autohint: true
+ Xft.antialias: true
+ Xft.hinting: true
+ Xft.hintstyle: hintslight
+ Xft.rgba: rgb
+ Xft.lcdfilter: lcddefault
+! ! URXVT ENABLE LINK SUPPORT
+! !------------------------------------------------
+ URxvt.perl-lib: /usr/lib/urxvt/perl
+ URxvt*iconFile: /usr/share/icons/Faenza/apps/scalable/terminal.svg
+! !tabbed
+ URxvt.matcher.button: 1
+ URxvt.perl-ext: default
+! !disable the fucking bell
+ URxvt.insecure: false
+! ! URXVT COPY PASTE SHORTCUTS
+! !------------------------------------------------
+ URxvt.iso14755: False
+ URxvt.iso14755_52: False
+ URxvt.keysym.Shift-Control-C: perl:clipboard:copy
+ URxvt.keysym.Shift-Control-V: perl:clipboard:paste
+! ! URXVT SCROLLBAR AND CURSOR STYLE
+! !------------------------------------------------
+ URxvt*saveLines: 300000
+ URxvt.scrollBar: false
+ !URxvt*scrollstyle: plain
+ URxvt*cursorBlink: true
+ URxvt*cursorUnderline: true
+!
+! ! URXVT TABS
+! !------------------------------------------------
+ URxvt.tabbedex.autohide: yes
+ URxvt.tabbedex.tabbar-fg: 2
+ URxvt.tabbedex.tabbar-bg: 0
+ URxvt.tabbedex.tab-fg: 10
+ URxvt.tabbedex.tab-bg: 0
+ URxvt.tabbedex.title: yes
+ URxvt.tabbedex.new-button: no
+! ! URXVT FULLSCREEN TOGGLE
+! !------------------------------------------------
+ URxvt.keysym.F11: perl:fullscreen:switch
+! ! URXVT COLORS
+! !------------------------------------------------
+ ! vim: set filetype=xdefaults :
+
+URxvt.perl-ext-common:      default,clipboard,url-select,keyboard-select
+URxvt.url-select.launcher:  firefox
+URxvt.url-select.underline: true
+URxvt.keysym.M-u:           perl:url-select:select_next
+URxvt.keysym.M-Escape:      perl:keyboard-select:activate
+URxvt.keysym.M-s:           perl:keyboard-select:search
+

@@ -1,0 +1,47 @@
+##### THIS FILE IS BEING CURRENTLY MANAGED BY URXVTCONFIG #####
+##### CHANGES DONE TO THIS FILE MANUALLY MAY AFFECT THE FUNCTIONALITY ######
+##### PROCEED WITH CAUTION! #####
+
+! special colors
+*.URxvt*cursorColor: #8ae234
+*.URxvt.foreground: #cdcdcd
+*.URxvt.background: #101010
+*.URxvt.background: rgba:1000/1000/1000/DDDD
+! black
+*.color0:      #1d1f21
+*.color8:      #555753
+! red
+*.color1:      #FF0000
+*.color9:      #ef2929
+! green
+*.color2:      #198844
+*.color10:     #8ae234
+! yellow
+*.color3:      #fba922
+*.color11:     #fce94f
+! blue
+*.color4:      #3465a4
+*.color12:     #3971ed
+! magenta
+*.color5:      #75507b
+*.color13:     #d049d2
+! cyan
+*.color6:      #055b91
+*.color14:     #67a6e8
+! white
+*.color7:      #d3d7cf
+*.color15:     #ffffff
+
+URxvt*scrollBar:         false
+URxvt*scrollBar_right:   false
+
+URxvt*transparent:       false 
+
+URxvt*depth: 32
+
+*antialias:  true
+*autohint:   true
+
+URxvt.url-launcher: firefox
+
+URxvt.matcher.button: 1
