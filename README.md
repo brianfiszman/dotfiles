@@ -41,7 +41,7 @@ Para este tipo de casos es muy recomendable usar una particion SWAP
 Otra cosa a tener en cuenta es la configuracion del archivo .ycm_extra_conf.py, incluí mi propio archivo en el proyecto, pero pueden extenderlo o cambiarlo a medida.
 
 De querer usar el mio solo copien el .ycm_extra_conf.py que incluí en la carpeta del proyecto en 
-<pre>~/.vim/bundle/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py</pre>
+<pre>~/.config/nvim/bundle/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py</pre>
 
 
 **Los siguientes dotfiles los utilizo en ArchLinux**
