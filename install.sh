@@ -46,9 +46,6 @@ delete_previous_setup() {
   delete_directory ~/.cache/dein
 }
 
-# Checks for compatibility
-check_distro
-
 # Delete existant installation.
 delete_previous_setup
 
