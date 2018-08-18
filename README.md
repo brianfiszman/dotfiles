@@ -1,6 +1,6 @@
 <h1>Bienvenidos! Esta es mi configuracion de NVim</h1>
 
-Utilizo plugins como YouCompleteMe, UltiSnips, NerdTree, entre otros.
+Utilizo plugins como Deoplete, NeoSnippet, NerdTree, entre otros.
 
 Cualquier consejo, sugerencia, etc... es mas que bienvenida a traves de los Issues.
 
@@ -9,39 +9,19 @@ Para instalarlo es necesario hacer lo siguiente:
 Escribir en la terminal:
 
 Clonate el proyecto:
-<pre>git clone https://github.com/brianezequielfiszman/dofiles</pre>
+<pre>git clone https://github.com/brianfiszman/dofiles</pre>
 
 Entrá a la carpeta del proyecto: `cd ./dotfiles`
 
 <pre>
-git clone https://github.com/VundleVim/Vundle.vim.git ~/.config/nvim/bundle/Vundle.vim
+curl https://raw.githubusercontent.com/Shougo/dein.vim/master/bin/installer.sh > installer.sh
+sh ./installer.sh ~/.cache/dein
 </pre>
 
+Luego copiar la carpeta .config/nvim en tu ~/.config/ de tu usuario.
 
+Escribir en el NVim:
 
-Luego copiar el .vimrc en tu home de usuario o escribir en la carpeta del proyecto
-
-<pre>cp .vimrc ~/.config/nvim/init.vim</pre>
-
-Escribir en la linea de comandos lo siguiente:
-
-<pre>nvim +PluginInstall +qall</pre>
-
-Una vez instalado todo vas a querer funciones de autocompletado, para eso queremos instalar el YouCompleteMe,(el plugin se instala pero no viene preconfigurado para su uso)
-
-Para configurar el YouCompleteMe se necesita instalarlo manualmente siguiendo la documentacion de su developer, 
-pero mi manera de hacerlo es la siguiente: 
-(AVISO: Se necesita tener instalado un interprete de Python)<br>
-<pre>~/.config/nvim/bundle/YouCompleteMe/install.py --all</pre>
-
-El proceso de compilado es largo, CUIDADO a los que tengan 4GB de RAM o menos, el proceso de compilado es muy pesado y te puede enlentecer la PC al punto de no tener otra opcion que reiniciarla.
-
-Para este tipo de casos es muy recomendable usar una particion SWAP
-
-Otra cosa a tener en cuenta es la configuracion del archivo .ycm_extra_conf.py, incluí mi propio archivo en el proyecto, pero pueden extenderlo o cambiarlo a medida.
-
-De querer usar el mio solo copien el .ycm_extra_conf.py que incluí en la carpeta del proyecto en 
-<pre>~/.config/nvim/bundle/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py</pre>
-
+<pre>:call dein#install()</pre>
 
 **Los siguientes dotfiles los utilizo en ArchLinux**
