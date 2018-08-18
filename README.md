@@ -3,9 +3,7 @@
 <h2>Install</h2>
 <pre>
 git clone https://github.com/brianfiszman/dotfiles
-
 cd ./dotfiles
-
 sudo chmod +x ./install.sh
 </pre></br>
 
