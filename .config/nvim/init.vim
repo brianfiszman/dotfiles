@@ -1,13 +1,16 @@
 source ~/.config/nvim/plugins.vim
 source ~/.config/nvim/general.vim
 source ~/.config/nvim/tab.vim
-source ~/.config/nvim/colorscheme.vim
+source ~/.config/nvim/style/colorscheme.vim
 
 source ~/.config/nvim/deoplete.vim
 source ~/.config/nvim/ale.vim
+source ~/.config/nvim/matchtag.vim
 source ~/.config/nvim/nerdtree.vim
 source ~/.config/nvim/emmet.vim
 source ~/.config/nvim/ctrlp.vim
+
+source ~/.config/nvim/git/fugitive.vim
 
 source ~/.config/nvim/cpp.vim
 source ~/.config/nvim/javascript.vim
@@ -16,6 +19,8 @@ source ~/.config/nvim/python.vim
 noremap <C-S-f> :Autoformat<CR>
 
 nmap <F8> :TagbarToggle<CR>
+
+nnoremap <c-c> :close <CR>
 
 " Add spaces after comment delimiters by default
 let g:NERDSpaceDelims = 1
