@@ -1,10 +1,18 @@
 #!/bin/sh
 
+GREEN=$(tput setaf 28)
+MAGENTA=$(tput setaf 13)
+BLUE=$(tput setaf 12)
+
 # move to script directory so all relative paths work
 cd "$(dirname "$0")"
 
 error() {
   echo $1
+}
+
+show_message() {
+  printf "$1\n\n"
 }
 
 delete_directory() {
@@ -32,12 +40,12 @@ clean_up() {
 }
 
 install_process() {
-  echo "Installing dein plugin manager" 
-	curl https://raw.githubusercontent.com/Shougo/dein.vim/master/bin/installer.sh > installer.sh
-	sh ./installer.sh ~/.cache/dein
+  echo "Installing dein plugin manager"
+  curl https://raw.githubusercontent.com/Shougo/dein.vim/master/bin/installer.sh > installer.sh
+  sh ./installer.sh ~/.cache/dein
 
   echo "Copying .vim files"
-	cp -rTv ./.config/nvim ~/.config/nvim
+  cp -rTv ./.config/nvim ~/.config/nvim
 }
 
 delete_previous_setup() {
@@ -55,58 +63,12 @@ install_process
 # Clean Up
 clean_up
 
-echo "                               .:xxxxxxxx:. "
-echo "                            .xxxxxxxxxxxxxxxx." 
-echo "                           :xxxxxxxxxxxxxxxxxxx:." 
-echo "                          .xxxxxxxxxxxxxxxxxxxxxxx:" 
-echo "                         :xxxxxxxxxxxxxxxxxxxxxxxxx: "
-echo "                         xxxxxxxxxxxxxxxxxxxxxxxxxxX: "
-echo "                         xxx:::xxxxxxxx::::xxxxxxxxx: "
-echo "                        .xx:   ::xxxxx:     :xxxxxxxx "
-echo "                        :xx  x.  xxxx:  xx.  xxxxxxxx "
-echo "                        :xx xxx  xxxx: xxxx  :xxxxxxx "
-echo "                        'xx 'xx  xxxx:. xx'  xxxxxxxx "
-echo "                         xx ::::::xx:::::.   xxxxxxxx "
-echo "                         xx:::::.::::.:::::::xxxxxxxx "
-echo "                         :x'::::'::::':::::':xxxxxxxxx. "
-echo "                         :xx.::::::::::::'   xxxxxxxxxx "
-echo "                         :xx: '::::::::'     :xxxxxxxxxx. "
-echo "                        .xx     '::::'        'xxxxxxxxxx. "
-echo "                      .xxxx                     'xxxxxxxxx. "
-echo "                    .xxxx                         'xxxxxxxxx. "
-echo "                  .xxxxx:                          xxxxxxxxxx. "
-echo "                 .xxxxx:'                          xxxxxxxxxxx. "
-echo "                .xxxxxx:::.           .       ..:::_xxxxxxxxxxx:. "
-echo "               .xxxxxxx''      ':::''            ''::xxxxxxxxxxxx. "
-echo "               xxxxxx            :                  '::xxxxxxxxxxxx "
-echo "              :xxxx:'            :                    'xxxxxxxxxxxx: "
-echo "             .xxxxx              :                     ::xxxxxxxxxxxx "
-echo "             xxxx:'                                    ::xxxxxxxxxxxx "
-echo "             xxxx               .                      ::xxxxxxxxxxxx. "
-echo "         .:xxxxxx               :                      ::xxxxxxxxxxxx:: "
-echo "         xxxxxxxx               :                      ::xxxxxxxxxxxxx: "
-echo "         xxxxxxxx               :                      ::xxxxxxxxxxxxx: "
-echo "         ':xxxxxx               '                      ::xxxxxxxxxxxx:' "
-echo "           .:. xx:.                                   .:xxxxxxxxxxxxx' "
-echo "         ::::::.'xx:.            :                  .:: xxxxxxxxxxx': "
-echo " .:::::::::::::::.'xxxx.                            ::::'xxxxxxxx':::. "
-echo " ::::::::::::::::::.'xxxxx                          :::::.'.xx.'::::::. "
-echo " ::::::::::::::::::::.'xxxx:.                       :::::::.'':::::::::   "
-echo " ':::::::::::::::::::::.'xx:'                     .'::::::::::::::::::::.. "
-echo "   :::::::::::::::::::::.'xx                    .:: ::::::::::::::::::::::: "
-echo " .:::::::::::::::::::::::. xx               .::xxxx ::::::::::::::::::::::: "
-echo " :::::::::::::::::::::::::.'xxx..        .::xxxxxxx ::::::::::::::::::::' "
-echo " '::::::::::::::::::::::::: xxxxxxxxxxxxxxxxxxxxxxx :::::::::::::::::' "
-echo "   '::::::::::::::::::::::: xxxxxxxxxxxxxxxxxxxxxxx :::::::::::::::' "
-echo "       ':::::::::::::::::::_xxxxxx::'''::xxxxxxxxxx '::::::::::::' "
-echo "            ':::.:::::::::'                          '._::::::_.'  "
+source ./install/draw.sh
 
-echo "Now all you have to do is: "
-echo "nvim"
 
-echo "Once inside the text editor: "
-echo "call dein#install()"
-
-echo "Wait until every script is installed..."
-echo "Enjoy!!!"
-
+show_message ""
+show_message "${MAGENTA}Now all you have to do is run nvim."
+show_message "Once inside the text editor type the following in the NORMAL mode: "
+show_message "${P}:call dein#install()${MAGENTA}"
+show_message "Wait until every script is installed...${BLUE}"
+show_message "Enjoy!!!"
