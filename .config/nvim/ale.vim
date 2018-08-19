@@ -12,5 +12,3 @@ let g:ale_linters = {'javascript': ['prettier', 'eslint']}
 
 nmap <silent> <C-S-k> <Plug>(ale_previous_wrap)
 nmap <silent> <C-S-j> <Plug>(ale_next_wrap)
-
-let g:airline#extensions#ale#enabled = 1

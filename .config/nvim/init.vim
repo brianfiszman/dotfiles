@@ -9,6 +9,7 @@ source ~/.config/nvim/matchtag.vim
 source ~/.config/nvim/nerdtree.vim
 source ~/.config/nvim/emmet.vim
 source ~/.config/nvim/ctrlp.vim
+source ~/.config/nvim/neoterm.vim
 
 source ~/.config/nvim/git/fugitive.vim
 
