@@ -2,14 +2,14 @@
 
 <h2>Install</h2>
 <pre>
-git clone https://github.com/brianfiszman/dotfiles
-cd ./dotfiles
-sudo chmod +x ./install.sh
+$ git clone https://github.com/brianfiszman/dotfiles
+$ cd ./dotfiles
+$ sudo chmod +x ./install.sh
 </pre></br>
 
 Now run the `install.sh` script.
 
-<pre>sh ./install.sh</pre></br>
+<pre>$ sh ./install.sh</pre></br>
 
 
 Okey, the last part, open `nvim` and input the following:
