@@ -46,9 +46,8 @@ set nobackup       "no backup files
 set nowritebackup  "only in case you don't want a backup file while editing
 set noswapfile     "no swap files
 
-set t_Co=256
 silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
 silent! helptags ALL
 
 let &runtimepath.=',~/.vim/bundle/neoterm'
-
+let g:ackprg = 'ag --vimgrep'

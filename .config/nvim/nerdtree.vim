@@ -21,4 +21,3 @@ let g:NERDTreeIndicatorMapCustom = {
 
 nnoremap <C-e> :NERDTreeToggle<CR>
 nnoremap <silent> <Leader>e :NERDTreeFind<CR>
-
