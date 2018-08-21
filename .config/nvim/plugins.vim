@@ -74,6 +74,8 @@ if dein#load_state('~/.cache/dein')
         \ 'on_cmd': ['Ack', 'LAck'],
         \ })
 
+  call dein#add('carlitux/deoplete-ternjs', { 'do': 'yarn global add tern' })
+
   if !has('nvim')
     call dein#add('roxma/nvim-yarp')
     call dein#add('roxma/vim-hug-neovim-rpc')
