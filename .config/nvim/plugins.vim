@@ -68,6 +68,7 @@ if dein#load_state('~/.cache/dein')
   call dein#add('nvie/vim-flake8')
   call dein#add('klen/python-mode')
   call dein#add('ryanoasis/vim-devicons')
+  call dein#add('jacoborus/tender.vim')
   call dein#add('kassio/neoterm')
   call dein#add('mileszs/ack.vim', {
         \ 'if': executable('ag'),
