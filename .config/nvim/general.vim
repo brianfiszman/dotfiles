@@ -4,8 +4,7 @@ syntax enable
 
 let mapleader = ","
 
-set clipboard=unnamed
-set guifont=DroidSansMono\ Nerd\ Font\ 11
+set guifont=SauceCodePro\ Nerd\ Font\ 11
 set encoding=utf-8
 set history=700
 set fillchars+=stl:\ ,stlnc:\
