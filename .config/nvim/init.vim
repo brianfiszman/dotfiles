@@ -24,6 +24,12 @@ nmap <F8> :TagbarToggle<CR>
 
 nnoremap <c-c> :close <CR>
 
+" copy and paste
+vmap <C-c> "+yi
+vmap <C-x> "+c
+vmap <C-v> c<ESC>"+p
+imap <C-v> <ESC>"+pa
+
 " Add spaces after comment delimiters by default
 let g:NERDSpaceDelims = 1
 "
