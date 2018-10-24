@@ -17,12 +17,12 @@ set $red #ab0300
 set $green #53ab00
 
 set $ws1  "  "
-set $ws2  "  "
-set $ws3  "  "
-set $ws4  "  "
+set $ws2  "  "
+set $ws3  "  "
+set $ws4  "  "
 set $ws5  "  "
 set $ws6  "  "
-set $ws7  " "
+set $ws7  "  "
 set $ws8  " "
 set $ws9  " "
 set $ws10 " "
@@ -75,7 +75,7 @@ bindsym $mod+3 workspace $ws3
 bindsym $mod+4 workspace $ws4
 bindsym $mod+5 workspace $ws5
 bindsym $mod+6 workspace $ws6
-#bindsym $mod+7 workspace $ws7
+bindsym $mod+7 workspace $ws7
 #bindsym $mod+8 workspace $ws8
 #bindsym $mod+9 workspace $ws9
 #bindsym $mod+0 workspace $ws10
@@ -95,32 +95,40 @@ bindsym $mod+Shift+3 move container to workspace $ws3
 bindsym $mod+Shift+4 move container to workspace $ws4
 bindsym $mod+Shift+5 move container to workspace $ws5
 bindsym $mod+Shift+6 move container to workspace $ws6
-#bindsym $mod+Shift+7 move container to workspace $ws7
+bindsym $mod+Shift+7 move container to workspace $ws7
 #bindsym $mod+Shift+8 move container to workspace $ws8
 #bindsym $mod+Shift+9 move container to workspace $ws9
 #bindsym $mod+Shift+0 move container to workspace $ws10
 
-assign [class="urxvt"] $ws1
-assign [Title="Firefox"] $ws2
-assign [class="firefox-nightly"] $ws2
-assign [class="chromium"] $ws2
-assign [class="xchat"] $ws3
-assign [class="hexchat"] $ws3
-assign [Title="irssi"] $ws3
-assign [Title="weechat"] $ws3
-assign [class="Transmission"] $ws4
+assign [class="i3-sensible-terminal"] $ws1
+assign [class="Termite"] $ws1
+assign [Title="Code"] $ws2
+assign [class="code"] $ws2
+assign [Title="Firefox"] $ws3
+assign [class="firefox-nightly"] $ws3
+assign [class="chrome"] $ws3
+assign [class="chromium"] $ws3
+assign [class="robo3t"] $ws4
+assign [class="postman"] $ws4
 assign [class="Smplayer"] $ws5
 assign [class="lollypop"] $ws5
 assign [class="Nemo"] $ws6
 assign [Title="ranger"] $ws6
+assign [class="xchat"] $ws7
+assign [class="hexchat"] $ws7
+assign [Title="irssi"] $ws7
+assign [Title="weechat"] $ws7
+assign [class="skypeforlinux"] $ws7
+assign [class="telegram-desktop"] $ws7
+assign [Title="Telegram"] $ws7
+assign [Title="Skype"] $ws7
 
-
-bindsym $mod+b exec firefox-nightly
-bindsym $mod+c exec urxvt -e weechat
+bindsym $mod+b exec google-chrome-stable 
+bindsym $mod+c exec termite -e weechat
 bindsym $mod+m exec transmission-gtk
 bindsym $mod+p exec lollypop
 bindsym $mod+Shift+m exec smplayer
-bindsym $mod+Shift+f exec urxvt -e ranger
+bindsym $mod+Shift+f exec termite -e ranger
 bindsym $mod+Shift+n exec nemo
 bindsym $mod+Control+l exec sh ~/.config/i3/i3lock.sh
 
@@ -203,11 +211,14 @@ bindsym XF86MonBrightnessDown exec xbacklight -dec 20 # decrease screen brightne
 
 bindsym $mod+shift+minus move scratchpad
 bindsym $mod+minus scratchpad show
+bindsym --release Print exec gnome-screenshot
+bindsym --release $mod+Sys_Req exec gnome-screenshot -w
+bindsym --release Shift+Print exec gnome-screenshot -a
 
 exec_always feh --bg-scale /usr/share/archlinux/wallpaper/digital_3.jpg
 exec_always compton -b --backend glx --vsync opengl
-exec_always --no-startup-id nm-applet
-exec --no-startup-id volumeicon 
 exec_always --no-startup-id xrdb -load ~/.Xresources &
+exec --no-startup-id nm-applet
+exec --no-startup-id volumeicon 
 exec_always --no-startup-id setxkbmap -layout us,es
 exec_always --no-startup-id setxkbmap -option 'grp:super_space_toggle'
