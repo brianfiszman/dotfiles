@@ -1,5 +1,6 @@
 source ~/.config/nvim/autocomplete/neosnippet.vim
 source ~/.config/nvim/autocomplete/deoplete-tern.vim
+source ~/.config/nvim/autocomplete/language-server.vim
 
 let g:deoplete#enable_at_startup = 1
 let g:deoplete#auto_complete_start_length = 1

@@ -18,7 +18,7 @@ if dein#load_state('~/.cache/dein')
   call dein#add('Shougo/deoplete.nvim')
   call dein#add('shougo/neosnippet.vim')
   call dein#add('shougo/neosnippet-snippets')
-  call dein#add('wokalski/autocomplete-flow')
+  call dein#add('wokalski/autocomplete-flow', { 'do': 'yarn global add flow' })
   call dein#add('Galooshi/vim-import-js')
   call dein#add('shougo/unite.vim')
   call dein#add('shougo/deoplete.nvim')
@@ -77,6 +77,10 @@ if dein#load_state('~/.cache/dein')
         \ })
 
   call dein#add('carlitux/deoplete-ternjs', { 'do': 'yarn global add tern' })
+  call dein#add('autozimu/LanguageClient-neovim', {
+        \ 'rev': 'next',
+        \ 'build': 'bash install.sh',
+        \ })
 
   if !has('nvim')
     call dein#add('roxma/nvim-yarp')
