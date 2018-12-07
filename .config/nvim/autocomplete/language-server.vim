@@ -7,6 +7,8 @@ let g:LanguageClient_serverCommands = {
       \ 'python2': ['/usr/bin/pyls2'],
       \ }
 
+set omnifunc=LanguageClient#omniComplete      
+
 nnoremap <C-M-k> :call LanguageClient_contextMenu()<CR>
 " Or map each action separately
 nnoremap <silent> gk :call LanguageClient#textDocument_hover()<CR>
