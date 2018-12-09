@@ -3,7 +3,7 @@ source ~/.config/nvim/general.vim
 source ~/.config/nvim/tab.vim
 source ~/.config/nvim/style/colorscheme.vim
 
-source ~/.config/nvim/autocomplete/deoplete.vim
+source ~/.config/nvim/autocomplete/ncm2.vim
 
 source ~/.config/nvim/ale.vim
 source ~/.config/nvim/matchtag.vim
