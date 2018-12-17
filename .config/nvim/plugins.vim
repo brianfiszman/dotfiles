@@ -22,11 +22,11 @@ if dein#load_state('~/.cache/dein')
   call dein#add('ncm2/ncm2-pyclang')
   call dein#add('ncm2/ncm2-ultisnips')
   call dein#add('SirVer/ultisnips')
-  call dein#add('ncm2/ncm2-tern',  {'do': 'npm install'})
+  call dein#add('ncm2/ncm2-tern',  {'build': 'npm install'})
   call dein#add('phpactor/ncm2-phpactor')
-  call dein#add('phpactor/phpactor' ,  {'do': 'composer install', 'for': 'php'})
+  call dein#add('phpactor/phpactor' ,  {'build': 'composer install', 'for': 'php'})
   call dein#add('ncm2/ncm2-jedi')
-  call dein#add('wokalski/autocomplete-flow', { 'do': 'yarn global add flow' })
+  call dein#add('wokalski/autocomplete-flow', { 'build': 'yarn global add flow' })
   call dein#add('Galooshi/vim-import-js')
   call dein#add('shougo/unite.vim')
   call dein#add('octol/vim-cpp-enhanced-highlight')
@@ -83,7 +83,7 @@ if dein#load_state('~/.cache/dein')
         \ 'on_cmd': ['Ack', 'LAck'],
         \ })
 
-  call dein#add('carlitux/deoplete-ternjs', { 'do': 'yarn global add tern' })
+  call dein#add('carlitux/deoplete-ternjs', { 'build': 'yarn global add tern' })
   call dein#add('autozimu/LanguageClient-neovim', {
         \ 'rev': 'next',
         \ 'build': 'bash install.sh',
