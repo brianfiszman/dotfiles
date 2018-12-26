@@ -1,6 +1,7 @@
 source ~/.config/nvim/style/airline.vim
 source ~/.config/nvim/style/devicons.vim
 
+let g:indentLine_setColors = 1
 let g:onedark_terminal_italics = 1
 let g:onedark_terminal_bold = 1
 let g:solarized_termtrans = 1
@@ -11,7 +12,7 @@ let g:solarized_termcolors = 256
 let g:rainbow_active = 1
 
 set background=dark
-colorscheme gruvbox
+colorscheme onedark
 
 
 "Use 24-bit (true-color) mode in Vim/Neovim when outside tmux.
