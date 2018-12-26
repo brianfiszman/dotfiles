@@ -23,6 +23,8 @@ noremap <C-S-f> :Autoformat<CR>
 nmap <F8> :TagbarToggle<CR>
 
 nnoremap <c-c> :close <CR>
+nnoremap <S-A-Left> :bp<CR>
+nnoremap <S-A-Right> :bn <CR>
 
 " copy and paste
 vmap <C-c> "+yi
