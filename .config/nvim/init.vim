@@ -18,6 +18,8 @@ source ~/.config/nvim/cpp.vim
 source ~/.config/nvim/javascript.vim
 source ~/.config/nvim/python.vim
 
+source ~/.config/nvim/bindings/ack.vim
+
 noremap <C-S-f> :Autoformat<CR>
 
 nmap <F8> :TagbarToggle<CR>
