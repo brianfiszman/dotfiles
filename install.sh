@@ -1,11 +1,13 @@
-#!/bin/sh
+#!/bin/bash
 
 GREEN=$(tput setaf 28)
 MAGENTA=$(tput setaf 13)
 BLUE=$(tput setaf 12)
 
-# move to script directory so all relative paths work
-cd "$(dirname "$0")"
+IS_ARCH=`cat /etc/*-release | grep Arch\ Linux`
+IS_DEBIAN=`cat /etc/*-release | grep Debian`   # move to script directory so all relative paths work
+IS_UBUNTU=`cat /etc/*-release | grep Ubuntu`   cd "$(dirname "$0")"
+IS_MINT=`cat /etc/*-release | grep Mint`
 
 error() {
   echo $1
@@ -22,16 +24,24 @@ delete_directory() {
 }
 
 check_distro() {
-  IS_ARCH=`cat /etc/*-release | grep Arch\ Linux`
-  IS_DEBIAN=`cat /etc/*-release | grep Debian`
-  IS_UBUNTU=`cat /etc/*-release | grep Ubuntu`
-  IS_MINT=`cat /etc/*-release | grep Mint`
-
   if [[ $IS_ARCH == "" && $IS_DEBIAN == "" && $IS_UBUNTU == "" && $IS_MINT == "" ]]; then
     error "Warning!"
     error "Please, only run this script on ArchLinux, Debian, Mint or Ubuntu"
     exit 1;
   fi
+}
+
+install_silver_searcher() {
+if ! [[ -x "$(command -v ag)" ]]; then 
+  echo "Installing The Silver Searcher"
+  if [[ $IS_ARCH != "" ]]; then
+    sudo pacman -S the_silver_searcher 
+  fi
+
+  if [[ $IS_DEBIAN != "" || $IS_UBUNTU != "" || $IS_MINT != "" ]]; then
+    sudo apt-get install silversearcher-ag
+  fi
+fi
 }
 
 clean_up() {
@@ -53,6 +63,12 @@ delete_previous_setup() {
   delete_directory ~/.config/nvim
   delete_directory ~/.cache/dein
 }
+
+#check distro
+check_distro
+
+#install the silver searcher
+install_silver_searcher
 
 # Delete existant installation.
 delete_previous_setup
