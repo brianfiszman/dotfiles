@@ -1,13 +1,14 @@
 let g:LanguageClient_serverCommands = {
-      \ 'javascript': ['/usr/bin/javascript-typescript-stdio'],
+      \ 'javascript': ['javascript-typescript-stdio'],
       \ 'c': ['/usr/bin/ccls'],
       \ 'cpp': ['/usr/bin/ccls'],
-      \ 'javascript.jsx': ['tcp://127.0.0.1:2089'],
+      \ 'javascript.jsx': ['javascript-typescript-stdio'],
       \ 'python': ['/usr/bin/pyls'],
       \ 'python2': ['/usr/bin/pyls2'],
       \ }
 
 set omnifunc=LanguageClient#omniComplete      
+set completefunc=LanguageClient#complete
 
 nnoremap <C-M-k> :call LanguageClient_contextMenu()<CR>
 " Or map each action separately
