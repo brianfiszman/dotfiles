@@ -56,20 +56,12 @@ install_process() {
 
   echo "Copying .vim files"
   cp -rTv ./.config/nvim ~/.config/nvim
-
-  echo "Copying Emacs files"
-
-  cp -rv ./.emacs ~/
-  cp -rv ./.emacs.d ~/
 }
 
 delete_previous_setup() {
   echo "Deleting previous install"
   delete_directory ~/.config/nvim
   delete_directory ~/.cache/dein
-  delete_directory ~/.emacs.d
-  
-  rm -f ~/.emacs
 }
 
 #check distro
@@ -91,7 +83,6 @@ source ./install/draw.sh
 
 
 show_message ""
-show_message "NeoVim and Emacs are installed!!"
 show_message "${MAGENTA}Now all you have to do is run nvim."
 show_message "Once inside the text editor type the following in the NORMAL mode: "
 show_message "${P}:call dein#install()${MAGENTA}"
