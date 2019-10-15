@@ -1,4 +1,8 @@
-(add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode)) ;; auto-enable for .js/.jsx files
+(add-to-list 'auto-mode-alist '("\\.js?$" . js2-mode)) ;; auto-enable for .js/.jsx files
+(add-to-list 'auto-mode-alist '("\\.react.js\\'" . rjsx-mode))
+(add-to-list 'magic-mode-alist '("/\\*\\* @jsx React\\.DOM \\*/" . rjsx-mode))
+(add-to-list 'magic-mode-alist '("^import React" . rjsx-mode))
+
 (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
 (defun web-mode-init-hook ()
   "Hooks for Web mode.  Adjust indent."
@@ -13,7 +17,9 @@
                       '(javascript-jshint json-jsonlist)))
 
 ;; Enable eslint checker for web-mode
-(flycheck-add-mode 'javascript-eslint 'web-mode)
+(flycheck-add-mode 'javascript-eslint 'rjsx-mode)
+(flycheck-add-mode 'javascript-eslint 'js2-mode)
+
 ;; Enable flycheck globally
 (add-hook 'after-init-hook #'global-flycheck-mode)
 (add-hook 'flycheck-mode-hook 'add-node-modules-path)
