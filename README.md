@@ -1,4 +1,4 @@
-<h1>Welcome to my NVim setting</h1>
+<h1>Welcome to my Dotfiles!</h1>
 
 <h2>Install</h2>
 <pre>
@@ -11,8 +11,9 @@ Now run the `install.sh` script.
 
 <pre>$ sh ./install.sh</pre></br>
 
+Okey, for Emacs just open Emacs and the configuration will be installed by itself.
 
-Okey, the last part, open `nvim` and input the following:
+As for NeoVim, open `nvim` and input the following:
 
 <pre>:call dein#install()</pre>
 </br>
