@@ -4,6 +4,7 @@
 (load "~/.emacs.d/config/autocomplete/ccls.el")
 (load "~/.emacs.d/config/autocomplete/lsp.el")
 (load "~/.emacs.d/config/user/user-details.el")
+(load "~/.emacs.d/config/misc/scroll.el")
 (load "~/.emacs.d/config/magit.el")
 (load "~/.emacs.d/config/helm.el")
 (load "~/.emacs.d/config/ligatures.el")
