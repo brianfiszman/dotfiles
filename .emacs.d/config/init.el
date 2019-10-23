@@ -11,10 +11,12 @@
 (size-indication-mode t)
 
 (defun my/disable-line-numbers (&optional dummy)
-    (display-line-numbers-mode -1))
+  (display-line-numbers-mode -1))
 (add-hook 'neo-after-create-hook 'my/disable-line-numbers)
 
-(add-to-list 'default-frame-alist '(font . "Fira Code Retina"))
+(setq use-default-font-for-symbols nil)
+(setq inhibit-compacting-font-caches t)
+(setq default-font-family "FuraCode Nerd Font")
 
 (setq-default indicate-empty-lines t)
 (when (not indicate-empty-lines)
@@ -31,7 +33,7 @@
 ;; disable auto-save and auto-backup
 (setq auto-save-default nil)
 (setq make-backup-files nil)
-(setq set-mark-command-repeat-pop t)  ; Repeating C-SPC after popping mark 
+(setq set-mark-command-repeat-pop t)  ; Repeating C-SPC after popping mark
 
 (delete-selection-mode t)
 (transient-mark-mode t)
