@@ -1,4 +1,5 @@
 (use-package company
+             :ensure t
              :diminish company-mode
              :defines
              (company-dabbrev-ignore-case company-dabbrev-downcase)
@@ -31,10 +32,11 @@
                                                  )))))
              :config
              ;; using child frame
-             (use-package company-posframe
+             (use-package company-posframe :ensure t
                           :hook (company-mode . company-posframe-mode))
              ;; Show pretty icons
              (use-package company-box
+                          :ensure t
                           :diminish
                           :hook (company-mode . company-box-mode)
                           :init (setq company-box-icons-alist 'company-box-icons-all-the-icons)
@@ -89,6 +91,7 @@
 
              ;; Show quick tooltip
              (use-package company-quickhelp
+                          :ensure t
                           :defines company-quickhelp-delay
                           :bind (:map company-active-map
                                       ("M-h" . company-quickhelp-manual-begin))
