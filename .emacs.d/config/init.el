@@ -49,3 +49,12 @@
 
 (setq backup-directory-alist `((".*" . ,temporary-file-directory)))
 (setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+
+;; Change cursor style
+(add-to-list 'default-frame-alist '(cursor-type . bar))
+;; vertical border
+(let ((display-table (or standard-display-table (make-display-table))))
+  (set-display-table-slot display-table 'vertical-border (make-glyph-code ?│)) ; or ┃ │
+  (setq standard-display-table display-table))
+(set-face-background 'vertical-border "#0e0f1b")
+(set-face-foreground 'vertical-border (face-background 'vertical-border))
