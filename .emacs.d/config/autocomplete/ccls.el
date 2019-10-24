@@ -11,5 +11,8 @@
 (use-package yasnippet
   :ensure t
   :config
+  ;; Adding yasnippet support to company
   (yas-global-mode 1)
 )
+
+(use-package yasnippet-snippets :ensure t)
