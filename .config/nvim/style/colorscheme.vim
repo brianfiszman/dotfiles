@@ -33,3 +33,8 @@ endif
 
 
 
+if system("defaults read -g AppleInterfaceStyle") =~ '^Dark'
+   set background=dark
+else
+  set background=light
+endif

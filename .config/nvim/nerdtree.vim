@@ -2,7 +2,7 @@ let NERDTreeShowHidden=1
 
 let g:NERDTreeDirArrowExpandable = '▸'
 let g:NERDTreeDirArrowCollapsible = '▾'
-
+let g:NERDTreeStatusline = ''
 let NERDTreeMinimalUI = 1
 let NERDTreeDirArrows = 1
 

@@ -15,3 +15,5 @@ augroup END
 
 " prettier-eslint
 autocmd FileType javascript set formatprg=prettier-eslint\ --stdi
+
+let g:vim_jsx_pretty_colorful_config = 1
