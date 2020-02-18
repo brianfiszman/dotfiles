@@ -1,2 +1,1 @@
-cnoreabbrev Ack Ack!
-nnoremap <Leader>a :Ack!<Space>
+nnoremap <Leader>a :Ag<CR>

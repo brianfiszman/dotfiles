@@ -1,4 +1,4 @@
-let g:ctrlp_map = '<c-p>'
+let g:ctrlp_map = '<c-m-p>'
 let g:ctrlp_cmd = 'CtrlP'
 
 let g:ctrlp_match_window = 'bottom,order:ttb'
