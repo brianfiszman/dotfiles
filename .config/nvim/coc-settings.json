@@ -1,0 +1,11 @@
+{
+    "suggest.enablePreview": true,
+    "suggest.maxPreviewWidth": 100,
+    "diagnostic.maxWindowHeight": 20,
+    "diagnostic.errorSign": "✖",
+    "diagnostic.warningSign": "⚠",
+    "diagnostic.infoSign": "●",
+    "diagnostic.hintSign": "○",
+    "eslint.enable": true,
+    "coc.preferences.colorSupport": true,
+}

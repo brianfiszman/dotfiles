@@ -3,7 +3,7 @@ source ~/.config/nvim/general.vim
 source ~/.config/nvim/tab.vim
 source ~/.config/nvim/style/colorscheme.vim
 
-source ~/.config/nvim/autocomplete/ncm2.vim
+source ~/.config/nvim/autocomplete/coc.vim
 
 source ~/.config/nvim/ale.vim
 source ~/.config/nvim/matchtag.vim
@@ -19,6 +19,7 @@ source ~/.config/nvim/javascript.vim
 source ~/.config/nvim/python.vim
 
 source ~/.config/nvim/bindings/ack.vim
+source ~/.config/nvim/bindings/fzf.vim
 
 noremap <C-S-f> :Autoformat<CR>
 
@@ -83,3 +84,4 @@ if exists('$TMUX')
   let &t_EI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=0\x7\<Esc>\\"
   let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
 endif
+set tags=tags
