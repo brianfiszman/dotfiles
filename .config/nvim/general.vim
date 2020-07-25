@@ -4,7 +4,7 @@ syntax enable
 
 let mapleader = ","
 
-set guifont=SauceCodePro\ Nerd\ Font\ 11
+set guifont=Fire\ Code\ Nerd\ Font\ 11
 set encoding=utf-8
 set history=700
 set fillchars+=stl:\ ,stlnc:\
@@ -50,3 +50,9 @@ silent! helptags ALL
 
 let &runtimepath.=',~/.vim/bundle/neoterm'
 let g:ackprg = 'ag --vimgrep'
+
+let g:comfortable_motion_no_default_key_mappings = 1
+nnoremap <silent> <S-down> :call comfortable_motion#flick(100)<CR>
+nnoremap <silent> <S-up> :call comfortable_motion#flick(-100)<CR>
+noremap <silent> <ScrollWheelDown> :call comfortable_motion#flick(40)<CR>
+noremap <silent> <ScrollWheelUp>   :call comfortable_motion#flick(-40)<CR>

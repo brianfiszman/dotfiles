@@ -7,6 +7,10 @@ endfunction
 let g:WebDevIconsUnicodeDecorateFileNodes = 1
 let g:WebDevIconsUnicodeDecorateFolderNodes = 1
 let g:DevIconsEnableFoldersOpenClose = 1
+let g:DevIconsEnableFolderExtensionPatternMatching = 1
+let g:webdevicons_conceal_nerdtree_brackets = 1
+let g:WebDevIconsNerdTreeAfterGlyphPadding = ' '
+let g:WebDevIconsNerdTreeBeforeGlyphPadding = ''
 
 call NERDTreeHighlightFile('jade', 'green', 'none', 'green', 'none')
 call NERDTreeHighlightFile('ini', 'yellow', 'none', 'yellow', 'none')
@@ -26,3 +30,5 @@ call NERDTreeHighlightFile('gitconfig', 'Gray', 'none', '#686868', 'none')
 call NERDTreeHighlightFile('gitignore', 'Gray', 'none', '#686868', 'none')
 call NERDTreeHighlightFile('bashrc', 'Gray', 'none', '#686868', 'none')
 call NERDTreeHighlightFile('bashprofile', 'Gray', 'none', '#686868', 'none')
+
+

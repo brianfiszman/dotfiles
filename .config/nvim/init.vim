@@ -20,8 +20,10 @@ source ~/.config/nvim/python.vim
 
 source ~/.config/nvim/bindings/ack.vim
 source ~/.config/nvim/bindings/fzf.vim
+source ~/.config/nvim/bindings/splitting.vim
 
-noremap <C-S-f> :Autoformat<CR>
+noremap <M-f> :Format<CR>
+noremap <C-f> :Autoformat<CR>
 
 nmap <F8> :TagbarToggle<CR>
 
@@ -75,7 +77,7 @@ let g:EasyMotion_smartcase = 1
 let g:EasyMotion_use_smartsign_us = 1 " US layout
 
 " Use a blinking upright bar cursor in Insert mode, a blinking block in normal
-if &term == 'xterm-256color' || &term == 'screen-256color' || &term == 'xterm-termite'
+if &term == 'xterm-256color' || &term == 'screen-256color' || &term == 'xterm-termite' || &term == 'tmux-256color'
   let &t_SI = "\<Esc>[5 q"
   let &t_EI = "\<Esc>[1 q"
 endif
@@ -85,3 +87,10 @@ if exists('$TMUX')
   let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
 endif
 set tags=tags
+
+let g:blamer_enabled = 1
+let g:blamer_delay = 500
+
+" Delete buffer
+nmap <silent> <leader>d :bp\|bd #<CR>
+
