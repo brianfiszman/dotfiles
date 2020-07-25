@@ -1,7 +1,11 @@
+set shell=/bin/zsh
+let $SHELL = "/bin/zsh"
+let $FZF_PREVIEW_PREVIEW_BAT_THEME = 'ansi-dark'
+filetype off
+
 source ~/.config/nvim/plugins.vim
 source ~/.config/nvim/general.vim
 source ~/.config/nvim/tab.vim
-source ~/.config/nvim/style/colorscheme.vim
 
 source ~/.config/nvim/autocomplete/coc.vim
 
@@ -20,8 +24,16 @@ source ~/.config/nvim/python.vim
 
 source ~/.config/nvim/bindings/ack.vim
 source ~/.config/nvim/bindings/fzf.vim
+source ~/.config/nvim/bindings/splitting.vim
+source ~/.config/nvim/style/colorscheme.vim
 
-noremap <C-S-f> :Autoformat<CR>
+" testing rounded separators (extra-powerline-symbols):
+let g:airline_left_sep = "\uE0C0"
+let g:airline_right_sep = "\uE0C7"
+" set the CN (column number) symbol:
+let g:airline_section_z = airline#section#create(["\uE0A1" . '%{line(".")}' . "\uE0A3" . '%{col(".")}'])
+noremap <C-f> :Format<CR>
+noremap <M-f> :Autoformat<CR>
 
 nmap <F8> :TagbarToggle<CR>
 
@@ -75,7 +87,7 @@ let g:EasyMotion_smartcase = 1
 let g:EasyMotion_use_smartsign_us = 1 " US layout
 
 " Use a blinking upright bar cursor in Insert mode, a blinking block in normal
-if &term == 'xterm-256color' || &term == 'screen-256color' || &term == 'xterm-termite'
+if &term == 'xterm-256color' || &term == 'screen-256color' || &term == 'xterm-termite' || &term == 'tmux-256color'
   let &t_SI = "\<Esc>[5 q"
   let &t_EI = "\<Esc>[1 q"
 endif
@@ -85,3 +97,14 @@ if exists('$TMUX')
   let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
 endif
 set tags=tags
+
+let g:blamer_enabled = 1
+let g:blamer_delay = 500
+
+" Delete buffer
+nmap <silent> <leader>d :bp\|bd #<CR>
+set conceallevel=3
+
+if exists("g:loaded_webdevicons")
+	call webdevicons#refresh()
+endif

@@ -3,6 +3,7 @@ let g:neoterm_default_mod='tab'
 let g:neoterm_automap_keys=',tp'
 let g:neoterm_repl_ruby='pry'
 let g:neoterm_repl_python='ipython'
+let g:neoterm_repl_node='node'
 let g:neoterm_autoinsert = 1
 let g:neoterm_autoscroll = 1
 let g:neoterm_size = 15

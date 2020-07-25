@@ -6,7 +6,7 @@ let g:NERDTreeStatusline = ''
 let NERDTreeMinimalUI = 1
 let NERDTreeDirArrows = 1
 
-let g:NERDTreeIndicatorMapCustom = {
+let g:NERDTreeGitStatusIndicatorMapCustom = {
       \ "Modified"  : "✹",
       \ "Staged"    : "✚",
       \ "Untracked" : "✭",
@@ -18,6 +18,8 @@ let g:NERDTreeIndicatorMapCustom = {
       \ 'Ignored'   : '☒',
       \ "Unknown"   : "?"
       \ }
+
+let g:NERDTreeGitStatusUseNerdFonts = 1 " you should install nerdfonts by yourself. default: 0
 
 nnoremap <C-e> :NERDTreeToggle<CR>
 nnoremap <silent> <Leader>e :NERDTreeFind<CR>
