@@ -1,6 +1,5 @@
 filetype plugin on
 filetype plugin indent on
-syntax enable
 
 let mapleader = ","
 
@@ -40,6 +39,8 @@ set foldenable
 set ruler
 set foldmethod=syntax
 set laststatus=2
+
+let c_space_errors=1
 
 set nobackup       "no backup files
 set nowritebackup  "only in case you don't want a backup file while editing
