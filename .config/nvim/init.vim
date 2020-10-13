@@ -21,6 +21,9 @@ source ~/.config/nvim/python.vim
 source ~/.config/nvim/bindings/ack.vim
 source ~/.config/nvim/bindings/fzf.vim
 source ~/.config/nvim/bindings/splitting.vim
+source ~/.config/nvim/bindings/multicursor.vim
+
+source ~/.config/nvim/style/devicons.vim
 
 noremap <M-f> :Format<CR>
 noremap <C-f> :Autoformat<CR>
@@ -37,26 +40,6 @@ vmap <C-x> "+c
 vmap <C-v> c<ESC>"+p
 imap <C-v> <ESC>"+pa
 
-" Add spaces after comment delimiters by default
-let g:NERDSpaceDelims = 1
-"
-" " Use compact syntax for prettified multi-line comments
-let g:NERDCompactSexyComs = 1
-"
-" " Align line-wise comment delimiters flush left instead of following code indentation
-let g:NERDDefaultAlign = 'left'
-"
-" " Set a language to use its alternate delimiters by default
-let g:NERDAltDelims_java = 1
-"
-" " Add your own custom formats or override the defaults
-let g:NERDCustomDelimiters = { 'c': { 'left': '/**','right': '*/' } }
-"
-" " Allow commenting and inverting empty lines (useful when commenting a region)
-let g:NERDCommentEmptyLines = 1
-"
-" " Enable trimming of trailing whitespace when uncommenting
-let g:NERDTrimTrailingWhitespace = 1
 
 " <Leader>f{char} to move to {char}
 map  <Leader>f <Plug>(easymotion-bd-f)
@@ -94,3 +77,9 @@ let g:blamer_delay = 500
 " Delete buffer
 nmap <silent> <leader>d :bp\|bd #<CR>
 
+" after a re-source, fix syntax matching issues (concealing brackets):
+syntax on
+if exists('g:loaded_webdevicons')
+  call webdevicons#refresh()
+endif
+hi Normal guibg=NONE ctermbg=NONE

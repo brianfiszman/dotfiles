@@ -23,4 +23,3 @@ autocmd FileType javascriptreact set formatprg=prettier-eslint\ --stdi
 let g:vim_jsx_pretty_colorful_config = 1
 let g:formatters_javascriptreact = ['eslint_local', 'jsbeautify_javascript', 'jscs', 'standard_javascript', 'prettier', 'xo_javascript']
 
-
