@@ -16,6 +16,7 @@ if dein#load_state('~/.cache/dein')
 
   " Add or remove your plugins here:
   call dein#add('neoclide/coc.nvim', {'merged':0, 'rev': 'release'})
+  call dein#add('ryanoasis/powerline-extra-symbols')
   call dein#add('roxma/nvim-yarp')
   call dein#add('shougo/unite.vim')
   call dein#add('octol/vim-cpp-enhanced-highlight')
@@ -23,9 +24,9 @@ if dein#load_state('~/.cache/dein')
   call dein#add('yuttie/comfortable-motion.vim')
   call dein#add('APZelos/blamer.nvim')
   call dein#add('mbbill/undotree')
-  call dein#add('scrooloose/nerdtree')
-  call dein#add('scrooloose/nerdcommenter')
+  call dein#add('preservim/nerdtree')
   call dein#add('Xuyuanp/nerdtree-git-plugin')
+  call dein#add('scrooloose/nerdcommenter')
   call dein#add('jsfaint/gen_tags.vim')
   call dein#add('mhinz/vim-startify')
   call dein#add('Valloric/MatchTagAlways')
@@ -76,6 +77,7 @@ if dein#load_state('~/.cache/dein')
         \ 'if': executable('ag'),
         \ 'on_cmd': ['Ack', 'LAck'],
         \ })
+  call dein#add('ryanoasis/vim-devicons')
 
 
   if !has('nvim')

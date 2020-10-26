@@ -39,6 +39,8 @@ let g:NERDTreeGitStatusIndicatorMapCustom = {
       \ "Unknown"   : "?"
       \ }
 
+let g:NERDTreeGitStatusUseNerdFonts = 1 " you should install nerdfonts by yourself. default: 0
+
 nnoremap <C-e> :NERDTreeToggle<CR>
 nnoremap <silent> <Leader>e :NERDTreeFind<CR>
 let g:DevIconsEnableFolderExtensionPatternMatching = 1

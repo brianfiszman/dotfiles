@@ -1,4 +1,6 @@
 {
+  "npm.binPath": "yarn",
+  "docker.enable": true,
   "suggest.echodocSupport": true,
   "suggest.enablePreview": true,
   "suggest.floatEnable": true,

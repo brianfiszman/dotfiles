@@ -1,7 +1,11 @@
+set shell=/bin/zsh
+let $SHELL = "/bin/zsh"
+let $FZF_PREVIEW_PREVIEW_BAT_THEME = 'ansi-dark'
+filetype off
+
 source ~/.config/nvim/plugins.vim
 source ~/.config/nvim/general.vim
 source ~/.config/nvim/tab.vim
-source ~/.config/nvim/style/colorscheme.vim
 
 source ~/.config/nvim/autocomplete/coc.vim
 
@@ -23,10 +27,15 @@ source ~/.config/nvim/bindings/fzf.vim
 source ~/.config/nvim/bindings/splitting.vim
 source ~/.config/nvim/bindings/multicursor.vim
 
-source ~/.config/nvim/style/devicons.vim
+source ~/.config/nvim/style/colorscheme.vim
 
-noremap <M-f> :Format<CR>
-noremap <C-f> :Autoformat<CR>
+" testing rounded separators (extra-powerline-symbols):
+let g:airline_left_sep = "\uE0C0"
+let g:airline_right_sep = "\uE0C7"
+" set the CN (column number) symbol:
+let g:airline_section_z = airline#section#create(["\uE0A1" . '%{line(".")}' . "\uE0A3" . '%{col(".")}'])
+noremap <C-f> :Format<CR>
+noremap <M-f> :Autoformat<CR>
 
 nmap <F8> :TagbarToggle<CR>
 
@@ -76,10 +85,8 @@ let g:blamer_delay = 500
 
 " Delete buffer
 nmap <silent> <leader>d :bp\|bd #<CR>
+set conceallevel=3
 
-" after a re-source, fix syntax matching issues (concealing brackets):
-syntax on
-if exists('g:loaded_webdevicons')
-  call webdevicons#refresh()
+if exists("g:loaded_webdevicons")
+	call webdevicons#refresh()
 endif
-hi Normal guibg=NONE ctermbg=NONE

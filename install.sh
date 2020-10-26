@@ -35,11 +35,11 @@ install_silver_searcher() {
 if ! [[ -x "$(command -v ag)" ]]; then 
   echo "Installing The Silver Searcher"
   if [[ $IS_ARCH != "" ]]; then
-    sudo pacman -S the_silver_searcher 
+    sudo pacman -Sy the_silver_searcher bat neovim python-pynvim ripgrep
   fi
 
   if [[ $IS_DEBIAN != "" || $IS_UBUNTU != "" || $IS_MINT != "" ]]; then
-    sudo apt-get install silversearcher-ag
+    sudo apt-get install silversearcher-ag bat
   fi
 fi
 }
