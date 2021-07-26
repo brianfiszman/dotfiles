@@ -11,9 +11,6 @@ let g:solarized_italic = 1
 let g:solarized_termcolors = 256
 let g:rainbow_active = 1
 
-let g:gruvbox_bold = 1
-let g:gruvbox_italic = 1
-
 colorscheme space-vim-dark
 set background=dark
 
@@ -21,8 +18,6 @@ set background=dark
 "Based on Vim patch 7.4.1770 (`guicolors` option) < https://github.com/vim/vim/commit/8a633e3427b47286869aa4b96f2bfc1fe65b25cd >
 " < https://github.com/neovim/neovim/wiki/Following-HEAD#20160511 >
 if (has("termguicolors"))
-  set t_8f=[38;2;%lu;%lu;%lum
-  set t_8b=[48;2;%lu;%lu;%lum
   set termguicolors
 endif
 

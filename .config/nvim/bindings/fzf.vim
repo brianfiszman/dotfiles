@@ -18,3 +18,4 @@ nnoremap <Leader>gf :BCommits<CR>
 nnoremap <Space>gl :CocCommand fzf-preview.GitLogs<CR>
 nnoremap <Space>gb :CocCommand fzf-preview.GitBranches<CR>
 
+

@@ -127,3 +127,6 @@ let g:coc_snippet_next = '<tab>'
 
 " Highlight symbol under cursor on CursorHold
 autocmd CursorHold * silent call CocActionAsync('highlight')
+" CoC extensions
+let g:coc_global_extensions = ['coc-tsserver']
+let g:yats_host_keyword = 1

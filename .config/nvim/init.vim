@@ -1,3 +1,5 @@
+let $NVIM_TUI_ENABLE_TRUE_COLOR=1
+set re=0
 set shell=/bin/zsh
 let $SHELL = "/bin/zsh"
 let $FZF_PREVIEW_PREVIEW_BAT_THEME = 'ansi-dark'
@@ -25,15 +27,13 @@ source ~/.config/nvim/python.vim
 source ~/.config/nvim/bindings/ack.vim
 source ~/.config/nvim/bindings/fzf.vim
 source ~/.config/nvim/bindings/splitting.vim
-source ~/.config/nvim/bindings/multicursor.vim
+
+source ~/.config/nvim/tests/ultests.vim
+
+source ~/.config/nvim/debugger/dap.vim
 
 source ~/.config/nvim/style/colorscheme.vim
 
-" testing rounded separators (extra-powerline-symbols):
-let g:airline_left_sep = "\uE0C0"
-let g:airline_right_sep = "\uE0C7"
-" set the CN (column number) symbol:
-let g:airline_section_z = airline#section#create(["\uE0A1" . '%{line(".")}' . "\uE0A3" . '%{col(".")}'])
 noremap <C-f> :Format<CR>
 noremap <M-f> :Autoformat<CR>
 
@@ -49,6 +49,26 @@ vmap <C-x> "+c
 vmap <C-v> c<ESC>"+p
 imap <C-v> <ESC>"+pa
 
+" Add spaces after comment delimiters by default
+let g:NERDSpaceDelims = 1
+"
+" " Use compact syntax for prettified multi-line comments
+let g:NERDCompactSexyComs = 1
+"
+" " Align line-wise comment delimiters flush left instead of following code indentation
+let g:NERDDefaultAlign = 'left'
+"
+" " Set a language to use its alternate delimiters by default
+let g:NERDAltDelims_java = 1
+"
+" " Add your own custom formats or override the defaults
+let g:NERDCustomDelimiters = { 'c': { 'left': '/**','right': '*/' } }
+"
+" " Allow commenting and inverting empty lines (useful when commenting a region)
+let g:NERDCommentEmptyLines = 1
+"
+" " Enable trimming of trailing whitespace when uncommenting
+let g:NERDTrimTrailingWhitespace = 1
 
 " <Leader>f{char} to move to {char}
 map  <Leader>f <Plug>(easymotion-bd-f)
@@ -84,7 +104,7 @@ let g:blamer_enabled = 1
 let g:blamer_delay = 500
 
 " Delete buffer
-nmap <silent> <leader>d :bp\|bd #<CR>
+nmap <silent> <leader>d :bp\|bd! #<CR>
 set conceallevel=3
 
 if exists("g:loaded_webdevicons")

@@ -1,6 +1,7 @@
 {
   "npm.binPath": "yarn",
   "docker.enable": true,
+  "jest.watch": true,
   "suggest.echodocSupport": true,
   "suggest.enablePreview": true,
   "suggest.floatEnable": true,
@@ -12,20 +13,13 @@
   "diagnostic.warningSign": "⚠️",
   "diagnostic.infoSign": "●",
   "diagnostic.hintSign": "○",
-  "eslint.enable": true,
   "prettier.eslintIntegration": true,
   "coc.preferences.colorSupport": true,
   "highlight.document.enable": true,
   "highlight.colors.enable": true,
+  "highlight.colorNames.enable": true,
   "git.enableGutters": true,
-  "git.enableGlobalStatus": false,
-  "eslint.filetypes": [
-    "javascript",
-    "javascript.jsx",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact"
-  ],
+  "git.enableGlobalStatus": true,
   "suggest.completionItemKindLabels": {
     "keyword": "\uf1de",
     "variable": "\ue79b",
@@ -53,5 +47,6 @@
     "typeParameter": "\uf728",
     "default": "\uf29c"
   },
-  "json.format.enable": true
+  "jest.terminalPosition": "right",
+  "typescript.validate.enable": true
 }

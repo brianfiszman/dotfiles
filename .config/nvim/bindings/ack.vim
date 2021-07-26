@@ -1,1 +1,1 @@
-nnoremap <Leader>a :Ag<CR>
+nnoremap <Leader>a :Rg<CR>
