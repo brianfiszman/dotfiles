@@ -1,5 +1,6 @@
 let mapleader = ","
 
+set conceallevel=3
 set guifont=Fire\ Code\ Nerd\ Font\ 11
 set history=700
 set fillchars+=stl:\ ,stlnc:\
@@ -34,7 +35,7 @@ set showmatch
 set foldenable
 set ruler
 set foldmethod=syntax
-set laststatus=2
+" set laststatus=2
 
 set nobackup       "no backup files
 set nowritebackup  "only in case you don't want a backup file while editing
@@ -49,7 +50,6 @@ set encoding=utf-8
 silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
 silent! helptags ALL
 
-let &runtimepath.=',~/.vim/bundle/neoterm'
 let g:ackprg = 'ag --vimgrep'
 
 let g:comfortable_motion_no_default_key_mappings = 1

@@ -7,11 +7,11 @@ filetype off
 
 source ~/.config/nvim/plugins.vim
 source ~/.config/nvim/general.vim
+source ~/.config/nvim/go.vim
 source ~/.config/nvim/tab.vim
 
 source ~/.config/nvim/autocomplete/coc.vim
 
-source ~/.config/nvim/ale.vim
 source ~/.config/nvim/matchtag.vim
 source ~/.config/nvim/nerdtree.vim
 source ~/.config/nvim/emmet.vim
@@ -33,6 +33,8 @@ source ~/.config/nvim/tests/ultests.vim
 source ~/.config/nvim/debugger/dap.vim
 
 source ~/.config/nvim/style/colorscheme.vim
+source ~/.config/nvim/style/bufferline.lua
+source ~/.config/nvim/style/galaxyline.lua
 
 noremap <C-f> :Format<CR>
 noremap <M-f> :Autoformat<CR>
@@ -105,8 +107,7 @@ let g:blamer_delay = 500
 
 " Delete buffer
 nmap <silent> <leader>d :bp\|bd! #<CR>
-set conceallevel=3
 
-if exists("g:loaded_webdevicons")
-	call webdevicons#refresh()
-endif
+" if exists("g:loaded_webdevicons")
+"   call webdevicons#refresh()
+" endif

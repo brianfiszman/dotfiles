@@ -30,3 +30,4 @@ tnoremap <C-t> <C-\><C-n> :call ToggleVertical()<CR>
 
 tnoremap <esc> <C-\><C-n>
 
+let &runtimepath.=',~/.vim/bundle/neoterm'

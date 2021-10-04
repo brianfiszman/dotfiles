@@ -1,6 +1,7 @@
+nmap <silent> <leader>td :lua require('dap-go').debug_test()<CR>
+
 lua <<EOF
 local dap = require('dap')
-
 require("dapui").setup({
   icons = {
     expanded = "▾",
@@ -14,7 +15,6 @@ require("dapui").setup({
     edit = "e",
   },
   sidebar = {
-    open_on_start = true,
     elements = {
       -- You can change the order of elements in the sidebar
       "scopes",
@@ -22,15 +22,14 @@ require("dapui").setup({
       "stacks",
       "watches"
     },
-    width = 40,
+    size = 40,
     position = "left" -- Can be "left" or "right"
   },
   tray = {
-    open_on_start = true,
     elements = {
       "repl"
     },
-    height = 10,
+    size = 10,
     position = "bottom" -- Can be "bottom" or "top"
   },
   floating = {
@@ -43,6 +42,23 @@ dap.adapters.node2 = {
   command = 'node',
   args = {os.getenv('HOME') .. '.local/lib/vscode-node-debug2/out/src/nodeDebug.js'},
 }
+
+dap.adapters.go = {
+  type = 'executable';
+  command = 'node';
+  args = {os.getenv('HOME') .. '/Downloads/vscode-go/dist/debugAdapter.js'};
+}
+dap.configurations.go = {
+  {
+    type = 'go';
+    name = 'Debug';
+    request = 'launch';
+    showLog = false;
+    program = "${file}";
+    dlvToolPath = vim.fn.exepath('dlv')  -- Adjust to where delve is installed
+  },
+}
+
 dap.configurations.javascript = {
   {
     type = 'node2',

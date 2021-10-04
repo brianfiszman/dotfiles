@@ -30,13 +30,13 @@ if dein#load_state('~/.cache/dein')
   call dein#add('Yggdroot/indentLine')
   call dein#add('tpope/vim-surround')
   call dein#add('luochen1990/rainbow')
-  call dein#add('joshdick/onedark.vim')
+  call dein#add('navarasu/onedark.nvim')
+  call dein#add('tjdevries/colorbuddy.vim')
+  call dein#add('Th3Whit3Wolf/onebuddy')
   call dein#add('altercation/vim-colors-solarized')
-  call dein#add('vim-airline/vim-airline')
-  call dein#add('vim-airline/vim-airline-themes')
+  call dein#add('glepnir/galaxyline.nvim')
   call dein#add('majutsushi/tagbar')
   call dein#add('flazz/vim-colorschemes')
-  call dein#add('airblade/vim-gitgutter')
   call dein#add('tpope/vim-fugitive')
   call dein#add('godlygeek/tabular')
   call dein#add('ervandew/supertab')
@@ -60,14 +60,16 @@ if dein#load_state('~/.cache/dein')
         \ 'on_cmd': ['Ack', 'LAck'],
         \ })
   call dein#add('ryanoasis/vim-devicons')
+  call dein#add('kyazdani42/nvim-web-devicons')
   call dein#add('coreyja/fzf.devicon.vim')
   " DEBUGGER
   call dein#add("mfussenegger/nvim-dap")
   call dein#add("rcarriga/nvim-dap-ui")
+  call dein#add("akinsho/bufferline.nvim")
 
   call dein#add("vim-test/vim-test")
   call dein#add("rcarriga/vim-ultest")
-  
+
 
 
   if !has('nvim')

@@ -1,8 +1,8 @@
-nnoremap <F12> :Gstatus <CR>
+nnoremap <F12> :Git <CR>
 nnoremap <F10> :Gdiff <CR>
 
-nnoremap <Leader>gb :Gblame<CR>
-nnoremap <space>gp :Gpull<CR>
+nnoremap <Leader>gb :Git blame<CR>
+nnoremap <space>gp :Git pull<CR>
 
 nmap <space>kc <Plug>(coc-git-keepcurrent)
 nmap <space>ki <Plug>(coc-git-keepincoming)
@@ -19,6 +19,6 @@ nnoremap <Leader>gco :call fzf#run({
 " checkout to branch
 "
 function! s:read_branch_into_checkout(branch)
-  execute 'G checkout'.a:branch
+  execute 'Git checkout'.a:branch
 endfunction
 
