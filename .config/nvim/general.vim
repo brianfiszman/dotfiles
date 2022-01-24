@@ -1,5 +1,7 @@
 let mapleader = ","
 
+set ignorecase
+set nocompatible
 set conceallevel=3
 set guifont=Fire\ Code\ Nerd\ Font\ 11
 set history=700
@@ -28,14 +30,13 @@ set smarttab
 set number
 set showcmd
 set cursorline
-set smartcase
 set wildmenu
 set lazyredraw
 set showmatch
 set foldenable
 set ruler
 set foldmethod=syntax
-" set laststatus=2
+set clipboard=unnamedplus
 
 set nobackup       "no backup files
 set nowritebackup  "only in case you don't want a backup file while editing
@@ -43,7 +44,7 @@ set noswapfile     "no swap files
 
 filetype plugin on
 filetype plugin indent on
-syntax enable
+syntax on
 
 set encoding=utf-8
 
@@ -57,3 +58,5 @@ nnoremap <silent> <S-down> :call comfortable_motion#flick(100)<CR>
 nnoremap <silent> <S-up> :call comfortable_motion#flick(-100)<CR>
 noremap <silent> <ScrollWheelDown> :call comfortable_motion#flick(40)<CR>
 noremap <silent> <ScrollWheelUp>   :call comfortable_motion#flick(-40)<CR>
+
+let g:db_ui_auto_execute_table_helpers = 1

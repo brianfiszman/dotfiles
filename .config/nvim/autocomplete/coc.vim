@@ -8,7 +8,7 @@ set updatetime=300
 set shortmess+=c
 
 " always show signcolumns
-set signcolumn=yes
+set signcolumn=number
 
 "
 " Use tab for trigger completion with characters ahead and navigate.
@@ -25,6 +25,10 @@ function! s:check_back_space() abort
 endfunction
 
 " Use <c-space> to trigger completion.
+if has('nvim')
+  inoremap <silent><expr> <c-space> coc#refresh()
+endif
+
 inoremap <silent><expr> <Tab> coc#refresh()
 
 " inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
@@ -51,16 +55,16 @@ nnoremap <silent> K :call <SID>show_documentation()<CR>
 function! s:show_documentation()
   if (index(['vim','help'], &filetype) >= 0)
     execute 'h '.expand('<cword>')
+  elseif (coc#rpc#ready())
+    call CocActionAsync('doHover')
   else
-    call CocAction('doHover')
+    execute '!' . &keywordprg . " " . expand('<cword>')
   endif
 endfunction
 
 
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
-
-" Remap for format selected region
 xmap <space>f  <Plug>(coc-format-selected)
 nmap <space>f  <Plug>(coc-format-selected)
 
@@ -127,3 +131,6 @@ autocmd CursorHold * silent call CocActionAsync('highlight')
 " CoC extensions
 let g:coc_global_extensions = ['coc-tsserver']
 let g:yats_host_keyword = 1
+
+" Run the Code Lens action on the current line.
+nmap <leader>cl  <Plug>(coc-codelens-action)

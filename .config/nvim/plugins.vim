@@ -19,9 +19,10 @@ if dein#load_state('~/.cache/dein')
   call dein#add('ryanoasis/powerline-extra-symbols')
   call dein#add('shougo/unite.vim')
   call dein#add('yuttie/comfortable-motion.vim')
-  call dein#add('APZelos/blamer.nvim')
+  " call dein#add('APZelos/blamer.nvim')
   call dein#add('preservim/nerdtree')
   call dein#add('Xuyuanp/nerdtree-git-plugin')
+  call dein#add('norcalli/nvim-colorizer.lua')
   call dein#add('scrooloose/nerdcommenter')
   call dein#add('jsfaint/gen_tags.vim')
   call dein#add('mhinz/vim-startify')
@@ -31,13 +32,9 @@ if dein#load_state('~/.cache/dein')
   call dein#add('tpope/vim-surround')
   call dein#add('luochen1990/rainbow')
   call dein#add('navarasu/onedark.nvim')
-  call dein#add('tjdevries/colorbuddy.vim')
-  call dein#add('Th3Whit3Wolf/onebuddy')
   call dein#add('altercation/vim-colors-solarized')
   call dein#add('glepnir/galaxyline.nvim')
   call dein#add('majutsushi/tagbar')
-  call dein#add('flazz/vim-colorschemes')
-  call dein#add('tpope/vim-fugitive')
   call dein#add('godlygeek/tabular')
   call dein#add('ervandew/supertab')
   call dein#add('tpope/vim-repeat')
@@ -70,7 +67,20 @@ if dein#load_state('~/.cache/dein')
   call dein#add("vim-test/vim-test")
   call dein#add("rcarriga/vim-ultest")
 
+  call dein#add("fatih/vim-go")
 
+
+  " Database stuff
+  call dein#add("tpope/vim-dadbod")
+  call dein#add("kristijanhusak/vim-dadbod-ui")
+
+
+  call dein#add("rcarriga/nvim-notify")
+
+  " Git
+  call dein#add('nvim-lua/plenary.nvim')
+  call dein#add('lewis6991/gitsigns.nvim')
+  call dein#add('tpope/vim-fugitive')
 
   if !has('nvim')
     call dein#add('roxma/nvim-yarp')

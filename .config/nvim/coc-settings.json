@@ -1,4 +1,13 @@
 {
+  "git.blameUseRealTime": true,
+  "git.addGBlameToVirtualText": true,
+  "git.conflict.enabled": true,
+  "git.showCommitInFloating": true,
+  "git.enableGutters": false,
+  "git.realtimeGutters": false,
+  "yaml.schemas": {
+    "kubernetes": "/*.yaml"
+  },
   "npm.binPath": "yarn",
   "docker.enable": true,
   "jest.watch": true,
@@ -18,8 +27,6 @@
   "highlight.document.enable": true,
   "highlight.colors.enable": true,
   "highlight.colorNames.enable": true,
-  "git.enableGutters": true,
-  "git.enableGlobalStatus": true,
   "suggest.completionItemKindLabels": {
     "keyword": "\uf1de",
     "variable": "\ue79b",
@@ -48,5 +55,6 @@
     "default": "\uf29c"
   },
   "jest.terminalPosition": "right",
+  "coc.source.issues.enable": true,
   "typescript.validate.enable": true
 }

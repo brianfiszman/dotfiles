@@ -37,3 +37,4 @@ call NERDTreeHighlightFile('bashrc', 'Gray', 'none', '#686868', 'none')
 call NERDTreeHighlightFile('bashprofile', 'Gray', 'none', '#686868', 'none')
 
 
+let g:db_ui_use_nerd_fonts = 1

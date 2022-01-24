@@ -19,6 +19,7 @@ source ~/.config/nvim/ctrlp.vim
 source ~/.config/nvim/neoterm.vim
 
 source ~/.config/nvim/git/fugitive.vim
+source ~/.config/nvim/git/gitsign.lua
 
 source ~/.config/nvim/cpp.vim
 source ~/.config/nvim/javascript.vim
@@ -33,6 +34,7 @@ source ~/.config/nvim/tests/ultests.vim
 source ~/.config/nvim/debugger/dap.vim
 
 source ~/.config/nvim/style/colorscheme.vim
+source ~/.config/nvim/style/colorizer.lua
 source ~/.config/nvim/style/bufferline.lua
 source ~/.config/nvim/style/galaxyline.lua
 
@@ -46,7 +48,7 @@ nnoremap <S-A-Left> :bp<CR>
 nnoremap <S-A-Right> :bn <CR>
 
 " copy and paste
-vmap <C-c> "+yi
+vmap <C-c> "+y
 vmap <C-x> "+c
 vmap <C-v> c<ESC>"+p
 imap <C-v> <ESC>"+pa

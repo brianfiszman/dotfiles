@@ -1,6 +1,6 @@
 local gl = require('galaxyline')
 local gls = gl.section
-gl.short_line_list = {'LuaTree','vista','dbui'}
+gl.short_line_list = {'nerdtree','vista','dbui','packer'}
 
 local colors = {
   bg = '#282c34',
@@ -21,6 +21,13 @@ local buffer_not_empty = function()
     return true
   end
   return false
+end
+
+local in_git_repo = function()
+    local vcs = require('galaxyline.provider_vcs')
+    local branch_name = vcs.get_git_branch()
+
+    return branch_name ~= nil
 end
 
 gls.left[1] = {
@@ -65,7 +72,7 @@ gls.left[4] = {
 gls.left[5] = {
   GitIcon = {
     provider = function() return '  ' end,
-    condition = buffer_not_empty,
+    condition = in_git_repo,
     highlight = {colors.orange,colors.purple},
   }
 }

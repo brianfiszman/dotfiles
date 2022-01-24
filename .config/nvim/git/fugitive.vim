@@ -21,4 +21,3 @@ nnoremap <Leader>gco :call fzf#run({
 function! s:read_branch_into_checkout(branch)
   execute 'Git checkout'.a:branch
 endfunction
-
