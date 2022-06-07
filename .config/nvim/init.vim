@@ -9,6 +9,7 @@ source ~/.config/nvim/plugins.vim
 source ~/.config/nvim/general.vim
 source ~/.config/nvim/go.vim
 source ~/.config/nvim/tab.vim
+source ~/.config/nvim/treesitter.lua
 
 source ~/.config/nvim/autocomplete/coc.vim
 
@@ -25,9 +26,6 @@ source ~/.config/nvim/cpp.vim
 source ~/.config/nvim/javascript.vim
 source ~/.config/nvim/python.vim
 
-source ~/.config/nvim/bindings/ack.vim
-source ~/.config/nvim/bindings/fzf.vim
-source ~/.config/nvim/bindings/splitting.vim
 
 source ~/.config/nvim/tests/ultests.vim
 
@@ -113,3 +111,7 @@ nmap <silent> <leader>d :bp\|bd! #<CR>
 " if exists("g:loaded_webdevicons")
 "   call webdevicons#refresh()
 " endif
+
+source ~/.config/nvim/bindings/ack.vim
+source ~/.config/nvim/bindings/fzf.vim
+source ~/.config/nvim/bindings/splitting.vim

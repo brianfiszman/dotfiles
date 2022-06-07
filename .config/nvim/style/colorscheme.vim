@@ -1,3 +1,4 @@
+let g:rainbow_active = 1
 let g:bufferline_echo = 0
 set fillchars+=stl:\ ,stlnc:\
 set noshowmode
@@ -15,7 +16,6 @@ let g:solarized_underline = 1
 let g:solarized_italic = 1
 let g:solarized_termcolors = 256
 let g:rainbow_active = 1
-let g:onedark_style = 'deep'
 
 " colorscheme onebuddy
 set background=dark
