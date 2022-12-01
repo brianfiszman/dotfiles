@@ -8,7 +8,7 @@ set updatetime=300
 set shortmess+=c
 
 " always show signcolumns
-set signcolumn=number
+set signcolumn=yes
 
 "
 " Use tab for trigger completion with characters ahead and navigate.
@@ -134,3 +134,5 @@ let g:yats_host_keyword = 1
 
 " Run the Code Lens action on the current line.
 nmap <leader>cl  <Plug>(coc-codelens-action)
+
+

@@ -8,7 +8,7 @@
   "yaml.schemas": {
     "kubernetes": "/*.yaml"
   },
-  "npm.binPath": "yarn",
+  "npm.binPath": "npm",
   "docker.enable": true,
   "jest.watch": true,
   "suggest.echodocSupport": true,
@@ -56,5 +56,9 @@
   },
   "jest.terminalPosition": "right",
   "coc.source.issues.enable": true,
-  "typescript.validate.enable": true
+  "typescript.validate.enable": true,
+  "snippets.ultisnips.pythonPrompt": false,
+  "jira.user.email": "brian.fiszman@aenetworks.com",
+  "jira.workspaceUrl": "https://aetndigital.atlassian.net",
+  "jira.user.apiKey": "YPCdGI10jfl07Cy9Igd31026"
 }

@@ -1,8 +1,7 @@
-let g:rainbow_active = 1
 let g:bufferline_echo = 0
 set fillchars+=stl:\ ,stlnc:\
 set noshowmode
-let g:Powerline_sybols = 'unicode'
+let g:Powerline_sybols = 'fancy'
 let g:deus_termcolors=256
 
 source ~/.config/nvim/style/devicons.vim

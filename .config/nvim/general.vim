@@ -37,6 +37,7 @@ set foldenable
 set ruler
 set foldmethod=syntax
 set clipboard=unnamedplus
+set ttyfast                                 " terminal acceleration
 
 set nobackup       "no backup files
 set nowritebackup  "only in case you don't want a backup file while editing
@@ -60,3 +61,4 @@ noremap <silent> <ScrollWheelDown> :call comfortable_motion#flick(40)<CR>
 noremap <silent> <ScrollWheelUp>   :call comfortable_motion#flick(-40)<CR>
 
 let g:db_ui_auto_execute_table_helpers = 1
+let g:cursorhold_updatetime = 100

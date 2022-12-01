@@ -3,7 +3,7 @@ set re=0
 set shell=/bin/zsh
 let $SHELL = "/bin/zsh"
 let $FZF_PREVIEW_PREVIEW_BAT_THEME = 'ansi-dark'
-filetype off
+filetype on
 
 source ~/.config/nvim/plugins.vim
 source ~/.config/nvim/general.vim
@@ -12,9 +12,10 @@ source ~/.config/nvim/tab.vim
 source ~/.config/nvim/treesitter.lua
 
 source ~/.config/nvim/autocomplete/coc.vim
+source ~/.config/nvim/autocomplete/coc.lua
 
 source ~/.config/nvim/matchtag.vim
-source ~/.config/nvim/nerdtree.vim
+source ~/.config/nvim/nvim-tree.lua
 source ~/.config/nvim/emmet.vim
 source ~/.config/nvim/ctrlp.vim
 source ~/.config/nvim/neoterm.vim
@@ -27,11 +28,12 @@ source ~/.config/nvim/javascript.vim
 source ~/.config/nvim/python.vim
 
 
-source ~/.config/nvim/tests/ultests.vim
+source ~/.config/nvim/tests/neotests.lua
 
 source ~/.config/nvim/debugger/dap.vim
 
 source ~/.config/nvim/style/colorscheme.vim
+source ~/.config/nvim/style/indentline.lua
 source ~/.config/nvim/style/colorizer.lua
 source ~/.config/nvim/style/bufferline.lua
 source ~/.config/nvim/style/galaxyline.lua
@@ -91,7 +93,7 @@ let g:EasyMotion_smartcase = 1
 let g:EasyMotion_use_smartsign_us = 1 " US layout
 
 " Use a blinking upright bar cursor in Insert mode, a blinking block in normal
-if &term == 'xterm-256color' || &term == 'screen-256color' || &term == 'xterm-termite' || &term == 'tmux-256color'
+if &term == 'xterm-256color' || &term == 'xterm-kitty'|| &term == 'screen-256color' || &term == 'xterm-termite' || &term == 'tmux-256color'
   let &t_SI = "\<Esc>[5 q"
   let &t_EI = "\<Esc>[1 q"
 endif
@@ -115,3 +117,4 @@ nmap <silent> <leader>d :bp\|bd! #<CR>
 source ~/.config/nvim/bindings/ack.vim
 source ~/.config/nvim/bindings/fzf.vim
 source ~/.config/nvim/bindings/splitting.vim
+
