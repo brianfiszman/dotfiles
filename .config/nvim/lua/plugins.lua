@@ -1,26 +1,9 @@
 require("lazy").setup({
-  'ryanoasis/powerline-extra-symbols',
-  'yuttie/comfortable-motion.vim',
-  'nvim-lua/plenary.nvim',
-  'rcarriga/nvim-notify',
-  --- LSP ---
   {
-    'VonHeikemen/lsp-zero.nvim',
-    branch = 'v3.x',
-    dependencies = {
-      'neovim/nvim-lspconfig',
-      'nvimdev/lspsaga.nvim',
-      'onsails/lspkind.nvim',
-      'williamboman/mason.nvim',
-      'williamboman/mason-lspconfig.nvim',
-      'pmizio/typescript-tools.nvim',
-      'folke/neodev.nvim',
-      'ray-x/lsp_signature.nvim',
-      'hrsh7th/cmp-nvim-lsp-signature-help',
-      'nvim-treesitter/nvim-treesitter', -- optional
-      'nvim-tree/nvim-web-devicons'      -- optional
-    },
-    config = function() require "lsp.lsp-zero-config" end
+    'ryanoasis/powerline-extra-symbols',
+    'yuttie/comfortable-motion.vim',
+    'nvim-lua/plenary.nvim',
+    'rcarriga/nvim-notify',
   },
   -- SNIPPETS --
   {
@@ -36,6 +19,11 @@ require("lazy").setup({
       'saadparwaiz1/cmp_luasnip',
       "lukas-reineke/cmp-under-comparator",
     },
+  },
+  {
+    "microsoft/vscode-js-debug",
+    opt = true,
+    build = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"
   },
   {
     "L3MON4D3/LuaSnip",
@@ -106,14 +94,10 @@ require("lazy").setup({
     end,
   },
   {
-    'edluffy/hologram.nvim',
-    config = function() require 'hologram'.setup { auto_display = true } end
-  },
-  {
     "kylechui/nvim-surround",
     version = "*", -- Use for stability; omit to use `main` branch for the latest features
     event = "VeryLazy",
-    config = function() require("nvim-surround").setup {} end
+    config = true
   },
   {
     "sindrets/diffview.nvim",
@@ -164,6 +148,9 @@ require("lazy").setup({
     opts = {}
   },
   "mg979/vim-visual-multi",
+  --- LSP ---
+  require "lsp.lsp-zero",
+  --- CORE ---
   require 'core.auto-pairs',
   require 'core.toggleterm',
   require 'core.schemastore',
@@ -177,4 +164,5 @@ require("lazy").setup({
   require 'bindings.comment',
   require 'git.neogit',
   require 'tests.neotests',
+  require 'dap.nvim-dap',
 })

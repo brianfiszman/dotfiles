@@ -18,7 +18,9 @@ return function(lsp_zero, servers)
 
   -- import lspconfig plugin
 
-  require("neodev").setup {}
+  require("neodev").setup({
+    library = { plugins = { "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.nvim", "telescope.nvim" }, types = true },
+  })
   require('luasnip.loaders.from_vscode').lazy_load()
   require("typescript-tools").setup {
     complete_function_calls = true,
@@ -99,6 +101,12 @@ return function(lsp_zero, servers)
     on_attach = on_attach,
     single_file_support = false,
     root_dir = lspconfig.util.root_pattern("yarn.lock", "package-lock.json"),
+    settings = {
+      completions = {
+        completeFunctionCalls = true,
+        showTodos = true,
+      }
+    }
   }
 
   lspconfig.eslint.setup({
@@ -115,7 +123,8 @@ return function(lsp_zero, servers)
       ".eslintrc.cjs",
       ".eslintrc.yaml",
       ".eslintrc.yml",
-      ".eslintrc.json"
+      ".eslintrc.json",
+      "package.json"
     ),
     single_file_support = false,
   })
@@ -196,7 +205,7 @@ return function(lsp_zero, servers)
     },
   })
 
-  require'lsp_signature'.setup({
+  require 'lsp_signature'.setup({
     bind = true, -- This is mandatory, otherwise border config won't get registered.
     handler_opts = {
       border = "rounded"

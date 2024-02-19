@@ -20,8 +20,9 @@ function M.config()
   local icons = require "core.icons"
   local actions = require "telescope.actions"
 
+  local telescope = require("telescope")
 
-  require("telescope").setup {
+  telescope.setup {
     defaults = {
       prompt_prefix = icons.ui.Telescope .. " ",
       selection_caret = icons.ui.Forward .. " ",
