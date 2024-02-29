@@ -35,7 +35,7 @@ function M.config()
     LSP_ZERO.default_keymaps({ buffer = bufnr })
     local opts = { buffer = bufnr }
 
-    vim.keymap.set({ 'n', 'x' }, '<C-f>', function()
+    vim.keymap.set({ 'n', 'x' }, '<C-S-f>', function()
       vim.lsp.buf.format({ async = false, timeout_ms = 10000 })
     end, opts)
   end)

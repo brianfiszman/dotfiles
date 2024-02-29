@@ -3,7 +3,22 @@ local M = {
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
     -- general tests
-    "vim-test/vim-test",
+    {
+      "vim-test/vim-test",
+      opts = {
+        setup = {},
+      },
+      config = function(plugin, opts)
+        vim.g["test#strategy"] = "neovim"
+        vim.g["test#neovim#term_position"] = "belowright"
+        vim.g["test#neovim#preserve_screen"] = 1
+
+        -- Set up vim-test
+        for k, _ in pairs(opts.setup) do
+          opts.setup[k](plugin, opts)
+        end
+      end,
+    },
     "nvim-neotest/neotest-vim-test",
     -- language specific tests
     "marilari88/neotest-vitest",
@@ -17,11 +32,23 @@ local M = {
     "rcasia/neotest-bash",
     "antoinemadec/FixCursorHold.nvim",
     "nvim-lua/plenary.nvim",
+    "mfussenegger/nvim-dap"
   },
 }
 
 function M.config()
   local wk = require "which-key"
+  local neotest_ns = vim.api.nvim_create_namespace("neotest")
+  vim.diagnostic.config({
+    virtual_text = {
+      format = function(diagnostic)
+        -- Replace newline and tab characters with space for more compact diagnostics
+        local message = diagnostic.message:gsub("\n", " "):gsub("\t", " "):gsub("%s+", " "):gsub("^%s+", "")
+        return message
+      end,
+    },
+  }, neotest_ns)
+
   wk.register {
     ["<leader>tt"] = { "<cmd>lua require'neotest'.run.run()<cr>", "Test Nearest" },
     ["<leader>tw"] = { "<cmd>lua require('neotest').run.run({ jestCommand = 'jest --watch ' })<cr>", "Test Watch" },
@@ -42,9 +69,29 @@ function M.config()
     discovery = {
       enabled = false,
     },
+    icons = {
+      passed = "",
+      running = "",
+      failed = "",
+      skipped = "",
+      unknown = "",
+      child_indent = "│",
+      child_prefix = "├",
+      collapsed = "",
+      expanded = "",
+      final_child_indent = " ",
+      final_child_prefix = "╰",
+      non_collapsed = "",
+      watching = "",
+      running_animated = { "⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷" },
+    },
     status = { virtual_text = true },
     output = { open_on_run = true },
+    log_level = 3,
     adapters = {
+      require("neotest-vim-test")({
+        ignore_file_types = { "python", "vim", "lua" },
+      }),
       require "neotest-python" {
         dap = { justMyCode = false },
       },
@@ -53,22 +100,16 @@ function M.config()
       require "neotest-zig",
       require "neotest-go",
       require('neotest-mocha')({
-        command = "yarn test:e2e",
-        env = { CI = "true" },
-        cwd = function()
-          local file = vim.fn.expand('%:p')
-          if string.find(file, "/packages/") then
-            return string.match(file, "(.-/[^/]+/)src")
-          end
-          return vim.fn.getcwd()
-        end
+        command = "yarn test",
+        env = { CI = true },
+        cwd = function() return vim.fn.getcwd() end,
       }),
-      -- require('neotest-jest')({
-      --   jestCommand = "yarn test:e2e",
-      --   jestConfigFile = "jest.config.js",
-      --   env = { CI = "true" },
-      --   cwd = function() return vim.fn.getcwd() end,
-      -- }),
+      require('neotest-jest')({
+        jestCommand = "yarn test --silent",
+        jestConfigFile = "scripts/vscode-mocharc.yml",
+        env = { CI = true },
+        cwd = function() return vim.fn.getcwd() end,
+      }),
     },
   }
 end

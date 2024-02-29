@@ -3,7 +3,6 @@ require("lazy").setup({
     'ryanoasis/powerline-extra-symbols',
     'yuttie/comfortable-motion.vim',
     'nvim-lua/plenary.nvim',
-    'rcarriga/nvim-notify',
   },
   -- SNIPPETS --
   {
@@ -18,12 +17,19 @@ require("lazy").setup({
       'rafamadriz/friendly-snippets',
       'saadparwaiz1/cmp_luasnip',
       "lukas-reineke/cmp-under-comparator",
+      "nvim-treesitter/nvim-treesitter",
+      'Exafunction/codeium.vim',
     },
   },
   {
+    'Joakker/lua-json5',
+    build = './install.sh',
+    config = function() table.insert(vim._so_trails, "/?.dylib") end,
+  },
+  {
     "microsoft/vscode-js-debug",
-    opt = true,
-    build = "npm install --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"
+    opt = {},
+    build = "npm i --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"
   },
   {
     "L3MON4D3/LuaSnip",
@@ -60,6 +66,10 @@ require("lazy").setup({
   },
   {
     'nvim-treesitter/nvim-treesitter',
+    dependencies = {
+      -- Additional text objects for treesitter
+      "nvim-treesitter/nvim-treesitter-textobjects",
+    },
     build = ":TSUpdate",
     config = function() require 'treesitter' end
   },
@@ -147,6 +157,40 @@ require("lazy").setup({
     'yamatsum/nvim-cursorline',
     opts = {}
   },
+  {
+    'echasnovski/mini.animate',
+    version = '*',
+    opts = function()
+      -- don't use animate when scrolling with the mouse
+      local mouse_scrolled = false
+      for _, scroll in ipairs({ "up", "down" }) do
+        local key = "<scrollwheel" .. scroll .. ">"
+        vim.keymap.set({ "", "i" }, key, function()
+          mouse_scrolled = true
+          return key
+        end, { expr = true })
+      end
+
+      local animate = require("mini.animate")
+      return {
+        resize = {
+          timing = animate.gen_timing.linear({ duration = 100, unit = "total" }),
+        },
+        scroll = {
+          timing = animate.gen_timing.linear({ duration = 150, unit = "total" }),
+          subscroll = animate.gen_subscroll.equal({
+            predicate = function(total_scroll)
+              if mouse_scrolled then
+                mouse_scrolled = false
+                return false
+              end
+              return total_scroll > 1
+            end,
+          }),
+        },
+      }
+    end,
+  },
   "mg979/vim-visual-multi",
   --- LSP ---
   require "lsp.lsp-zero",
@@ -155,14 +199,19 @@ require("lazy").setup({
   require 'core.toggleterm',
   require 'core.schemastore',
   require 'core.colorizer',
-  require 'navigation.project',
-  require 'navigation.alpha',
-  require 'navigation.dressing',
-  require 'navigation.telescope',
+  require 'core.notify',
   require 'style.lualine',
   require 'style.indentline',
   require 'bindings.comment',
   require 'git.neogit',
   require 'tests.neotests',
-  require 'dap.nvim-dap',
+  require 'navigation.neoscroll',
+  require 'navigation.project',
+  require 'navigation.alpha',
+  require 'navigation.telescope',
+  require 'navigation.dressing',
+  require 'navigation.noice',
+  require 'dap.mason-nvim-dap',
+  require 'linting.nvim-lint',
+  require 'formatting.conform',
 })

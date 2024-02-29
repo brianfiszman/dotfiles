@@ -5,9 +5,14 @@ return function(lsp_zero)
   local lspkind = require('lspkind')
   local saga = require('lspsaga')
 
+  vim.api.nvim_set_hl(0, "CmpGhostText", { link = "Comment", default = true })
+
   saga.setup({ symbol_in_winbar = { enable = false } })
 
   cmp.setup({
+    completion = {
+      completeopt = "menu,menuone,noinsert",
+    },
     sources = cmp.config.sources({
       { name = 'codeium' },
       { name = 'luasnip',                keyword_length = 3, option = { show_autosnippets = true } }, -- For luasnip users.
@@ -121,6 +126,7 @@ return function(lsp_zero)
     vim.lsp.handlers.hover,
     { border = 'rounded' }
   )
+
 
   vim.lsp.handlers['textDocument/signatureHelp'] = vim.lsp.with(
     vim.lsp.handlers.signature_help,

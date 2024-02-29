@@ -2,23 +2,43 @@ local flavour = "mocha" -- macchiato, mocha, frappe, latte
 local colors = require("catppuccin.palettes").get_palette(flavour)
 
 require("catppuccin").setup({
-	styles = { comments = { "italic" }, conditionals = { "italic" } },
-	term_colors = true,
-	integrations = {
-		cmp = true,
-		gitsigns = true,
-		nvimtree = true,
-		telescope = true,
-		treesitter = true,
-		treesitter_context = true,
-	},
-	transparent_background = false,
-	custom_highlights = {
-		Comment = { fg = colors.overlay1 },
-		TreesitterContextLineNumber = { fg = colors.sky },
-		LineNr = { fg = colors.overlay0 },
-		CursorLineNr = { fg = colors.sky, style = { "bold" } },
-	},
+  styles = { comments = { "italic" }, conditionals = { "italic" } },
+  term_colors = true,
+  integrations = {
+    alpha = true,
+    cmp = true,
+    gitsigns = true,
+    nvimtree = true,
+    neotest = true,
+    telescope = true,
+    treesitter = true,
+    treesitter_context = true,
+    indent_blankline = {
+      enabled = false,
+      scope_color = "sapphire",
+      colored_indent_levels = false,
+    },
+    mason = true,
+    native_lsp = {
+      enabled = true,
+      underlines = {
+        errors = { "undercurl" },
+        hints = { "undercurl" },
+        warnings = { "undercurl" },
+        information = { "undercurl" },
+      },
+    },
+    notify = true,
+    symbols_outline = true,
+  },
+  transparent_background = false,
+  custom_highlights = {
+    Comment = { fg = colors.overlay1 },
+    TreesitterContextLineNumber = { fg = colors.sky },
+    LineNr = { fg = colors.overlay0 },
+    CursorLineNr = { fg = colors.sky, style = { "bold" } },
+  },
+  which_key = true,
 })
 
 

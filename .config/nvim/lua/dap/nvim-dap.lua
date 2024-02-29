@@ -1,11 +1,3 @@
-local js_based_languages = {
-  "typescript",
-  "javascript",
-  "typescriptreact",
-  "javascriptreact",
-  "vue",
-}
-
 local M = {
   "mfussenegger/nvim-dap",
   dependencies = {
@@ -26,26 +18,7 @@ local M = {
         },
       },
     },
-    {
-      "mxsdev/nvim-dap-vscode-js",
-      dependencies = {
-        "microsoft/vscode-js-debug",
-        version = "1.x",
-        build = "npm i && npm run compile vsDebugServerBundle && mv dist out"
-      },
-      -- After install, build it and rename the dist directory to out
-      config = function()
-        require("dap-vscode-js").setup({
-          node_path = 'node',
-          debugger_path = vim.fn.stdpath("data") .. "/lazy/vscode-js-debug",
-          adapters = { 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost' }, -- which adapters to register in nvim-dap
-        })
-      end
-    }
-    --    require "dap.dap-vscode-js",
-    -- require 'dap.mason-nvim-dap',
   },
-
   keys = {
     { "<leader>DB", function() require("dap").set_breakpoint(vim.fn.input('Breakpoint condition: ')) end, desc = "Breakpoint Condition" },
     { "<leader>Db", function() require("dap").toggle_breakpoint() end,                                    desc = "Toggle Breakpoint" },
@@ -83,8 +56,6 @@ local M = {
 }
 
 function M.config()
-  require 'dap.languages.typescript'.setAdapters(js_based_languages)
-
   vim.api.nvim_set_hl(0, "DapStoppedLine", { default = true, link = "Visual" })
 end
 

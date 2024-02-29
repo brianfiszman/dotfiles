@@ -9,7 +9,16 @@ return function(lsp_zero, servers)
   local keymap = vim.keymap -- for conciseness
   local opts = { noremap = true, silent = true }
 
-  require("mason").setup()
+  require("mason").setup({
+    ui = {
+      border = "rounded",
+      icons = {
+        package_installed = "✓",
+        package_pending = "➜",
+        package_uninstalled = "✗"
+      }
+    }
+  })
   require("mason-lspconfig").setup {
     ensure_installed = servers,
     handlers = { lsp_zero.default_setup }
@@ -19,7 +28,16 @@ return function(lsp_zero, servers)
   -- import lspconfig plugin
 
   require("neodev").setup({
-    library = { plugins = { "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.nvim", "telescope.nvim" }, types = true },
+    library = {
+      enabled = true, -- when not enabled, neodev will not change any settings to the LSP server
+      -- these settings will be used for your Neovim config directory
+      runtime = true, -- runtime path
+      plugins = { "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.nvim", "telescope.nvim" },
+      types = true
+    },
+    setup_jsonls = true, -- configures jsonls to provide completion for project specific .luarc.json files
+    lspconfig = true,
+    pathStrict = true,
   })
   require('luasnip.loaders.from_vscode').lazy_load()
   require("typescript-tools").setup {
@@ -93,6 +111,14 @@ return function(lsp_zero, servers)
     lspconfig[lsp].setup {
       on_attach = on_attach,
       capabilities = capabilities,
+      underline = true,
+      update_in_insert = false,
+      virtual_text = {
+        spacing = 4,
+        source = "if_many",
+        prefix = "●",
+      },
+      severity_sort = true,
     }
   end
 
@@ -101,6 +127,14 @@ return function(lsp_zero, servers)
     on_attach = on_attach,
     single_file_support = false,
     root_dir = lspconfig.util.root_pattern("yarn.lock", "package-lock.json"),
+    underline = true,
+    update_in_insert = false,
+    virtual_text = {
+      spacing = 4,
+      source = "if_many",
+      prefix = "●",
+    },
+    severity_sort = true,
     settings = {
       completions = {
         completeFunctionCalls = true,
@@ -116,21 +150,32 @@ return function(lsp_zero, servers)
         command = "EslintFixAll",
       })
     end,
+    underline = true,
+    update_in_insert = false,
+    virtual_text = {
+      spacing = 4,
+      source = "if_many",
+      prefix = "●",
+    },
+    severity_sort = true,
     capabilities = capabilities,
-    root_dir = lspconfig.util.root_pattern(
-      ".eslintrc",
-      ".eslintrc.js",
-      ".eslintrc.cjs",
-      ".eslintrc.yaml",
-      ".eslintrc.yml",
-      ".eslintrc.json",
-      "package.json"
-    ),
+    settings = {
+      -- helps eslint find the eslintrc when it's placed in a subfolder instead of the cwd root
+      workingDirectories = { mode = "auto" },
+    },
     single_file_support = false,
   })
 
   -- configure svelte server
   lspconfig["svelte"].setup({
+    underline = true,
+    update_in_insert = false,
+    virtual_text = {
+      spacing = 4,
+      source = "if_many",
+      prefix = "●",
+    },
+    severity_sort = true,
     capabilities = capabilities,
     on_attach = function(client, bufnr)
       on_attach(client, bufnr)
@@ -150,6 +195,14 @@ return function(lsp_zero, servers)
   lspconfig.docker_compose_language_service.setup({
     on_attach = on_attach,
     capabilities = capabilities,
+    underline = true,
+    update_in_insert = false,
+    virtual_text = {
+      spacing = 4,
+      source = "if_many",
+      prefix = "●",
+    },
+    severity_sort = true,
     root_dir = lspconfig.util.root_pattern(
       "docker-compose.yml",
       "docker-compose.yaml"
@@ -161,6 +214,14 @@ return function(lsp_zero, servers)
   lspconfig.gopls.setup({
     on_attach = on_attach,
     capabilities = capabilities,
+    underline = true,
+    update_in_insert = false,
+    virtual_text = {
+      spacing = 4,
+      source = "if_many",
+      prefix = "●",
+    },
+    severity_sort = true,
     settings = {
       gopls = {
         gofumpt = true,
@@ -171,6 +232,14 @@ return function(lsp_zero, servers)
   lspconfig.yamlls.setup({
     on_attach = on_attach,
     capabilities = capabilities,
+    underline = true,
+    update_in_insert = false,
+    virtual_text = {
+      spacing = 4,
+      source = "if_many",
+      prefix = "●",
+    },
+    severity_sort = true,
     settings = {
       yaml = {
         validate = false,
@@ -190,8 +259,19 @@ return function(lsp_zero, servers)
         completion = {
           callSnippet = "Replace"
         },
+        virtual_text = {
+          spacing = 4,
+          source = "if_many",
+          prefix = "●",
+          -- this will set set the prefix to a function that returns the diagnostics icon based on the severity
+          -- this only works on a recent 0.10.0 build. Will be set to "●" when not supported
+          -- prefix = "icons",
+        },
+        severity_sort = true,
         -- make the language server recognize "vim" global
         diagnostics = {
+          underline = true,
+          update_in_insert = false,
           globals = { "vim" },
         },
         workspace = {

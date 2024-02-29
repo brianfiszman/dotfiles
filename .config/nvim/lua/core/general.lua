@@ -41,7 +41,7 @@ set number
 set showcmd
 set cursorline
 set wildmenu
-set lazyredraw
+" set lazyredraw
 set showmatch
 set foldenable
 set ruler
@@ -65,10 +65,6 @@ silent! helptags ALL
 let g:ackprg = 'ag --vimgrep'
 
 let g:comfortable_motion_no_default_key_mappings = 1
-nnoremap <silent> <S-down> :call comfortable_motion#flick(100)<CR>
-nnoremap <silent> <S-up> :call comfortable_motion#flick(-100)<CR>
-noremap <silent> <ScrollWheelDown> :call comfortable_motion#flick(40)<CR>
-noremap <silent> <ScrollWheelUp>   :call comfortable_motion#flick(-40)<CR>
 
 let g:db_ui_auto_execute_table_helpers = 1
 let g:cursorhold_updatetime = 100

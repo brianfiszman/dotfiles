@@ -1,6 +1,36 @@
 local M = {
   "lukas-reineke/indent-blankline.nvim",
-  dependencies = { 'HiPhish/rainbow-delimiters.nvim' },
+  dependencies = {
+    'HiPhish/rainbow-delimiters.nvim',
+    {
+      'echasnovski/mini.indentscope',
+      version = '*',
+      opt = {
+        symbol = "│",
+        options = { try_as_border = true },
+      },
+      init = function()
+        vim.api.nvim_create_autocmd("FileType", {
+          pattern = {
+            "help",
+            "alpha",
+            "dashboard",
+            "neo-tree",
+            "Trouble",
+            "trouble",
+            "lazy",
+            "mason",
+            "notify",
+            "toggleterm",
+            "lazyterm",
+          },
+          callback = function()
+            vim.b.miniindentscope_disable = true
+          end,
+        })
+      end
+    },
+  },
   main = "ibl",
 }
 
@@ -29,6 +59,29 @@ function M.config()
   end)
 
   vim.g.rainbow_delimiters = { highlight = highlight }
+
+  -- require("ibl").setup {
+  --   indent = {
+  --     char = "│",
+  --     tab_char = "│",
+  --   },
+  --   scope = { enabled = false },
+  --   exclude = {
+  --     filetypes = {
+  --       "help",
+  --       "alpha",
+  --       "dashboard",
+  --       "neo-tree",
+  --       "Trouble",
+  --       "trouble",
+  --       "lazy",
+  --       "mason",
+  --       "notify",
+  --       "toggleterm",
+  --       "lazyterm",
+  --     },
+  --   },
+  -- }
 
   require("ibl").setup {
     scope = { enabled = true, highlight = highlight },

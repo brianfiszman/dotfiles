@@ -29,6 +29,21 @@ function M.config(_, opts)
   dap.listeners.before.event_exited["dapui_config"] = function()
     dapui.close({})
   end
+
+  vim.fn.sign_define('DapBreakpoint',
+    {
+      text = '🔴', -- nerdfonts icon here
+      texthl = 'DapBreakpointSymbol',
+      linehl = 'DapBreakpoint',
+      numhl = 'DapBreakpoint'
+    })
+  vim.fn.sign_define('DapStopped',
+    {
+      text = '➡️', -- nerdfonts icon here
+      texthl = 'DapStoppedSymbol',
+      linehl = 'DapBreakpoint',
+      numhl = 'DapBreakpoint'
+    })
 end
 
 return M
