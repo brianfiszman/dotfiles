@@ -18,7 +18,6 @@ require("lazy").setup({
       'saadparwaiz1/cmp_luasnip',
       "lukas-reineke/cmp-under-comparator",
       "nvim-treesitter/nvim-treesitter",
-      'Exafunction/codeium.vim',
     },
   },
   {
@@ -135,11 +134,6 @@ require("lazy").setup({
     end,
   },
   {
-    'Exafunction/codeium.vim',
-    event = 'BufEnter',
-    config = function() require 'ai.codeium' end
-  },
-  {
     'b0o/incline.nvim',
     opts = {},
     -- Optional: Lazy load Incline
@@ -214,4 +208,5 @@ require("lazy").setup({
   require 'dap.mason-nvim-dap',
   require 'linting.nvim-lint',
   require 'formatting.conform',
+  require 'ai.codeium',
 })
