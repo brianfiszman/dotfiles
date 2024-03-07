@@ -1,6 +1,10 @@
 local M = {
   "nvim-telescope/telescope.nvim",
-  dependencies = { 'nvim-lua/plenary.nvim', { "nvim-telescope/telescope-fzf-native.nvim", build = "make", lazy = true } },
+  dependencies = {
+    'nvim-lua/plenary.nvim',
+    'nvim-telescope/telescope-media-files.nvim',
+    { "nvim-telescope/telescope-fzf-native.nvim", build = "make", lazy = true }
+  },
 }
 
 function M.config()
@@ -19,8 +23,9 @@ function M.config()
 
   local icons = require "core.icons"
   local actions = require "telescope.actions"
-
   local telescope = require("telescope")
+
+  telescope.load_extension('media_files')
 
   telescope.setup {
     defaults = {
@@ -123,8 +128,17 @@ function M.config()
         override_file_sorter = true,    -- override the file sorter
         case_mode = "smart_case",       -- or "ignore_case" or "respect_case"
       },
+      media_files = {
+        -- filetypes whitelist
+        -- defaults to {"png", "jpg", "mp4", "webm", "pdf"}
+        filetypes = { "png", "webp", "jpg", "jpeg", "webm", "pdf", "mp4", "mkv" },
+        -- find command (defaults to `fd`)
+        find_cmd = "rg"
+      }
     },
   }
+
+
 end
 
 return M
