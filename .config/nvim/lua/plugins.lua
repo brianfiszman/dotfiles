@@ -203,7 +203,7 @@ require("lazy").setup({
   require 'style.lualine',
   require 'style.indentline',
   require 'bindings.comment',
-  require 'git.neogit',
+  require 'git.lazygit',
   require 'tests.neotests',
   require 'navigation.neoscroll',
   require 'navigation.project',
