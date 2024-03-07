@@ -9,8 +9,8 @@ function M.setAdapters(js_based_languages, dap, dap_utils)
       command = "node",
       -- 💀 Make sure to update this path to point to your installation
       args = {
-        require("mason-registry").get_package("js-debug-adapter"):get_install_path()
-        .. "/js-debug/src/dapDebugServer.js",
+        require("mason-registry").get_package("js-debug-adapter"):get_install_path() ..
+          "/js-debug-adapter.js",
         "${port}",
       },
     },
@@ -22,10 +22,11 @@ function M.setAdapters(js_based_languages, dap, dap_utils)
       {
         type = "pwa-node",
         request = "launch",
-        name = "Launch file",
+        name = "Launch project and attach",
+        runtimeExecutable = "yarn",
+        runtimeArgs = { "start:debug:neovim" },
         program = "${file}",
         cwd = "${workspaceFolder}",
-        attachSimplePort = 9229,
       },
       {
         type = "pwa-node",
