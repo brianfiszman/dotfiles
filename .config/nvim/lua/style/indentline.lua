@@ -1,43 +1,65 @@
 local M = {
   "lukas-reineke/indent-blankline.nvim",
+  event = { 'BufReadPre', 'BufNewFile' },
   dependencies = {
     'HiPhish/rainbow-delimiters.nvim',
     {
       'echasnovski/mini.indentscope',
+      event = { 'BufReadPre', 'BufNewFile' },
       version = '*',
-      opt = {
-        symbol = "│",
-        options = { try_as_border = true },
-      },
+      opts = function()
+        return {
+          draw = {
+            delay = 100,
+          },
+          options = { try_as_border = true, },
+          symbol = "│",
+        }
+      end,
       init = function()
         vim.api.nvim_create_autocmd("FileType", {
-          pattern = {
-            "help",
-            "alpha",
-            "dashboard",
-            "neo-tree",
-            "Trouble",
-            "trouble",
-            "lazy",
-            "mason",
-            "notify",
-            "toggleterm",
-            "lazyterm",
-          },
+          pattern = EXCLUDES_BUFFTYPES,
           callback = function()
             vim.b.miniindentscope_disable = true
           end,
         })
-      end
+      end,
     },
   },
   main = "ibl",
 }
 
+
+EXCLUDES_BUFFTYPES = {
+  "help",
+  "alpha",
+  "dashboard",
+  "neo-tree",
+  "Trouble",
+  "trouble",
+  "lazy",
+  "mason",
+  "notify",
+  "toggleterm",
+  "lazyterm",
+  "help",
+  "startify",
+  "dashboard",
+  "lazy",
+  "neogitstatus",
+  "NvimTree",
+  "Trouble",
+  "text",
+}
+
 function M.config()
   local hooks = require "ibl.hooks"
-  local icons = require "core.icons"
   local highlight = {
+    "CursorColumn",
+    "Whitespace",
+  }
+
+  local rb_highlight = {
     "RainbowRed",
     "RainbowYellow",
     "RainbowBlue",
@@ -46,6 +68,9 @@ function M.config()
     "RainbowViolet",
     "RainbowCyan",
   }
+
+  local rainbow_delimiters = require "rainbow-delimiters"
+
   -- create the highlight groups in the highlight setup hook, so they are reset
   -- every time the colorscheme changes
   hooks.register(hooks.type.HIGHLIGHT_SETUP, function()
@@ -60,48 +85,31 @@ function M.config()
 
   vim.g.rainbow_delimiters = { highlight = highlight }
 
-  -- require("ibl").setup {
-  --   indent = {
-  --     char = "│",
-  --     tab_char = "│",
-  --   },
-  --   scope = { enabled = false },
-  --   exclude = {
-  --     filetypes = {
-  --       "help",
-  --       "alpha",
-  --       "dashboard",
-  --       "neo-tree",
-  --       "Trouble",
-  --       "trouble",
-  --       "lazy",
-  --       "mason",
-  --       "notify",
-  --       "toggleterm",
-  --       "lazyterm",
-  --     },
-  --   },
-  -- }
-
   require("ibl").setup {
-    scope = { enabled = true, highlight = highlight },
+    indent = { highlight = highlight, char = "", tab_char = "", },
     exclude = {
       buftypes = { "terminal", "nofile" },
-      filetypes = {
-        "help",
-        "startify",
-        "dashboard",
-        "lazy",
-        "neogitstatus",
-        "NvimTree",
-        "Trouble",
-        "text",
-      }
+      filetypes = EXCLUDES_BUFFTYPES
     },
-    indent = {
-      char = icons.ui.LineMiddle,
-    }
+    whitespace = {
+      highlight = highlight,
+      remove_blankline_trail = false,
+    },
+    scope = { enabled = false },
   }
+
+  require('rainbow-delimiters.setup').setup {
+    strategy = {
+      [''] = rainbow_delimiters.strategy['global'],
+      vim = rainbow_delimiters.strategy['local'],
+    },
+    query = {
+      [''] = 'rainbow-delimiters',
+      lua = 'rainbow-blocks',
+    },
+    highlight = rb_highlight,
+  }
+
 
   hooks.register(hooks.type.SCOPE_HIGHLIGHT, hooks.builtin.scope_highlight_from_extmark)
 end
