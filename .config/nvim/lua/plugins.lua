@@ -64,15 +64,6 @@ require("lazy").setup({
     end
   },
   {
-    'nvim-treesitter/nvim-treesitter',
-    dependencies = {
-      -- Additional text objects for treesitter
-      "nvim-treesitter/nvim-treesitter-textobjects",
-    },
-    build = ":TSUpdate",
-    config = function() require 'treesitter' end
-  },
-  {
     "akinsho/bufferline.nvim",
     version = "*",
     dependencies = "nvim-tree/nvim-web-devicons",
@@ -194,6 +185,7 @@ require("lazy").setup({
   require 'core.schemastore',
   require 'core.colorizer',
   require 'core.notify',
+  require 'treesitter',
   require 'style.lualine',
   require 'style.indentline',
   require 'bindings.comment',

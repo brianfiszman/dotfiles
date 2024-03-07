@@ -27,6 +27,5 @@ vim.opt.rtp:prepend(lazypath)
 require 'core.autocmds'
 require 'core.general'
 require 'plugins'
-require 'treesitter'
 require 'bindings.splitting'
 require 'bindings.tab'
