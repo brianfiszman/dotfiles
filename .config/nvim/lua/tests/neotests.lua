@@ -100,7 +100,7 @@ function M.config()
       require "neotest-zig",
       require "neotest-go",
       require('neotest-mocha')({
-        command = "yarn test",
+        command = "yarn test:neovim",
         env = { CI = true },
         cwd = function() return vim.fn.getcwd() end,
       }),
