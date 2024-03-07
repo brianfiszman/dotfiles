@@ -14,15 +14,11 @@ return function(lsp_zero)
       completeopt = "menu,menuone,noinsert",
     },
     sources = cmp.config.sources({
-      { name = 'codeium' },
-      { name = 'luasnip',                keyword_length = 3, option = { show_autosnippets = true } }, -- For luasnip users.
       { name = 'nvim_lsp' },
+      { name = 'luasnip',                keyword_length = 3, option = { show_autosnippets = true } }, -- For luasnip users.
       { name = 'nvim_lsp_signature_help' },
-      { name = 'nvim_lua' },
       { name = 'dotenv' },
-      { name = 'buffer',                 keyword_length = 4 },
       { name = 'path',                   keyword_length = 3 },
-      { name = 'treesitter' }
     }),
     sorting = {
       comparators = {
