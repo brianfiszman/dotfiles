@@ -11,7 +11,7 @@ local M = {
 function M.config()
   require 'nvim-treesitter.configs'.setup {
     -- A list of parser names, or "all"
-    ensure_installed = { "c", "lua", "luadoc", "go", "javascript", "typescript", "json", "json5", "jsdoc", "yaml", "xml", "vim", "vimdoc", "tsx", "scheme", "make", "dot", "dockerfile", "csv", "diff", "gitignore", "gitcommit", "git_config", "git_rebase", "gitattributes", "css", "comment", "gomod", "gosum", "gowork", "html", "ini", "markdown", "markdown_inline", "passwd", "proto", "scss", "sql" },
+    ensure_installed = { "c", "lua", "luadoc", "go", "javascript", "typescript", "json", "json5", "jsdoc", "yaml", "xml", "vim", "vimdoc", "tsx", "scheme", "make", "dot", "dockerfile", "csv", "diff", "gitignore", "gitcommit", "git_config", "git_rebase", "gitattributes", "css", "comment", "gomod", "gosum", "gowork", "html", "ini", "markdown", "markdown_inline", "passwd", "proto", "scss", "sql", "regex", "bash", "helm" },
 
     -- Install parsers synchronously (only applied to `ensure_installed`)
     sync_install = false,
@@ -24,7 +24,7 @@ function M.config()
       enable = true,
       disable = function(lang, buf)
         local max_filesize = 100 * 1024 -- 100 KB
-        local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
+        local ok, stats = pcall((vim.uv or vim.loop).fs_stat, vim.api.nvim_buf_get_name(buf))
         if ok and stats and stats.size > max_filesize then
           return true
         end

@@ -1,50 +1,58 @@
 local M = {
   'mfussenegger/nvim-lint',
-  -- Event to trigger linters
-  events = { "BufWritePost", "BufReadPost", "InsertLeave" },
-  linters_by_ft = {
-    fish = { "fish", "fish_indent" },
-    lua = { "luacheck", "luafmt" },
-    python = { "pylint", "flake8" },
-    rust = { "rustc", "cargo", "rustup" },
-    yaml = { "yamllint", "yaml-language-server" },
-    markdown = { "markdownlint", "markdownlint-cli2", "markdownlint-cli2-lint-fix" },
-    json = { "jsonlint", "jsonlint-language-server" },
-    sh = { "shellcheck" },
-    c = { "clang" },
-    cpp = { "clang" },
-    go = { "golint", "golangci-lint", "golangci-lint-langserver" },
-    javascript = { "eslint", "eslint_d", "tsserver" },
-    typescript = { "eslint", "eslint_d", "tsserver" },
-    typescriptreact = { "eslint", "eslint_d", "tsserver" },
-    javascriptreact = { "eslint", "eslint_d", "tsserver" },
-    css = { "csslint", "css-language-server" },
-    html = { "tidy", "htmlhint" },
-    scss = { "scsslint" },
-    sql = { "sqlfluff", "sql-formatter" },
-    graphql = { "gqlint" },
-    dockerfile = { "hadolint", "dockerfile-language-server" },
-    dockercompose = { "hadolint", "dockerfile-language-server" },
-    kubeconfig = { "kubectl", "kubelint" },
-    helm = { "helm", "helm-ls" },
-    -- Use the "*" filetype to run linters on all filetypes.
-    -- ['*'] = { 'global linter' },
-    -- Use the "_" filetype to run linters on filetypes that don't have other linters configured.
-    -- ['_'] = { 'fallback linter' },
-  },
-  -- LazyVim extension to easily override linter options
-  -- or add custom linters.
-  ---@type table<string,table>
-  linters = {
-    -- -- Example of using selene only when a selene.toml file is present
-    -- selene = {
-    --   -- `condition` is another LazyVim extension that allows you to
-    --   -- dynamically enable/disable linters based on the context.
-    --   condition = function(ctx)
-    --     return vim.fs.find({ "selene.toml" }, { path = ctx.filename, upward = true })[1]
-    --   end,
-    -- },
-  },
 }
+
+function M.config()
+  local lint = require('lint')
+
+  lint.linters_by_ft = {
+    fish = { 'fish' },
+    lua = { 'luacheck' },
+    python = { 'pylint', 'flake8' },
+    rust = { 'clippy' },
+    yaml = { 'yamllint' },
+    markdown = { 'markdownlint', 'markdownlint-cli2' },
+    json = { 'jsonlint' },
+    sh = { 'shellcheck' },
+    c = { 'clangtidy' },
+    cpp = { 'clangtidy' },
+    go = { 'golangcilint' },
+    javascript = { 'eslint', 'eslint_d' },
+    typescript = { 'eslint', 'eslint_d' },
+    javascriptreact = { 'eslint', 'eslint_d' },
+    typescriptreact = { 'eslint', 'eslint_d' },
+    css = { 'stylelint' },
+    scss = { 'stylelint' },
+    html = { 'tidy', 'htmlhint' },
+    sql = { 'sqlfluff' },
+    dockerfile = { 'hadolint' },
+  }
+
+  vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost', 'InsertLeave' }, {
+    group = vim.api.nvim_create_augroup('nvim-lint', { clear = true }),
+    callback = function()
+      -- nvim-lint raises an ERROR notification on every event when a linter
+      -- binary is missing, so only run the linters whose executables resolve.
+      local names = {}
+      for _, name in ipairs(lint.linters_by_ft[vim.bo.filetype] or {}) do
+        local linter = lint.linters[name]
+        if type(linter) == 'function' then
+          linter = linter()
+        end
+        local cmd = linter and linter.cmd
+        if type(cmd) == 'function' then
+          local ok, resolved = pcall(cmd)
+          cmd = ok and resolved or nil
+        end
+        if type(cmd) == 'string' and vim.fn.executable(cmd) == 1 then
+          table.insert(names, name)
+        end
+      end
+      if #names > 0 then
+        lint.try_lint(names)
+      end
+    end,
+  })
+end
 
 return M

@@ -1,3 +1,7 @@
+-- bufferline dropped diagnostics_update_in_insert; it follows the global
+-- diagnostic setting instead
+vim.diagnostic.config({ update_in_insert = true })
+
 require('bufferline').setup {
   options = {
     close_command = "bdelete! %d",
@@ -5,7 +9,6 @@ require('bufferline').setup {
     middle_mouse_command = "bdelete! %d", -- can be a string | function, see "Mouse actions"
     separator_style = "slant",
     diagnostics = "nvim_lsp",
-    diagnostics_update_in_insert = true,
     tab_size = 18,
     enforce_regular_tabs = false,
     color_icons = true,

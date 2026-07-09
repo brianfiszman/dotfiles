@@ -70,6 +70,7 @@ return function(lsp_zero)
   })
 
   -- Set configuration for specific filetype.
+  require('cmp_git').setup()
   cmp.setup.filetype('gitcommit', {
     sources = cmp.config.sources({
       { name = 'git' }, -- You can specify the `git` source if [you were installed it](https://github.com/petertriho/cmp-git).
@@ -96,19 +97,8 @@ return function(lsp_zero)
     })
   })
 
-  local sign = function(opts)
-    vim.fn.sign_define(opts.name, {
-      texthl = opts.name,
-      text = opts.text,
-      numhl = ''
-    })
-  end
-
-  sign({ name = 'DiagnosticSignError', text = '✘' })
-  sign({ name = 'DiagnosticSignWarn', text = '▲' })
-  sign({ name = 'DiagnosticSignHint', text = '⚑' })
-  sign({ name = 'DiagnosticSignInfo', text = '»' })
-
+  -- Gutter icons live in lsp-zero's set_sign_icons (lsp/lsp-zero.lua);
+  -- sign_define() stopped configuring diagnostic signs in nvim 0.12.
   vim.diagnostic.config({
     virtual_text = false,
     severity_sort = true,
@@ -118,16 +108,19 @@ return function(lsp_zero)
     },
   })
 
-  vim.lsp.handlers['textDocument/hover'] = vim.lsp.with(
-    vim.lsp.handlers.hover,
-    { border = 'rounded' }
-  )
-
-
-  vim.lsp.handlers['textDocument/signatureHelp'] = vim.lsp.with(
-    vim.lsp.handlers.signature_help,
-    { border = 'rounded' }
-  )
+  -- Rounded borders for the built-in LSP hover/signature floats.
+  -- noice.nvim re-overrides these at VeryLazy and draws its own rounded
+  -- border (lsp_doc_border preset), so this only matters without noice.
+  local hover = vim.lsp.buf.hover
+  local signature_help = vim.lsp.buf.signature_help
+  ---@diagnostic disable-next-line: duplicate-set-field
+  vim.lsp.buf.hover = function(config)
+    return hover(vim.tbl_deep_extend('force', { border = 'rounded' }, config or {}))
+  end
+  ---@diagnostic disable-next-line: duplicate-set-field
+  vim.lsp.buf.signature_help = function(config)
+    return signature_help(vim.tbl_deep_extend('force', { border = 'rounded' }, config or {}))
+  end
 
   require('lspconfig.ui.windows').default_options.border = 'rounded'
 end

@@ -21,7 +21,14 @@ return function(lsp_zero, servers)
   })
   require("mason-lspconfig").setup {
     ensure_installed = servers,
-    handlers = { lsp_zero.default_setup }
+    handlers = {
+      lsp_zero.default_setup,
+      -- mason-lspconfig v1 auto-sets-up every installed package, not just
+      -- ensure_installed; typescript-tools replaces both of these servers,
+      -- so silence them or TS buffers get three clients attached.
+      ts_ls = lsp_zero.noop,
+      vtsls = lsp_zero.noop,
+    }
   }
 
 
@@ -40,11 +47,6 @@ return function(lsp_zero, servers)
     pathStrict = true,
   })
   require('luasnip.loaders.from_vscode').lazy_load()
-  require("typescript-tools").setup {
-    complete_function_calls = true,
-    disable_member_code_lens = false,
-    code_lens = true,
-  }
 
   cmp_nvim_lsp.setup()
 
@@ -80,10 +82,24 @@ return function(lsp_zero, servers)
     keymap.set("n", "<leader>DF", vim.diagnostic.open_float, opts) -- show diagnostics for line
 
     opts.desc = "Go to previous diagnostic"
-    keymap.set("n", "[d", vim.diagnostic.goto_prev, opts) -- jump to previous diagnostic in buffer
+    keymap.set("n", "[d", function()
+      vim.diagnostic.jump({
+        count = -1,
+        on_jump = function(_, bufnr)
+          vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
+        end,
+      })
+    end, opts) -- jump to previous diagnostic in buffer
 
     opts.desc = "Go to next diagnostic"
-    keymap.set("n", "]d", vim.diagnostic.goto_next, opts) -- jump to next diagnostic in buffer
+    keymap.set("n", "]d", function()
+      vim.diagnostic.jump({
+        count = 1,
+        on_jump = function(_, bufnr)
+          vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
+        end,
+      })
+    end, opts) -- jump to next diagnostic in buffer
 
     opts.desc = "Show documentation for what is under cursor"
     keymap.set("n", "K", vim.lsp.buf.hover, opts) -- show documentation for what is under cursor
@@ -97,14 +113,6 @@ return function(lsp_zero, servers)
     --     border = "rounded",
     --   },
     -- }, bufnr)
-  end
-
-  -- Change the Diagnostic symbols in the sign column (gutter)
-  -- (not in youtube nvim video)
-  local signs = { Error = " ", Warn = " ", Hint = "󰠠 ", Info = " " }
-  for type, icon in pairs(signs) do
-    local hl = "DiagnosticSign" .. type
-    vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
   end
 
   for _, lsp in ipairs(servers) do
@@ -122,25 +130,16 @@ return function(lsp_zero, servers)
     }
   end
 
-  lspconfig.tsserver.setup {
-    capabilities = capabilities,
+  require("typescript-tools").setup {
     on_attach = on_attach,
+    capabilities = capabilities,
     single_file_support = false,
     root_dir = lspconfig.util.root_pattern("yarn.lock", "package-lock.json"),
-    underline = true,
-    update_in_insert = false,
-    virtual_text = {
-      spacing = 4,
-      source = "if_many",
-      prefix = "●",
-    },
-    severity_sort = true,
     settings = {
-      completions = {
-        completeFunctionCalls = true,
-        showTodos = true,
-      }
-    }
+      complete_function_calls = true,
+      code_lens = "all",
+      disable_member_code_lens = false,
+    },
   }
 
   lspconfig.eslint.setup({

@@ -1,20 +1,21 @@
 local M = {}
 
 function M.setAdapters(js_based_languages, dap, dap_utils)
-  dap.adapters["pwa-node"] = {
+  local js_debug_server = {
     type = "server",
     host = "localhost",
     port = "${port}",
     executable = {
       command = "node",
-      -- 💀 Make sure to update this path to point to your installation
       args = {
         require("mason-registry").get_package("js-debug-adapter"):get_install_path() ..
-          "/js-debug-adapter.js",
+          "/js-debug/src/dapDebugServer.js",
         "${port}",
       },
     },
   }
+  dap.adapters["pwa-node"] = js_debug_server
+  dap.adapters["pwa-chrome"] = js_debug_server
 
   for _, language in ipairs(js_based_languages) do
     dap.configurations[language] = {

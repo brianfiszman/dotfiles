@@ -13,11 +13,10 @@ let $FZF_PREVIEW_PREVIEW_BAT_THEME = 'ansi-dark'
 set ignorecase
 set nocompatible
 set conceallevel=3
-set guifont=Fire\ Code\ Nerd\ Font\ 11
+set guifont=FiraCode\ Nerd\ Font:h11
 set history=700
 set fillchars+=stl:\ ,stlnc:\
 set mouse=a
-set pastetoggle=<F2>
 set hidden
 set nowrap
 set hlsearch
@@ -88,6 +87,16 @@ let g:blamer_delay = 500
 " Delete buffer
 nmap <silent> <leader>d :bp\|bd! #<CR>
 ]])
+
+-- Neovim core has no helm filetype detection; helm_ls, the helm treesitter
+-- parser and conform's helm entry all key off it
+vim.filetype.add({
+  pattern = {
+    ['.*/templates/.*%.ya?ml'] = 'helm',
+    ['.*/templates/.*%.tpl'] = 'helm',
+    ['helmfile.*%.ya?ml'] = 'helm',
+  },
+})
 
 vim.opt.pumheight = 10 -- pop up menu height
 vim.opt.pumblend = 10

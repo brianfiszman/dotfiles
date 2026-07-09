@@ -18,17 +18,13 @@ require("lazy").setup({
       'saadparwaiz1/cmp_luasnip',
       "lukas-reineke/cmp-under-comparator",
       "nvim-treesitter/nvim-treesitter",
+      "petertriho/cmp-git",
     },
   },
   {
     'Joakker/lua-json5',
     build = './install.sh',
     config = function() table.insert(vim._so_trails, "/?.dylib") end,
-  },
-  {
-    "microsoft/vscode-js-debug",
-    opt = {},
-    build = "npm i --legacy-peer-deps && npx gulp vsDebugServerBundle && mv dist out"
   },
   {
     "L3MON4D3/LuaSnip",
@@ -106,7 +102,7 @@ require("lazy").setup({
   },
   {
     "nvim-neorg/neorg",
-    build = ":Neorg sync-parsers",
+    version = "*",
     dependencies = { "nvim-lua/plenary.nvim" },
     config = function()
       require("neorg").setup {
@@ -201,4 +197,8 @@ require("lazy").setup({
   require 'linting.nvim-lint',
   require 'formatting.conform',
   require 'ai.codeium',
+}, {
+  -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
+  -- bootstrap its own toolchain
+  rocks = { hererocks = true },
 })

@@ -8,41 +8,41 @@ trouble.setup()
 vim.keymap.set(
 	"n",
 	"<leader>xx",
-	"<cmd>TroubleToggle<cr>",
+	"<cmd>Trouble diagnostics toggle<cr>",
 	{ silent = true, noremap = true }
 )
 
 vim.keymap.set(
 	"n",
 	"<leader>xw",
-	"<cmd>TroubleToggle workspace_diagnostics<cr>",
+	"<cmd>Trouble diagnostics toggle<cr>",
 	{ silent = true, noremap = true }
 )
 
 vim.keymap.set(
 	"n",
 	"<leader>xd",
-	"<cmd>TroubleToggle document_diagnostics<cr>",
+	"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
 	{ silent = true, noremap = true }
 )
 
 vim.keymap.set(
 	"n",
 	"<leader>xl",
-	"<cmd>TroubleToggle loclist<cr>",
+	"<cmd>Trouble loclist toggle<cr>",
 	{ silent = true, noremap = true }
 )
 
 vim.keymap.set(
 	"n",
 	"<leader>xq",
-	"<cmd>TroubleToggle quickfix<cr>",
+	"<cmd>Trouble qflist toggle<cr>",
 	{ silent = true, noremap = true }
 )
 
 vim.keymap.set(
 	"n",
 	"gR",
-	"<cmd>TroubleToggle lsp_references<cr>",
+	"<cmd>Trouble lsp_references toggle<cr>",
 	{ silent = true, noremap = true }
 )

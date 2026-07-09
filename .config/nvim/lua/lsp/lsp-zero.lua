@@ -24,7 +24,7 @@ function M.config()
   local setup_lsp_config = require 'lsp.config'
   local setup_nvim_cmp = require 'snippets.nvim_cmp'
   local servers = { "lua_ls", "arduino_language_server", "bashls", "clangd", "cssls", "diagnosticls",
-    "docker_compose_language_service", "eslint", "dotls", "graphql", "html", "helm_ls", "jsonls", "tsserver", "marksman",
+    "docker_compose_language_service", "eslint", "dotls", "graphql", "html", "helm_ls", "jsonls", "marksman",
     "spectral", "dockerls", "tailwindcss", "yamlls", "gopls" }
 
   LSP_ZERO = require 'lsp-zero'
@@ -42,14 +42,6 @@ function M.config()
 
   LSP_ZERO.setup_servers(servers)
 
-  LSP_ZERO.configure('tsserver', {
-    settings = {
-      completions = {
-        completeFunctionCalls = true
-      }
-    }
-  })
-
   -- technically these are "diagnostic signs"
   -- neovim enables them by default.
   -- here we are just changing them to fancy icons.
@@ -59,9 +51,6 @@ function M.config()
     hint = '⚑',
     info = '»'
   })
-
-  LSP_ZERO.preset('recommended')
-  LSP_ZERO.setup()
 
   setup_lsp_config(LSP_ZERO, servers)
   setup_nvim_cmp(LSP_ZERO)

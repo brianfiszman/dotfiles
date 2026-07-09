@@ -2,7 +2,6 @@ local M = {
   "jay-babu/mason-nvim-dap.nvim",
   opts = {},
   dependencies = {
-    require "dap.vscode-js-debugger",
     require "dap.nvim-dap",
     {
       "williamboman/mason.nvim",
@@ -11,7 +10,6 @@ local M = {
         table.insert(opts.ensure_installed, "js-debug-adapter")
       end,
     },
-    "mxsdev/nvim-dap-vscode-js",
   },
 }
 
@@ -28,12 +26,6 @@ function M.config()
     automatic_installation = true,
     ensure_installed = { "go", "rust", "delve", "node2", "js", "python", "typescript", "typescriptreact", "javascript", "javascriptreact", "vue", "dart" },
     cmd = { "DapInstall", "DapUninstall" },
-  })
-
-  -- VSCODE JS (Node/Chrome/Terminal/Jest)
-  require("dap-vscode-js").setup({
-    debugger_path = vim.fn.resolve(vim.fn.stdpath("data") .. "/lazy/vscode-js-debug"),
-    adapters = { "pwa-node", "pwa-chrome", "pwa-msedge", "node-terminal", "pwa-extensionHost" },
   })
 
   require('dap.ext.vscode').load_launchjs(nil,
