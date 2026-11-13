@@ -45,6 +45,7 @@ jobs:
           sudo apt-get install --yes \
             build-essential \
             cmake \
+            coreutils \
             curl \
             fd-find \
             git \
