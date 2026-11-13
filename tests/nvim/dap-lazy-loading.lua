@@ -20,11 +20,10 @@ local function mason_log()
   return table.concat(vim.fn.readfile(path), "\n")
 end
 
--- Capture Mason diagnostics from the start of explicit activation. The
--- settings module is shared with mason-core.log, which reads log_level for
--- every write, so changing it here covers installer startup and progress.
-require("mason.settings").set({ log_level = vim.log.levels.TRACE })
-print("STEP: Mason TRACE logging enabled before DAP activation")
+-- Keep useful installer lifecycle messages without emitting Mason's
+-- per-filesystem-operation TRACE log into the headless CI artifact.
+require("mason.settings").set({ log_level = vim.log.levels.INFO })
+print("STEP: Mason INFO logging enabled before DAP activation")
 
 -- An unrelated startup must not load any part of the debugger stack or query
 -- the Mason registry for DAP adapters.
@@ -41,44 +40,8 @@ assert(
 )
 pass("DAP stack remains unloaded and does not query Mason during idle startup")
 
--- Instrument the exact boundary where Mason's installer setup currently stalls.
--- This is test-process-only: record scheduled callback execution, mkdir return
--- values, package handle states, and installer stdout/stderr.
-local original_schedule = vim.schedule
-local scheduled_count = 0
-vim.schedule = function(callback)
-  scheduled_count = scheduled_count + 1
-  local id = scheduled_count
-  if id <= 60 then
-    print(("SCHEDULE QUEUED %d"):format(id))
-  end
-  return original_schedule(function()
-    if id <= 60 then
-      print(("SCHEDULE BEGIN %d"):format(id))
-    end
-    callback()
-    if id <= 60 then
-      print(("SCHEDULE END %d"):format(id))
-    end
-  end)
-end
-
-local original_mkdir = vim.fn.mkdir
-vim.fn.mkdir = function(path, flags)
-  local mason_path = path:find("/mason/", 1, true) ~= nil
-  if mason_path then
-    print(("MKDIR ENTER path=%s flags=%s"):format(path, tostring(flags)))
-  end
-  local ok, result = pcall(original_mkdir, path, flags)
-  if mason_path then
-    print(("MKDIR RETURN path=%s ok=%s result=%s"):format(path, tostring(ok), tostring(result)))
-  end
-  if not ok then
-    error(result, 0)
-  end
-  return result
-end
-
+-- Observe Mason's package handles and terminal installation events without
+-- patching Neovim's scheduler or filesystem functions.
 local registry = require("mason-registry")
 local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
 local package_event_chunks = {}
