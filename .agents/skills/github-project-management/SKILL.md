@@ -72,6 +72,25 @@ behavior being fixed.
 - Do not delete a branch merely because its PR is closed. First establish that
   its unique work is no longer needed.
 
+## Stacked pull requests and scope control
+
+Do not grow an infrastructure/foundation PR with unrelated functional work just
+because the same files are involved.
+
+- Prefer a separate topic branch and PR for an independently testable issue.
+- If the new change genuinely depends on an unmerged PR, create a **stacked PR**
+  whose base is the parent PR's branch. State the dependency in the child PR and
+  keep the child diff limited to its own issue.
+- Do not create a stacked PR merely for convenience when the work can target the
+  default branch independently.
+- Never merge the child before its parent. After the parent merges, retarget the
+  child PR to the default branch, refresh its diff, and validate it against the
+  resulting base.
+- Record parent/child PR links in the issue and backlog so another session does
+  not mistake the dependency for a duplicate PR.
+- Keep the parent branch stable while a child PR is being prepared; re-check its
+  head SHA before branching and before opening the child PR.
+
 ## Pull request overlap and duplicate audit
 
 Similar titles, descriptions, or goals do not prove that two PRs contain the
