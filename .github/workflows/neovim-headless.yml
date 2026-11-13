@@ -1,0 +1,95 @@
+name: Neovim headless smoke test
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".config/nvim/**"
+      - "install.sh"
+      - "scripts/test-nvim-headless.sh"
+      - ".github/workflows/neovim-headless.yml"
+      - "README.md"
+  pull_request:
+    paths:
+      - ".config/nvim/**"
+      - "install.sh"
+      - "scripts/test-nvim-headless.sh"
+      - ".github/workflows/neovim-headless.yml"
+      - "README.md"
+  workflow_dispatch:
+
+# A new commit supersedes an older run for the same PR/branch.
+concurrency:
+  group: neovim-headless-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  headless-startup:
+    name: Fresh install and headless startup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEOVIM_VERSION: v0.11.0
+      NVIM_BIN: nvim
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install system tools used by plugin builds
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            build-essential \
+            cmake \
+            coreutils \
+            curl \
+            fd-find \
+            git \
+            golang-go \
+            make \
+            libreadline-dev \
+            liblua5.1-0-dev \
+            lua5.1 \
+            nodejs \
+            npm \
+            python3 \
+            python3-pynvim \
+            ripgrep \
+            unzip
+
+      - name: Install pinned Neovim
+        run: |
+          archive="$RUNNER_TEMP/neovim.tar.gz"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/$NEOVIM_VERSION/nvim-linux-x86_64.tar.gz" \
+            --output "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Configure isolated test workspace
+        run: echo "NVIM_TEST_DIR=$RUNNER_TEMP/nvim-headless-smoke" >> "$GITHUB_ENV"
+
+      - name: Prepare isolated install and verify installer safety
+        run: bash ./scripts/test-nvim-headless.sh prepare
+
+      - name: Restore locked plugins and run configured build hooks
+        run: bash ./scripts/test-nvim-headless.sh restore
+        env:
+          NVIM_RESTORE_TIMEOUT: 20m
+
+      - name: Start Neovim normally after plugin restore
+        run: bash ./scripts/test-nvim-headless.sh startup
+        env:
+          NVIM_STARTUP_TIMEOUT: 5m
+
+      - name: Upload headless logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nvim-headless-smoke-logs
+          path: ${{ runner.temp }}/nvim-headless-smoke/
+          if-no-files-found: ignore

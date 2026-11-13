@@ -58,8 +58,6 @@ syntax on
 
 set encoding=utf-8
 
-silent! call repeat#set("\<Plug>MyWonderfulMap", v:count)
-silent! helptags ALL
 
 let g:ackprg = 'ag --vimgrep'
 
