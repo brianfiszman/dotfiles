@@ -44,12 +44,14 @@ pass("DAP stack remains unloaded and does not query Mason during idle startup")
 -- patching Neovim's scheduler or filesystem functions.
 local registry = require("mason-registry")
 local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
+local requested_packages = {}
 local package_event_chunks = {}
 local install_results = {}
 registry:on("package:handle", function(pkg, handle)
   if not vim.tbl_contains(package_names, pkg.name) then
     return
   end
+  requested_packages[pkg.name] = true
   print(("PACKAGE HANDLE %s"):format(pkg.name))
   handle:on("state:change", function(new_state, old_state)
     print(("PACKAGE STATE %s %s->%s"):format(pkg.name, tostring(old_state), tostring(new_state)))
@@ -114,20 +116,21 @@ wait_for("TypeScript DAP adapters to be configured", 30000, function()
 end)
 pass("Mason registry refresh configures pwa-node and pwa-chrome")
 
--- Confirm that explicit DAP activation requested the TypeScript adapter and
--- wait for the configured adapters to finish installing. Exiting Neovim while
--- Mason installers are active aborts them, so installation completion is part
--- of this integration test (unlike the lazy-loading assertions above).
-wait_for("Mason to start the js-debug-adapter install", 30000, function()
-  return mason_log():find("Executing installer for Package(name=js-debug-adapter)", 1, true) ~= nil
-end)
+-- Ensure that Mason requested every configured adapter before waiting for
+-- terminal install events. Do not poll Package:is_installed() here: it scans
+-- the shared install root and is not an async installation-completion signal.
+local function all_packages_requested()
+  for _, name in ipairs(package_names) do
+    if not requested_packages[name] then
+      return false
+    end
+  end
+  return true
+end
 
-local active_log = mason_log()
-assert(
-  not active_log:find("Cannot find package", 1, true),
-  "Mason could not resolve a requested DAP adapter: " .. active_log
-)
-pass("explicit DAP activation requests js-debug-adapter installation")
+wait_for("Mason to request all five configured DAP adapters", 30000, all_packages_requested)
+assert(requested_packages["js-debug-adapter"], "Mason did not request js-debug-adapter")
+pass("Mason requested all five configured DAP adapters")
 
 local function all_installs_finished()
   for _, name in ipairs(package_names) do
