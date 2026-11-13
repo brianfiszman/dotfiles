@@ -276,6 +276,10 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/dap-command-trigger.lua" \
     "+qa!"
 
+  run_nvim "dap-mason-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-mason-command-trigger.lua" \
+    "+qa!"
+
   run_nvim "dap-neotest-trigger" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-neotest-trigger.lua" \
     "+qa!"
