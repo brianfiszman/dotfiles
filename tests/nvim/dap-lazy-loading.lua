@@ -23,8 +23,8 @@ end
 -- Capture Mason diagnostics from the start of explicit activation. The
 -- settings module is shared with mason-core.log, which reads log_level for
 -- every write, so changing it here covers installer startup and progress.
-require("mason.settings").set({ log_level = vim.log.levels.DEBUG })
-print("STEP: Mason DEBUG logging enabled before DAP activation")
+require("mason.settings").set({ log_level = vim.log.levels.TRACE })
+print("STEP: Mason TRACE logging enabled before DAP activation")
 
 -- An unrelated startup must not load any part of the debugger stack or query
 -- the Mason registry for DAP adapters.
@@ -168,8 +168,37 @@ local function emit_new_mason_log_lines()
   end
 
   local lines = vim.fn.readfile(path)
+  local interesting = {
+    "Creating new handle for",
+    "Changing InstallHandle",
+    "Executing installer for",
+    "Attempting to lock package",
+    "Wrote lockfile",
+    "Compiling installer.",
+    "Parsing spec",
+    "Parsed purl.",
+    "Found provider for purl.",
+    "Parsed source for purl.",
+    "fs: dir_exists",
+    "fs: fstat",
+    "fs: mkdirp",
+    "fs: mkdirp failed",
+    "Spawning cmd=",
+    "Job pid=",
+    "Installation succeeded",
+    "Installation failed",
+    "Failed to spawn process",
+    "Unexpected error",
+  }
+
   for index = last_log_line_count + 1, #lines do
-    print("MASON: " .. lines[index])
+    local line = lines[index]
+    for _, marker in ipairs(interesting) do
+      if line:find(marker, 1, true) then
+        print("MASON: " .. line)
+        break
+      end
+    end
   end
   last_log_line_count = #lines
 end
