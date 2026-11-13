@@ -44,6 +44,7 @@ jobs:
             git \
             golang-go \
             make \
+            libreadline-dev \
             nodejs \
             npm \
             python3 \
