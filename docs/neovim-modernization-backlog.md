@@ -46,11 +46,15 @@ underlying fix.
 ## Current handoff — 2026-11-13
 
 Canonical implementation branch: [PR #71](https://github.com/brianfiszman/dotfiles/pull/71),
-currently open, mergeable, and not merged. The latest validated PR head is
+currently open, mergeable, and not merged. The latest validated code head is
 `4d745c2f38bb5eb15e27f13e8fd0a34ad5eaf4c3`, with full integration run
 [43501627966](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966)
 passing isolated preparation, locked plugin restore/build hooks, normal startup,
 and the Go lazy-loading regression scenarios.
+
+The current PR head is `8a236144bf596da22cc16f8fd326cd2262a9daaf`; its only commit after the validated code head
+changes this backlog document. The workflow does not run for this docs-only path,
+so run #43501627966 remains the applicable runtime result.
 
 The final artifact [14072829773](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966/artifacts/14072829773)
 was inspected. It contains explicit PASS lines for the non-Go `CmdlineEnter`
