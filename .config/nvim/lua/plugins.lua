@@ -41,7 +41,7 @@ require("lazy").setup({
       "nvim-treesitter/nvim-treesitter",
     },
     config = function() require("go").setup() end,
-    event = { "CmdlineEnter" },
+    -- Load Go tooling only for Go source and module files, not every command line.
     ft = { "go", 'gomod' },
     -- Optional Go helper binaries are installed on demand, not during every plugin restore.
   },
