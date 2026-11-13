@@ -25,7 +25,7 @@ jobs:
       - name: Install native build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl unzip ripgrep
+          sudo apt-get install -y build-essential cmake curl unzip ripgrep libreadline-dev libncurses-dev
 
       - name: Check shell syntax
         run: bash -n install.sh scripts/neovim-smoke-test.sh
