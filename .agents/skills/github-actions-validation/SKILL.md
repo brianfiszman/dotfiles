@@ -117,3 +117,22 @@ GNU `timeout` is not part of the standard macOS userland under the name used by 
 - CI explicitly installs `coreutils` and uses GNU `timeout` for bounded restore/startup phases.
 - When run locally without GNU `timeout`, stream output and retain logs as usual, but print an explicit warning that per-phase deadlines are unavailable.
 - Do not add a GNU coreutils dependency to the dotfiles installer or make an ordinary Neovim setup depend on it.
+
+
+### Incident fingerprint — 2026-11-13: workspace preflight ran after initialization
+
+PR run [43481043006](https://github.com/brianfiszman/dotfiles/actions/runs/43481043006) reached the new split workflow, passed runner setup, package installation, pinned Neovim installation, and workspace configuration, then failed in **Prepare isolated install and verify installer safety** before shell-syntax or installer tests ran.
+
+The exact failure was:
+
+```
+Error: NVIM_TEST_DIR must be empty before the prepare phase: ...
+```
+
+Root cause: the script created `$HOME` and the XDG config/data/state/cache directories inside `NVIM_TEST_DIR` before calling `prepare()`. The `prepare()` function then checked that the same directory was empty. The check was therefore guaranteed to fail on a fresh run; this was a script ordering bug, not a Neovim/plugin failure or runner provisioning issue.
+
+Fix: move the empty-workspace preflight to the top-level setup, before `mkdir -p "$WORK_DIR"` and before any isolated HOME/XDG directories are created. Keep the guard limited to `prepare`/`all`; later `restore` and `startup` invocations must reuse the populated workspace and its marker files. The obsolete in-function check was removed.
+
+Fix commit: [10dfd2d](https://github.com/brianfiszman/dotfiles/commit/10dfd2d3969e9e6ffbdd03bbbc67668c4ad7f778).
+
+Do not call the issue resolved until a fresh run for the updated PR head passes the preparation phase, locked plugin restore/build hooks, and normal startup.
