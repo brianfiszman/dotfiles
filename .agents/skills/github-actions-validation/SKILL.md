@@ -70,6 +70,41 @@ These are repository-specific observations, not universal rules:
 - **Confirmed full integration:** run [43495833655](https://github.com/brianfiszman/dotfiles/actions/runs/43495833655) passed for exact head `98479d39470e82609402ca30e7f3e363978022b1`. Preparation, locked plugin restore/build hooks, and normal startup passed. Both Neorg parser assertions passed; no Neorg missing-parser warnings or Go helper installation failures appeared. Artifact [14072710167](https://github.com/brianfiszman/dotfiles/actions/runs/43495833655/artifacts/14072710167) preserves the logs.
 - **Current next validation:** issue [#70](https://github.com/brianfiszman/dotfiles/issues/70) is being added to the same PR as a focused lazy-loading regression check. Its fresh exact-head run must prove that a non-Go `CmdlineEnter` does not load `go.nvim`, while `go` and `gomod` filetypes do load it and register `:GoBuild`.
 
+## Incident fingerprint — 2026-11-13: Neovim CLI command limit in lazy-loading test
+
+Run [43499999270](https://github.com/brianfiszman/dotfiles/actions/runs/43499999270)
+for exact head `0b4faf4865e98b64a5164ac99f68ba2466d0b18e` passed preparation,
+locked plugin restore/build hooks, and normal startup, then failed before the
+Go lazy-loading assertions executed. The exact error was:
+
+```
+nvim: Too many "+command", "-c command" or "--cmd command" arguments
+```
+
+The test had passed each assertion as a separate Neovim `+` CLI argument and
+exceeded Neovim's command-option limit. This was a test harness failure, not a
+plugin restore or application configuration failure.
+
+Fix: group the related Lua assertions and state transitions into one `+lua`
+command per scenario, while retaining separate fresh Neovim processes for the
+`go` and `gomod` positive filetype triggers. Each meaningful assertion group
+prints a `PASS:` marker into its per-phase log.
+
+Confirmed full validation: run
+[43500608304](https://github.com/brianfiszman/dotfiles/actions/runs/43500608304)
+passed for exact PR head `f28be42d5b2172aa0ff6c2caa578ef5fd1276e0a`.
+Preparation, locked plugin restore/build hooks, normal startup, and both Go
+behavior processes passed. The final artifact
+[14073049817](https://github.com/brianfiszman/dotfiles/actions/runs/43500608304/artifacts/14073049817)
+was downloaded and inspected; it contains:
+
+- `PASS: CmdlineEnter in a text buffer leaves go.nvim unloaded`
+- `PASS: Go filetype loads go.nvim and registers :GoBuild`
+- `PASS: gomod filetype loads go.nvim and registers :GoBuild`
+
+The exact-head check and artifact are evidence for this snapshot only. Later
+commits require their own validation.
+
 ## Completion report
 
 Report, at minimum:
@@ -141,20 +176,20 @@ Do not call the issue resolved until a fresh run for the updated PR head passes 
 
 ### Incident fingerprint — 2026-11-13: clean-start timeout in Codeium's first-run bootstrap
 
-Run [43485726816](https://github.com/brianfiszman/dotfiles/actions/runs/43485726816), exact head \`2b4c56f3daa165b9696a7bab20abb8c14f941292\`, passed preparation and locked plugin restoration but failed the normal-startup step after the 5-minute timeout (the process was killed after the additional 30-second grace period).
+Run [43485726816](https://github.com/brianfiszman/dotfiles/actions/runs/43485726816), exact head `2b4c56f3daa165b9696a7bab20abb8c14f941292`, passed preparation and locked plugin restoration but failed the normal-startup step after the 5-minute timeout (the process was killed after the additional 30-second grace period).
 
 The uploaded startup trace established the following sequence:
 
-- Neovim reached its \`--- NVIM STARTED ---\` startup marker at approximately 212.9 seconds.
-- The Codeium plugin was configured to load on \`BufEnter\`. Opening the initial headless buffer therefore initialized Codeium automatically.
-- Codeium then attempted its first language-server bootstrap. The trace ended inside its synchronous \`system('gzip -d .../language_server_linux_x64.gz')\` call in \`codeium.vim\` after the asynchronous download callback. The hidden \`.codeium\` data directory is excluded by the artifact uploader's default hidden-file policy, so the language-server binary itself was not in the artifact.
+- Neovim reached its `--- NVIM STARTED ---` startup marker at approximately 212.9 seconds.
+- The Codeium plugin was configured to load on `BufEnter`. Opening the initial headless buffer therefore initialized Codeium automatically.
+- Codeium then attempted its first language-server bootstrap. The trace ended inside its synchronous `system('gzip -d .../language_server_linux_x64.gz')` call in `codeium.vim` after the asynchronous download callback. The hidden `.codeium` data directory is excluded by the artifact uploader's default hidden-file policy, so the language-server binary itself was not in the artifact.
 - This is a first-run external-service bootstrap, not a lazy.nvim restore failure. The prior run's restore step had already passed.
 
-The configuration already had functional issue [#69](https://github.com/brianfiszman/dotfiles/issues/69) to defer Codeium until Insert mode. The implementation in [076dc75](https://github.com/brianfiszman/dotfiles/commit/076dc75a417d04bca992025b0e8b461c367a7051) changes its lazy event to \`InsertEnter\` and explicitly calls \`codeium#command#StartLanguageServer()\` from the plugin config, because Codeium's own \`BufEnter\` autocmd is registered after the first buffer-enter event has already happened. This preserves the actual user behavior and avoids starting/downloading the external server on an empty/read-only startup.
+The configuration already had functional issue [#69](https://github.com/brianfiszman/dotfiles/issues/69) to defer Codeium until Insert mode. The implementation in [076dc75](https://github.com/brianfiszman/dotfiles/commit/076dc75a417d04bca992025b0e8b461c367a7051) changes its lazy event to `InsertEnter` and explicitly calls `codeium#command#StartLanguageServer()` from the plugin config, because Codeium's own `BufEnter` autocmd is registered after the first buffer-enter event has already happened. This preserves the actual user behavior and avoids starting/downloading the external server on an empty/read-only startup.
 
-The same trace surfaced stale \`repeat#set\` usage in \`core.general.lua\`; there was no matching repeat mapping or plugin dependency, so the dead call was removed in [be4293e](https://github.com/brianfiszman/dotfiles/commit/be4293e81c587b45e8cbbc4707b47bc8427c18a5).
+The same trace surfaced stale `repeat#set` usage in `core.general.lua`; there was no matching repeat mapping or plugin dependency, so the dead call was removed in [be4293e](https://github.com/brianfiszman/dotfiles/commit/be4293e81c587b45e8cbbc4707b47bc8427c18a5).
 
-The trace also reports \`E216: No such group or event: FileExplorer *\` from the locked NvimTree 1.18.0 implementation's \`silent! autocmd! FileExplorer *\` compatibility cleanup. This is upstream plugin output, not a repository autocmd. The smoke script records this exact signature as known compatibility noise while treating other Vimscript error codes in the verbose startup trace as failures.
+The trace also reports `E216: No such group or event: FileExplorer *` from the locked NvimTree 1.18.0 implementation's `silent! autocmd! FileExplorer *` compatibility cleanup. This is upstream plugin output, not a repository autocmd. The smoke script records this exact signature as known compatibility noise while treating other Vimscript error codes in the verbose startup trace as failures.
 
 The smoke harness now inspects the verbose trace as well as stderr, so Vimscript errors cannot be silently missed. The follow-up validation must prove that a clean headless startup does not initialize Codeium, that the editor exits normally, and that no unexpected Vimscript errors remain. Codeium's actual language-server bootstrap is deferred to the user's first Insert-mode entry and remains covered by issue #69.
 
