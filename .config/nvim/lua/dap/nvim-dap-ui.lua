@@ -1,23 +1,13 @@
--- fancy UI for the debugger
-
+-- The UI is loaded as part of the DAP stack. Its key triggers are owned by
+-- dap.mason-nvim-dap so every debugger action loads the complete integration.
 local M = {
   "rcarriga/nvim-dap-ui",
   dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
-  -- stylua: ignore
-
-  keys = {
-    { "<leader>du", function() require("dapui").toggle({}) end,        desc = "Dap UI" },
-    { "<leader>de", function() require("dapui").eval() end,            desc = "Eval",              mode = { "n", "v" } },
-    { '<leader>dk', function() require('dap').continue() end,          desc = "Continue" },
-    { '<leader>dl', function() require('dap').run_last() end,          desc = "Run Last" },
-    { '<leader>b',  function() require('dap').toggle_breakpoint() end, desc = "Toggle Breakpoint", mode = { "n", "v" } },
-  },
   opts = {},
 }
 
 function M.config(_, opts)
-  -- setup dap config by VsCode launch.json file
-  -- require("dap.ext.vscode").load_launchjs()
+  -- Setup DAP UI after the core nvim-dap dependency is available.
   local dap = require("dap")
   local dapui = require("dapui")
   dapui.setup(opts)
@@ -31,20 +21,18 @@ function M.config(_, opts)
     dapui.close({})
   end
 
-  vim.fn.sign_define('DapBreakpoint',
-    {
-      text = '🔴', -- nerdfonts icon here
-      texthl = 'DapBreakpointSymbol',
-      linehl = 'DapBreakpoint',
-      numhl = 'DapBreakpoint'
-    })
-  vim.fn.sign_define('DapStopped',
-    {
-      text = '➡️', -- nerdfonts icon here
-      texthl = 'DapStoppedSymbol',
-      linehl = 'DapBreakpoint',
-      numhl = 'DapBreakpoint'
-    })
+  vim.fn.sign_define("DapBreakpoint", {
+    text = "🔴",
+    texthl = "DapBreakpointSymbol",
+    linehl = "DapBreakpoint",
+    numhl = "DapBreakpoint",
+  })
+  vim.fn.sign_define("DapStopped", {
+    text = "➡️",
+    texthl = "DapStoppedSymbol",
+    linehl = "DapBreakpoint",
+    numhl = "DapBreakpoint",
+  })
 end
 
 return M
