@@ -88,20 +88,30 @@ function M.config()
   }
 
   -- The TypeScript adapter resolves its executable through Mason's registry.
-  -- Refresh first; querying the package before this callback can fail on a
-  -- clean machine before Mason has installed its registry.
   local mason_nvim_dap = require("mason-nvim-dap")
+  local mason_settings = require("mason-nvim-dap.settings")
+
+  -- Register :DapInstall/:DapUninstall synchronously while Lazy is loading
+  -- this command-triggered plugin. If setup itself waits for registry.refresh,
+  -- Lazy replays the original command before Mason has registered it.
+  mason_nvim_dap.setup({
+    automatic_installation = true,
+    ensure_installed = {},
+  })
+
+  -- Resolve TypeScript's package path only after the registry is available.
   require("mason-registry").refresh(function()
     ts_adapters.setAdapters(js_based_languages, dap, dap_utils)
 
-    mason_nvim_dap.setup({
-      automatic_installation = true,
-      -- These are mason-nvim-dap source identifiers, not filetype names.
-      -- The legacy node2 source maps to node-debug2-adapter, which is no longer
-      -- present in the current Mason registry. TypeScript uses the maintained
-      -- js-debug-adapter source through the custom pwa-node/pwa-chrome adapters.
+    -- These are mason-nvim-dap source identifiers, not filetype names.
+    -- The legacy node2 source maps to node-debug2-adapter, which is no longer
+    -- present in the current Mason registry. TypeScript uses the maintained
+    -- js-debug-adapter source through the custom pwa-node/pwa-chrome adapters.
+    mason_settings.set({
       ensure_installed = { "delve", "codelldb", "js", "python", "dart" },
     })
+    require("mason-nvim-dap.ensure_installed")()
+    require("mason-nvim-dap.automatic_installation")()
 
     require("dap.ext.vscode").load_launchjs(nil, {
       ["pwa-node"] = js_based_languages,
