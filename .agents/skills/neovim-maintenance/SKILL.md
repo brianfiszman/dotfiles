@@ -267,3 +267,11 @@ added `lua5.1` and `liblua5.1-0-dev` to the CI runner. This is not considered
 resolved until the follow-up plugin restore and normal startup succeed:
 [push run 43476997602](https://github.com/brianfiszman/dotfiles/actions/runs/43476997602)
 and [pull-request run 43477005808](https://github.com/brianfiszman/dotfiles/actions/runs/43477005808).
+
+
+## Startup side effects and deferred integrations
+
+- Keep optional external integrations lazy until the user performs the action that needs them. In this repo, Codeium's language server must not download/start merely because Neovim enters an empty buffer; defer the plugin to \`InsertEnter\` and explicitly start its server from the lazy-plugin config at that event.
+- If a lazy plugin's own autocmd is registered only after the event that triggered lazy loading, do not assume that autocmd will run retroactively. Invoke the intended entry point explicitly from the plugin config when that is required.
+- When diagnosing a clean headless startup, distinguish plugin restoration from runtime activation. A successful locked restore does not prove that optional services or first-run language-server downloads can initialize.
+- Remove stale integration calls only after verifying that no corresponding plugin/spec or mapping exists. Here, \`repeat#set\` had no configured provider or matching mapping and was removed rather than adding an unrelated plugin.
