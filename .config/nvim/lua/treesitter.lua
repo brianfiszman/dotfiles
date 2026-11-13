@@ -4,7 +4,14 @@ local M = {
     -- Additional text objects for treesitter
     "nvim-treesitter/nvim-treesitter-textobjects",
   },
-  build = ":TSUpdate",
+  -- Updating parsers during lazy.nvim's install/sync phase can load this
+  -- config before all plugin checkouts are ready. The headless smoke test
+  -- skips parser updates and validates the normal config in a second process.
+  build = function()
+    if vim.env.DOTFILES_CI ~= "1" then
+      vim.cmd("TSUpdate")
+    end
+  end,
 }
 
 
