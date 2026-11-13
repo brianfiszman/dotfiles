@@ -154,6 +154,27 @@ At the end of a meaningful work session, leave durable state:
 Do not create a status issue or extra documentation file when an existing epic,
 issue, PR, or backlog is the right place.
 
+## Backlog status and issue sequencing
+
+Keep implementation, validation, merge, and issue closure as separate states:
+
+- **Planned:** no implementation has started.
+- **In progress:** work is actively being changed or investigated.
+- **Implemented in PR:** the branch contains a candidate fix, but it is not merged.
+- **Validated in PR:** the exact PR head has passed the required checks; the issue still remains open until merge.
+- **Merged:** the default branch contains the accepted change.
+- **Closed:** close only after the merged implementation or an explicit documented decision satisfies the issue.
+
+For the functional backlog, add a short handoff section when several issues are
+implemented in one still-open PR. Link the exact PR head and validation run,
+identify which issue is next, and state what remains unverified. Do not mark
+items complete merely because the current branch contains code for them.
+After each merge, reconcile the issues and backlog against the default branch.
+
+When selecting the next issue, prefer a small, independently testable behavior
+that is already understood over broad cleanup. Do not create a new issue when an
+existing open ticket already describes the desired user-visible outcome.
+
 ## Validation and status accuracy
 
 Use precise status language:
