@@ -82,6 +82,7 @@ end
 local registry = require("mason-registry")
 local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
 local package_event_chunks = {}
+local install_results = {}
 registry:on("package:handle", function(pkg, handle)
   if not vim.tbl_contains(package_names, pkg.name) then
     return
@@ -100,15 +101,26 @@ registry:on("package:handle", function(pkg, handle)
     end)
   end
 end)
-registry:on("package:install:success", function(pkg)
-  if vim.tbl_contains(package_names, pkg.name) then
-    print(("PACKAGE INSTALL SUCCESS %s"):format(pkg.name))
+
+-- Use Mason's terminal package events as the completion signal. Polling
+-- Package:is_installed() repeatedly scans the shared install directory and
+-- floods Mason's own TRACE log while installers are active.
+registry:on("package:install:success", function(pkg, handle)
+  if not vim.tbl_contains(package_names, pkg.name) then
+    return
   end
+  install_results[pkg.name] = { status = "success", handle = handle }
+  print(("PACKAGE INSTALL SUCCESS %s"):format(pkg.name))
 end)
-registry:on("package:install:failed", function(pkg)
-  if vim.tbl_contains(package_names, pkg.name) then
-    print(("PACKAGE INSTALL FAILED %s"):format(pkg.name))
+registry:on("package:install:failed", function(pkg, handle)
+  if not vim.tbl_contains(package_names, pkg.name) then
+    return
   end
+  local stderr = handle and handle.stdio and handle.stdio.buffers
+      and table.concat(handle.stdio.buffers.stderr or {}, "")
+    or ""
+  install_results[pkg.name] = { status = "failed", handle = handle, error = stderr }
+  print(("PACKAGE INSTALL FAILED %s: %s"):format(pkg.name, stderr:gsub("%s+$", ""):sub(1, 400)))
 end)
 
 -- Execute the actual remapped key. Neovim's headless input API does not
@@ -154,83 +166,34 @@ assert(
 )
 pass("explicit DAP activation requests js-debug-adapter installation")
 
-local packages = {}
-for _, name in ipairs(package_names) do
-  packages[name] = registry.get_package(name)
-end
-
-local last_pending = nil
-local last_log_line_count = 0
-local function emit_new_mason_log_lines()
-  local path = vim.fn.stdpath("log") .. "/mason.log"
-  if vim.fn.filereadable(path) ~= 1 then
-    return
-  end
-
-  local lines = vim.fn.readfile(path)
-  local interesting = {
-    "Creating new handle for",
-    "Changing InstallHandle",
-    "Executing installer for",
-    "Attempting to lock package",
-    "Wrote lockfile",
-    "Compiling installer.",
-    "Parsing spec",
-    "Parsed purl.",
-    "Found provider for purl.",
-    "Parsed source for purl.",
-    "fs: dir_exists",
-    "fs: fstat",
-    "fs: mkdirp",
-    "fs: mkdirp failed",
-    "Spawning cmd=",
-    "Job pid=",
-    "Installation succeeded",
-    "Installation failed",
-    "Failed to spawn process",
-    "Unexpected error",
-  }
-
-  for index = last_log_line_count + 1, #lines do
-    local line = lines[index]
-    for _, marker in ipairs(interesting) do
-      if line:find(marker, 1, true) then
-        print("MASON: " .. line)
-        break
-      end
+local function all_installs_finished()
+  for _, name in ipairs(package_names) do
+    if not install_results[name] then
+      return false
     end
   end
-  last_log_line_count = #lines
+  return true
 end
 
-emit_new_mason_log_lines()
-print("WAIT: waiting for configured Mason DAP adapters to finish installing")
-local packages_installed = vim.wait(240000, function()
-  emit_new_mason_log_lines()
-
+print("WAIT: waiting for Mason package install success/failure events")
+local all_finished = vim.wait(240000, all_installs_finished, 100)
+if not all_finished then
   local pending = {}
   for _, name in ipairs(package_names) do
-    if not packages[name]:is_installed() then
+    if not install_results[name] then
       table.insert(pending, name)
     end
   end
-
-  local summary = table.concat(pending, ", ")
-  if summary ~= last_pending then
-    print("WAIT: Mason adapters still installing: " .. (summary ~= "" and summary or "none"))
-    last_pending = summary
-  end
-  return #pending == 0
-end, 100)
-
-if not packages_installed then
-  local missing = {}
-  for _, name in ipairs(package_names) do
-    if not packages[name]:is_installed() then
-      table.insert(missing, name)
-    end
-  end
-  error("Timed out waiting for DAP adapter installs: " .. table.concat(missing, ", "))
+  error("Timed out waiting for terminal Mason install events: " .. table.concat(pending, ", "))
 end
+
+local failed = {}
+for _, name in ipairs(package_names) do
+  local result = install_results[name]
+  if result.status ~= "success" then
+    table.insert(failed, ("%s: %s"):format(name, result.error or "installation failed"))
+  end
+end
+assert(#failed == 0, "Mason DAP adapter installations failed: " .. table.concat(failed, "; "))
 
 pass("all configured Mason DAP adapters finished installing")
