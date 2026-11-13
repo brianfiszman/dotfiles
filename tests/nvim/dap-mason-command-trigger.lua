@@ -69,6 +69,8 @@ print("PASS: Mason DAP commands are available as lazy placeholders while DAP is 
 print("STEP: invoking :DapInstall with no adapter arguments")
 vim.cmd("DapInstall")
 
+assert(registry.has_package("debugpy"), "Mason registry was not ready when the first DapInstall command was replayed")
+
 wait_for("Mason DAP command to load the complete stack and register its API", 30000, function()
   return package.loaded["dap"] ~= nil
     and package.loaded["dapui"] ~= nil
