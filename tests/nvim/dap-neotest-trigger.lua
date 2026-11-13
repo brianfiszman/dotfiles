@@ -29,8 +29,18 @@ neotest.run.run = function(options)
   received_options = options
 end
 
+-- which-key intentionally finalizes queued registrations in a scheduled
+-- callback. Wait until the mapping exists before simulating a real keypress.
 local leader = vim.g.mapleader or "\\"
-local keys = vim.api.nvim_replace_termcodes(leader .. "td", true, false, true)
+local lhs = leader .. "td"
+wait_for("which-key to register the Debug Test mapping", 30000, function()
+  return vim.fn.maparg(lhs, "n") ~= ""
+end)
+local mapping = vim.fn.maparg(lhs, "n", false, true)
+assert(type(mapping) == "table" and mapping.rhs ~= "", "Debug Test mapping has no executable rhs")
+print(("MAPPING: Debug Test rhs=%s"):format(mapping.rhs))
+
+local keys = vim.api.nvim_replace_termcodes(lhs, true, false, true)
 print("STEP: dispatching the existing Debug Test mapping")
 vim.api.nvim_feedkeys(keys, "xt", false)
 
