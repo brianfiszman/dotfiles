@@ -34,6 +34,19 @@ else
   CLEAN_WORK_DIR=1
 fi
 
+# Validate the requested workspace before creating HOME/XDG directories in it.
+# Subsequent restore/startup invocations intentionally reuse the populated workspace.
+if [[ "$PHASE" == "prepare" || "$PHASE" == "all" ]]; then
+  if [[ -e "$WORK_DIR" && ! -d "$WORK_DIR" ]]; then
+    printf 'Error: NVIM_TEST_DIR exists but is not a directory: %s\n' "$WORK_DIR" >&2
+    exit 1
+  fi
+  if [[ -d "$WORK_DIR" ]] && [[ -n "$(find "$WORK_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    printf 'Error: NVIM_TEST_DIR must be empty before the prepare phase: %s\n' "$WORK_DIR" >&2
+    exit 1
+  fi
+fi
+
 mkdir -p "$WORK_DIR"
 NVIM_CONFIG="$WORK_DIR/config/nvim"
 
@@ -121,11 +134,6 @@ run_nvim() {
 }
 
 prepare() {
-  if [[ -n "$(find "$WORK_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
-    printf 'Error: NVIM_TEST_DIR must be empty before the prepare phase: %s\n' "$WORK_DIR" >&2
-    return 1
-  fi
-
   printf '[prepare] Checking shell syntax...\n'
   bash -n "$REPO_ROOT/install.sh"
   bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
