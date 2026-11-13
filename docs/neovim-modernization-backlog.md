@@ -43,6 +43,8 @@ Parent: [#18 — Lazy loading and startup performance](https://github.com/brianf
 - [#54 — Stop rebuilding all help tags on every startup](https://github.com/brianfiszman/dotfiles/issues/54) (removed from the initial implementation branch)
 - [#63 — Load test, debug, and search tools when they are first used](https://github.com/brianfiszman/dotfiles/issues/63)
 - [#65 — Avoid machine-specific shell, font, and clipboard assumptions](https://github.com/brianfiszman/dotfiles/issues/65)
+- [#69 — Load Codeium when entering Insert mode, not on every buffer entry](https://github.com/brianfiszman/dotfiles/issues/69)
+- [#70 — Load Go tooling only for Go filetypes](https://github.com/brianfiszman/dotfiles/issues/70)
 
 ## 5. Parent workstreams
 
