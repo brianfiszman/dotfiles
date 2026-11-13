@@ -20,6 +20,9 @@ System packages and optional command-line tools used by individual plugins
 (such as ripgrep, formatters, language servers, and debuggers) are installed
 separately. The dotfiles installer does not use `sudo` or modify OS packages.
 
+The Go plugin does not bulk-install its optional helper binaries during setup.
+Open a Go file and run `:GoInstallBinaries` when you want the full toolset.
+
 ### Install Neovim configuration
 
 From a clone of this repository:
