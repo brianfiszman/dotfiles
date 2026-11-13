@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - ".config/nvim/**"
+      - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
       - ".github/workflows/neovim-headless.yml"
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - ".config/nvim/**"
+      - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
       - ".github/workflows/neovim-headless.yml"
