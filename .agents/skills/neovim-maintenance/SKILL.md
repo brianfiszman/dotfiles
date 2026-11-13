@@ -38,7 +38,8 @@ Avoid tickets such as "clean up Neovim". Prefer a ticket like "Opening a file
 should not start the AI completion plugin until the user enters Insert mode".
 
 Before creating an issue, search the repository's open issues and reuse or
-update an existing ticket instead of creating a duplicate.
+update an existing ticket instead of creating a duplicate. Close an incorrect
+ticket as not planned only after checking the relevant implementation or source.
 
 ## Safe installation rules
 
@@ -51,29 +52,37 @@ update an existing ticket instead of creating a duplicate.
 - Exclude `.config/nvim/venv` from installation. A virtualenv is generated for
   one machine and must never be copied to another.
 - Keep dry-run behavior available and side-effect free.
+- Document optional external providers (such as pynvim) with reproducible
+  per-user setup commands rather than committing generated environments.
 
 ## Neovim test strategy
 
 Run checks in this order when applicable:
 
-1. **Shell syntax:** `bash -n install.sh scripts/test-nvim-headless.sh`.
+1. **Shell syntax:** run `bash -n install.sh` and
+   `bash -n scripts/test-nvim-headless.sh` as separate commands.
 2. **Isolated installation:** run the installer with a temporary HOME and XDG
    directories. Never test by pointing it at the maintainer's real home.
-3. **Plugin restore:** use `:Lazy! restore` to install the versions recorded in
+3. **Installer behavior:** verify dry-run leaves files untouched, existing
+   configs are backed up, and Neovim-only mode leaves Emacs alone.
+4. **Plugin restore:** use `:Lazy! restore` to install the versions recorded in
    `lazy-lock.json`, rather than silently upgrading everything.
-4. **Headless startup:** launch the installed configuration again and fail on
+5. **Headless startup:** launch the installed configuration again and fail on
    Lua/plugin startup errors.
-5. **Interactive macOS check:** validate terminal rendering, font, clipboard,
+6. **Interactive macOS check:** validate terminal rendering, font, clipboard,
    keymaps, LSP attachment, completion, and perceived typing latency on the
    maintainer's Mac.
 
 The automated test is intended to prove that a clean checkout can install and
 start in a Linux environment. It cannot prove how the configuration feels in a
-terminal on macOS.
+terminal on macOS. Clearly distinguish mocked installer checks from execution
+with a real Neovim binary.
 
 ## Plugin and LSP changes
 
-- Keep plugin specifications explicit; one top-level plugin entry per repository.
+- Keep plugin declarations readable and explicit. lazy.nvim accepts both
+  individual plugin specs and valid list-style specs; do not report a grouped
+  list as a bug without reproducing a real missing-plugin failure.
 - Keep lazy loading tied to actual use: filetype for language tooling, commands
   or keys for search/debug/test workflows, and insert mode for typing assistants.
 - Avoid overlapping providers for scrolling, formatting, linting, highlighting,
