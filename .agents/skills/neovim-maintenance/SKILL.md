@@ -234,3 +234,36 @@ A fix is complete only when:
 - The exact validation level and environment are reported honestly.
 - The README/backlog is updated when behavior or setup instructions change.
 - The user is told what changed, what was tested, and what remains unverified.
+
+
+## Native plugin build dependencies and failure diagnosis
+
+A plugin restore can fail before Neovim reaches normal startup. Diagnose the layer
+before changing plugin configuration:
+
+- Separate repository download, LuaRocks dependency resolution, native compilation,
+  plugin configuration, and normal startup. They are different failure stages.
+- Read the exact build log and identify the missing executable, interpreter, header,
+  compiler, or library. Do not infer a missing dependency from the plugin name alone.
+- Keep CI system prerequisites in the workflow. The dotfiles installer must remain
+  free of OS package-manager operations.
+- Preserve `lazy-lock.json`, plugin build hooks, and the normal configuration while
+  fixing missing CI prerequisites. Do not disable native builds or weaken the
+  plugin spec to get a green run.
+- Treat a dependency-install change as a hypothesis until a fresh restore and a
+  separate normal headless startup both complete successfully.
+
+### Incident fingerprint — 2026-11-13
+
+The Neovim headless workflow failed while restoring Neorg dependencies
+`tree-sitter-norg` and `tree-sitter-norg-meta`. The log reported that the
+Hererocks environment did not have Lua 5.1 installed. The active configuration
+in `.config/nvim/lua/plugins.lua` explicitly sets
+`rocks = { hererocks = true }`, because the system LuaRocks toolchain was
+documented as Lua 5.5.
+
+Commit [9d12427](https://github.com/brianfiszman/dotfiles/commit/9d124270ce393fa07ce3498b21c5503a4d2400fd)
+added `lua5.1` and `liblua5.1-0-dev` to the CI runner. This is not considered
+resolved until the follow-up plugin restore and normal startup succeed:
+[push run 43476997602](https://github.com/brianfiszman/dotfiles/actions/runs/43476997602)
+and [pull-request run 43477005808](https://github.com/brianfiszman/dotfiles/actions/runs/43477005808).
