@@ -48,3 +48,5 @@ underlying fix.
 - Separate Linux headless results from macOS interactive validation.
 - Use `AGENTS.md` and [the Neovim maintenance skill](../.agents/skills/neovim-maintenance/SKILL.md)
   as the repository's working agreement.
+- Use the [GitHub Actions validation skill](../.agents/skills/github-actions-validation/SKILL.md)
+  to trace workflow runs by exact commit and event.
