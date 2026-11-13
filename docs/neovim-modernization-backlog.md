@@ -56,7 +56,7 @@ Issue state on that PR branch (not yet merged):
 | #30 | Implemented and full smoke flow passed | Keep open until PR #71 merges |
 | #66 | Installer excludes the committed virtualenv; README documents a dedicated provider environment | Provider health still needs an explicit runtime check |
 | #69 | Codeium loads on InsertEnter; empty-buffer startup no longer starts it | First InsertEnter activation and external language-server bootstrap are not yet verified |
-| #70 | Next focused change | Remove the unrelated CmdlineEnter trigger and test both Go filetype triggers |
+| #70 | Fix committed to PR #71; exact-head validation pending | Remove the unrelated CmdlineEnter trigger; smoke tests now cover CmdlineEnter, go, gomod, and :GoBuild |
 | #72 | Optional Go helper bulk install removed; restore now detects failed tool-install notifications | Keep open until PR #71 merges |
 | #73 | Neorg parser dependencies and runtimepath are fixed; clean startup asserts both parsers | Keep open until PR #71 merges |
 
