@@ -1,6 +1,6 @@
 local M = {
   "numToStr/Comment.nvim",
-  lazy = false,
+  -- Defer eager plugin setup in the install-only CI phase.\n  lazy = vim.env.DOTFILES_CI == "1",
   dependencies = {
     {
       "JoosepAlviste/nvim-ts-context-commentstring",
