@@ -47,14 +47,14 @@ underlying fix.
 
 Canonical implementation branch: [PR #71](https://github.com/brianfiszman/dotfiles/pull/71),
 currently open, mergeable, and not merged. The latest validated PR head is
-`f28be42d5b2172aa0ff6c2caa578ef5fd1276e0a`, with full integration run
-[43500608304](https://github.com/brianfiszman/dotfiles/actions/runs/43500608304)
+`4d745c2f38bb5eb15e27f13e8fd0a34ad5eaf4c3`, with full integration run
+[43501627966](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966)
 passing isolated preparation, locked plugin restore/build hooks, normal startup,
 and the Go lazy-loading regression scenarios.
 
-The final artifact [14073049817](https://github.com/brianfiszman/dotfiles/actions/runs/43500608304/artifacts/14073049817)
-was downloaded and inspected. It contains explicit PASS lines for the
-non-Go `CmdlineEnter` path and the positive `go` and `gomod` filetype paths.
+The final artifact [14072829773](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966/artifacts/14072829773)
+was inspected. It contains explicit PASS lines for the non-Go `CmdlineEnter`
+path and the positive `go` and `gomod` filetype paths.
 
 Issue state on the PR branch (not yet merged):
 
@@ -63,7 +63,7 @@ Issue state on the PR branch (not yet merged):
 | #30 | Implemented and full smoke flow passed | Keep open until PR #71 merges |
 | #66 | Installer excludes the committed virtualenv; README documents a dedicated provider environment | Provider health still needs an explicit runtime check |
 | #69 | Codeium loads on InsertEnter; empty-buffer startup no longer starts it | First InsertEnter activation and external language-server bootstrap are not yet verified |
-| #70 | Implemented and validated in PR #71 head `f28be42` / run #43500608304 | Keep open until PR #71 merges |
+| #70 | Implemented and validated in PR #71 head `4d745c2` / run #43501627966 | Keep open until PR #71 merges |
 | #72 | Optional Go helper bulk install removed; restore now detects failed tool-install notifications | Keep open until PR #71 merges |
 | #73 | Neorg parser dependencies and runtimepath are fixed; clean startup asserts both parsers | Keep open until PR #71 merges |
 | #43 | Tracking parent for on-demand optional workflows | Children #74, #75, and #76 are planned |
@@ -73,7 +73,7 @@ Issue state on the PR branch (not yet merged):
 
 Do not close or mark branch-implemented issues complete before PR #71 is
 merged. After each subsequent commit, use the exact latest PR head SHA and its
-own Actions result; run #43500608304 validates only head `f28be42`.
+own Actions result; run #43501627966 validates head `4d745c2`.
 
 ## Working agreement
 
