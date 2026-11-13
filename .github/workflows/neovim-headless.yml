@@ -29,7 +29,6 @@ jobs:
     timeout-minutes: 30
     env:
       NEOVIM_VERSION: v0.11.0
-      NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-smoke
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -65,6 +64,7 @@ jobs:
         run: bash ./scripts/test-nvim-headless.sh
         env:
           NVIM_BIN: nvim
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-smoke
 
       - name: Upload headless logs
         if: always()
