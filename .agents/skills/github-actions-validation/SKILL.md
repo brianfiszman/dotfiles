@@ -157,3 +157,16 @@ The trace also reports \`E216: No such group or event: FileExplorer *\` from the
 The smoke harness now inspects the verbose trace as well as stderr, so Vimscript errors cannot be silently missed. The follow-up validation must prove that a clean headless startup does not initialize Codeium, that the editor exits normally, and that no unexpected Vimscript errors remain. Codeium's actual language-server bootstrap is deferred to the user's first Insert-mode entry and remains covered by issue #69.
 
 Current fix/test commits: Codeium [076dc75](https://github.com/brianfiszman/dotfiles/commit/076dc75a417d04bca992025b0e8b461c367a7051), stale repeat call [be4293e](https://github.com/brianfiszman/dotfiles/commit/be4293e81c587b45e8cbbc4707b47bc8427c18a5), startup trace error detection [225b47c](https://github.com/brianfiszman/dotfiles/commit/225b47c73bfc7ef00f6684393cc335e377dfdc4e). Do not mark #30 complete until a fresh run for the current PR head passes all three phases.
+
+
+### Successful clean startup after deferring Codeium — 2026-11-13
+
+Pull-request run [43489296551](https://github.com/brianfiszman/dotfiles/actions/runs/43489296551) passed all three phases for exact PR head `c955789428c1f565272fbcd80fe9582dd0f2a01a`:
+
+- isolated preparation/installer safety: passed;
+- locked plugin restore plus configured build hooks: passed (45 seconds);
+- normal empty-buffer startup: passed.
+
+The uploaded artifact [14068693030](https://github.com/brianfiszman/dotfiles/actions/runs/43489296551/artifacts/14068693030) was inspected. The startup timing profile ends at approximately 253.660 ms. The verbose trace contains the single expected NvimTree 1.18.0 message `E216: No such group or event: FileExplorer *` from its silent compatibility cleanup, and no other Vimscript error code. It contains no Codeium or Codeium language-server startup references. The removed stale `repeat#set` call is absent from the current config.
+
+This validates the smoke-test scope: clean install, locked plugin restore/build, and normal startup with an empty buffer. It does not validate Codeium's first Insert-mode activation or external server bootstrap; those remain tracked separately in [issue #69](https://github.com/brianfiszman/dotfiles/issues/69).
