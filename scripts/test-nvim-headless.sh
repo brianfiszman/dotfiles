@@ -272,6 +272,10 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/dap-lazy-loading.lua" \
     "+qa!"
 
+  run_nvim "dap-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-command-trigger.lua" \
+    "+qa!"
+
   run_nvim "dap-neotest-trigger" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-neotest-trigger.lua" \
     "+qa!"
