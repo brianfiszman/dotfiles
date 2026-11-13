@@ -136,3 +136,24 @@ Fix: move the empty-workspace preflight to the top-level setup, before `mkdir -p
 Fix commit: [10dfd2d](https://github.com/brianfiszman/dotfiles/commit/10dfd2d3969e9e6ffbdd03bbbc67668c4ad7f778).
 
 Do not call the issue resolved until a fresh run for the updated PR head passes the preparation phase, locked plugin restore/build hooks, and normal startup.
+
+### Incident fingerprint — 2026-11-13: clean-start timeout in Codeium's first-run bootstrap
+
+Run [43485726816](https://github.com/brianfiszman/dotfiles/actions/runs/43485726816), exact head \`2b4c56f3daa165b9696a7bab20abb8c14f941292\`, passed preparation and locked plugin restoration but failed the normal-startup step after the 5-minute timeout (the process was killed after the additional 30-second grace period).
+
+The uploaded startup trace established the following sequence:
+
+- Neovim reached its \`--- NVIM STARTED ---\` startup marker at approximately 212.9 seconds.
+- The Codeium plugin was configured to load on \`BufEnter\`. Opening the initial headless buffer therefore initialized Codeium automatically.
+- Codeium then attempted its first language-server bootstrap. The trace ended inside its synchronous \`system('gzip -d .../language_server_linux_x64.gz')\` call in \`codeium.vim\` after the asynchronous download callback. The hidden \`.codeium\` data directory is excluded by the artifact uploader's default hidden-file policy, so the language-server binary itself was not in the artifact.
+- This is a first-run external-service bootstrap, not a lazy.nvim restore failure. The prior run's restore step had already passed.
+
+The configuration already had functional issue [#69](https://github.com/brianfiszman/dotfiles/issues/69) to defer Codeium until Insert mode. The implementation in [076dc75](https://github.com/brianfiszman/dotfiles/commit/076dc75a417d04bca992025b0e8b461c367a7051) changes its lazy event to \`InsertEnter\` and explicitly calls \`codeium#command#StartLanguageServer()\` from the plugin config, because Codeium's own \`BufEnter\` autocmd is registered after the first buffer-enter event has already happened. This preserves the actual user behavior and avoids starting/downloading the external server on an empty/read-only startup.
+
+The same trace surfaced stale \`repeat#set\` usage in \`core.general.lua\`; there was no matching repeat mapping or plugin dependency, so the dead call was removed in [be4293e](https://github.com/brianfiszman/dotfiles/commit/be4293e81c587b45e8cbbc4707b47bc8427c18a5).
+
+The trace also reports \`E216: No such group or event: FileExplorer *\` from the locked NvimTree 1.18.0 implementation's \`silent! autocmd! FileExplorer *\` compatibility cleanup. This is upstream plugin output, not a repository autocmd. The smoke script records this exact signature as known compatibility noise while treating other Vimscript error codes in the verbose startup trace as failures.
+
+The smoke harness now inspects the verbose trace as well as stderr, so Vimscript errors cannot be silently missed. The follow-up validation must prove that a clean headless startup does not initialize Codeium, that the editor exits normally, and that no unexpected Vimscript errors remain. Codeium's actual language-server bootstrap is deferred to the user's first Insert-mode entry and remains covered by issue #69.
+
+Current fix/test commits: Codeium [076dc75](https://github.com/brianfiszman/dotfiles/commit/076dc75a417d04bca992025b0e8b461c367a7051), stale repeat call [be4293e](https://github.com/brianfiszman/dotfiles/commit/be4293e81c587b45e8cbbc4707b47bc8427c18a5), startup trace error detection [225b47c](https://github.com/brianfiszman/dotfiles/commit/225b47c73bfc7ef00f6684393cc335e377dfdc4e). Do not mark #30 complete until a fresh run for the current PR head passes all three phases.
