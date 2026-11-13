@@ -108,3 +108,12 @@ The corrected implementation in PR #71:
 - cancels superseded runs for the same PR/branch.
 
 The 20-minute restore budget is an initial operational limit, not a measured performance target. Revisit it only from actual run durations and the specific plugin/build log.
+
+
+### Local macOS portability
+
+GNU `timeout` is not part of the standard macOS userland under the name used by this script. The smoke-test script must therefore remain usable on macOS:
+
+- CI explicitly installs `coreutils` and uses GNU `timeout` for bounded restore/startup phases.
+- When run locally without GNU `timeout`, stream output and retain logs as usual, but print an explicit warning that per-phase deadlines are unavailable.
+- Do not add a GNU coreutils dependency to the dotfiles installer or make an ordinary Neovim setup depend on it.
