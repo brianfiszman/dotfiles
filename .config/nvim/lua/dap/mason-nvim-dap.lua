@@ -75,7 +75,10 @@ function M.config()
     mason_nvim_dap.setup({
       automatic_installation = true,
       -- These are mason-nvim-dap source identifiers, not filetype names.
-      ensure_installed = { "delve", "codelldb", "node2", "js", "python", "dart" },
+      -- The legacy node2 source maps to node-debug2-adapter, which is no longer
+      -- present in the current Mason registry. TypeScript uses the maintained
+      -- js-debug-adapter source through the custom pwa-node/pwa-chrome adapters.
+      ensure_installed = { "delve", "codelldb", "js", "python", "dart" },
     })
 
     require("dap.ext.vscode").load_launchjs(nil, {
