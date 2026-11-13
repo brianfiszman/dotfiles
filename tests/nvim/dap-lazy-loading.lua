@@ -33,11 +33,12 @@ assert(
 )
 pass("DAP stack remains unloaded and does not query Mason during idle startup")
 
--- Queue the same key a user presses without blocking on input processing.
--- nvim_input() is non-blocking; vim.wait() below lets Neovim process the key
--- mapping and the plugin's asynchronous registry callback on its event loop.
+-- Queue the same remappable key a user presses. Do not use the "x" flag:
+-- it synchronously drains typeahead while Lazy is loading plugins and Mason is
+-- scheduling asynchronous adapter installations.
 local leader = vim.g.mapleader or "\\"
-assert(vim.api.nvim_input(leader .. "Db") > 0, "Neovim could not queue the first DAP key")
+local keys = vim.api.nvim_replace_termcodes(leader .. "Db", true, false, true)
+vim.api.nvim_feedkeys(keys, "mt", false)
 
 wait_for("the first DAP key to load the debugger stack", 30000, function()
   return package.loaded["dap"] ~= nil
@@ -57,9 +58,10 @@ wait_for("TypeScript DAP adapters to be configured", 30000, function()
 end)
 pass("Mason registry refresh configures pwa-node and pwa-chrome")
 
--- Verify that explicit DAP activation requested the TypeScript adapter. Do not
--- wait for external adapter downloads/builds to finish: those are network- and
--- toolchain-dependent installs, not proof of lazy-loading or adapter wiring.
+-- Confirm that explicit DAP activation requested the TypeScript adapter and
+-- wait for the configured adapters to finish installing. Exiting Neovim while
+-- Mason installers are active aborts them, so installation completion is part
+-- of this integration test (unlike the lazy-loading assertions above).
 wait_for("Mason to start the js-debug-adapter install", 30000, function()
   return mason_log():find("Executing installer for Package(name=js-debug-adapter)", 1, true) ~= nil
 end)
@@ -70,3 +72,40 @@ assert(
   "Mason could not resolve a requested DAP adapter: " .. active_log
 )
 pass("explicit DAP activation requests js-debug-adapter installation")
+
+local registry = require("mason-registry")
+local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
+local packages = {}
+for _, name in ipairs(package_names) do
+  packages[name] = registry.get_package(name)
+end
+
+local last_pending = nil
+print("WAIT: waiting for configured Mason DAP adapters to finish installing")
+local packages_installed = vim.wait(240000, function()
+  local pending = {}
+  for _, name in ipairs(package_names) do
+    if not packages[name]:is_installed() then
+      table.insert(pending, name)
+    end
+  end
+
+  local summary = table.concat(pending, ", ")
+  if summary ~= last_pending then
+    print("WAIT: Mason adapters still installing: " .. (summary ~= "" and summary or "none"))
+    last_pending = summary
+  end
+  return #pending == 0
+end, 100)
+
+if not packages_installed then
+  local missing = {}
+  for _, name in ipairs(package_names) do
+    if not packages[name]:is_installed() then
+      table.insert(missing, name)
+    end
+  end
+  error("Timed out waiting for DAP adapter installs: " .. table.concat(missing, ", "))
+end
+
+pass("all configured Mason DAP adapters finished installing")
