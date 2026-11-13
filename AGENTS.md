@@ -19,8 +19,9 @@ state as user data, not disposable test fixtures.
 ## Safety rules
 
 - Never run the installer against a real home directory during tests.
-- Use `scripts/test-nvim-headless.sh`, which redirects HOME and all XDG paths
-  into a temporary directory.
+- Tests must redirect HOME and all relevant XDG paths into a temporary directory.
+  Use `scripts/test-nvim-headless.sh` for the full isolated install and runtime
+  integration check.
 - Do not delete or overwrite existing editor configuration without creating a
   recoverable, timestamped backup.
 - Do not install OS packages from the dotfiles installer. System dependencies
@@ -53,19 +54,44 @@ state as user data, not disposable test fixtures.
 - Identify changes that exist only in the PR being closed. Preserve their branch
   or deliberately port the changes after reviewing them; do not silently discard
   them or describe them as merged.
+- Unique changes are not automatically correct or accepted. Compare each one
+  against an issue's acceptance criteria and classify it as accept-and-port,
+  track-separately, investigate, reject, or already-covered.
 - When consolidating competing PRs, document which PR is canonical, why the other
-  is being closed, and where its unique work will be handled.
+  is being closed, and the disposition of its unique work.
 - Keep the relationship between epic, functional issue, branch, commits, PR, and
   validation results traceable.
 
 ## Validation and reporting
 
-- Run `bash -n` for changed shell scripts.
-- Run the isolated headless test when changing Neovim setup, bootstrap, plugins,
-  or Lua configuration.
-- Distinguish shell syntax checks, static inspection, mocked harnesses, actual
-  Neovim headless startup, plugin restoration, and manual macOS interaction.
+Choose tests based on the likely impact of the change. Do not run the full plugin
+restore for every documentation or small keymap change, and do not sign off on
+bootstrap or plugin-loading changes with a syntax check alone.
+
+- **Documentation-only:** review the Markdown and diff; no Neovim run is required.
+- **Shell/installer:** run shell syntax checks and focused isolated dry-run,
+  install, backup, and failure-path checks.
+- **Lua logic/keymap:** validate Lua syntax and run a targeted headless check when
+  a real Neovim environment is available.
+- **Plugin specs, lazy loading, LSP, Treesitter, startup:** test real headless
+  startup and directly assert the affected plugin or behavior. Include plugin
+  restore when dependencies or the lockfile are involved.
+- **Bootstrap, installation flow, XDG paths, CI harness:** run the full isolated
+  integration flow: install, restore locked plugins, then start normally.
+- **Performance changes:** collect repeatable before/after measurements under
+  equivalent conditions; do not claim improvement from intuition.
+
+For every level:
+
+- Run `bash -n` on changed shell scripts.
+- Distinguish static inspection, mocked harnesses, actual Neovim headless startup,
+  plugin restoration, behavioral assertions, and manual macOS interaction.
   They prove different things. A mocked harness is not a real Neovim run.
+- A test-only mode must not silently remove normal plugin configuration. The
+  normal-startup phase must run with test-only environment flags unset and must
+  exercise the actual configuration.
+- Do not equate plugin repositories being downloaded with plugins being
+  initialized, or lazy.nvim being loaded with every lazy-loaded plugin working.
 - Report exactly which tests actually ran, their results, and anything that still
   needs validation on the user's Mac. Do not report a test as passing when it was
   unavailable, skipped, mocked, or merely expected to run in CI.
