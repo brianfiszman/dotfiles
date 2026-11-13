@@ -37,6 +37,7 @@ underlying fix.
 - [#43 Load testing, debugging, and search tools only when used](https://github.com/brianfiszman/dotfiles/issues/43)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
+- [#72 Keep optional Go helper binaries out of the default plugin installation](https://github.com/brianfiszman/dotfiles/issues/72)
 
 ## Working agreement
 
