@@ -37,6 +37,10 @@ local M = {
     "DapRestartFrame",
     "DapNew",
     "DapEval",
+    -- mason-nvim-dap registers these from its setup(), so they must be lazy
+    -- triggers too or they are unavailable until another DAP action runs.
+    "DapInstall",
+    "DapUninstall",
   },
   keys = {
     { "<leader>DB", function() require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: ")) end, desc = "Breakpoint Condition" },
