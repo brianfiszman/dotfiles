@@ -68,14 +68,14 @@ function M.config()
   -- The TypeScript adapter resolves its executable through Mason's registry.
   -- Refresh first; querying the package before this callback can fail on a
   -- clean machine before Mason has installed its registry.
+  local mason_nvim_dap = require("mason-nvim-dap")
   require("mason-registry").refresh(function()
     ts_adapters.setAdapters(js_based_languages, dap, dap_utils)
 
-    require("mason-nvim-dap").setup({
+    mason_nvim_dap.setup({
       automatic_installation = true,
       -- These are mason-nvim-dap source identifiers, not filetype names.
       ensure_installed = { "delve", "codelldb", "node2", "js", "python", "dart" },
-      cmd = { "DapInstall", "DapUninstall" },
     })
 
     require("dap.ext.vscode").load_launchjs(nil, {
