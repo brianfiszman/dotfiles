@@ -207,3 +207,32 @@ Pull-request run [43489296551](https://github.com/brianfiszman/dotfiles/actions/
 The uploaded artifact [14068693030](https://github.com/brianfiszman/dotfiles/actions/runs/43489296551/artifacts/14068693030) was inspected. The startup timing profile ends at approximately 253.660 ms. The verbose trace contains the single expected NvimTree 1.18.0 message `E216: No such group or event: FileExplorer *` from its silent compatibility cleanup, and no other Vimscript error code. It contains no Codeium or Codeium language-server startup references. The removed stale `repeat#set` call is absent from the current config.
 
 This validates the smoke-test scope: clean install, locked plugin restore/build, and normal startup with an empty buffer. It does not validate Codeium's first Insert-mode activation or external server bootstrap; those remain tracked separately in [issue #69](https://github.com/brianfiszman/dotfiles/issues/69).
+
+## Verified baseline after PR #71 — 2026-11-13
+
+PR [#71](https://github.com/brianfiszman/dotfiles/pull/71) was squash-merged
+into `master` at commit
+[`8e721cd`](https://github.com/brianfiszman/dotfiles/commit/8e721cddee895a12367184fca1d588fbee9e1f4f).
+
+The final pre-merge PR code head was
+`f1273d8cab4b3c0aec090abee20e22cd45fce2f5`. Its pull-request run
+[43504068345](https://github.com/brianfiszman/dotfiles/actions/runs/43504068345)
+completed successfully. The job passed all steps: isolated preparation and
+installer safety, exact locked-plugin restore/build hooks, normal startup with
+CI-only flags unset, and log artifact upload.
+
+The same run validated issue #70 through three explicit behavioral assertions:
+- `CmdlineEnter` in a `text` buffer leaves `go.nvim` unloaded.
+- `go` loads `go.nvim` and registers `:GoBuild`.
+- `gomod` loads `go.nvim` and registers `:GoBuild`.
+
+The run is pull-request evidence for the exact code head above. Do not describe
+it as a separate `push` event or as a test of commits that were added afterward.
+The squash merge preserves the tested file contents; any later runtime change
+must receive its own exact-head Actions run.
+
+The only explicitly allowlisted startup trace output in that run was the
+known NvimTree 1.18.0 `E216: No such group or event: FileExplorer *`
+compatibility cleanup message. Do not widen the allowlist without a separate
+root-cause review.
+
