@@ -362,3 +362,20 @@ in 20 seconds on exact PR head
 [43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
 This validates the event-driven signal; it does not establish that every Mason
 install stall has the same root cause.
+
+
+
+## Lazy entry points for Mason DAP commands
+
+`mason-nvim-dap.setup()` registers `:DapInstall` and `:DapUninstall`
+from its command module. When `mason-nvim-dap.nvim` is moved behind a lazy
+parent spec, these commands need to be included in the parent's Lazy `cmd`
+triggers as well; otherwise a user cannot invoke either command to cause the
+parent plugin to load.
+
+Regression coverage should assert both commands exist as lazy placeholders
+while the DAP modules are still unloaded, then invoke `:DapInstall` with no
+arguments in a fresh headless process. An empty adapter list is a no-op, so it
+tests the real command entry point without opening Mason UI or changing installed
+packages. After activation, assert both commands were registered by
+`mason-nvim-dap`.
