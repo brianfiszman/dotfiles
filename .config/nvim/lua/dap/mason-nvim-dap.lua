@@ -88,38 +88,29 @@ function M.config()
   }
 
   -- The TypeScript adapter resolves its executable through Mason's registry.
-  local mason_nvim_dap = require("mason-nvim-dap")
-  local mason_settings = require("mason-nvim-dap.settings")
+  -- Lazy replays a command trigger as soon as this config returns. Ensure
+  -- the registry is available first so :DapInstall can resolve its arguments
+  -- on a clean machine during that very first invocation.
+  require("mason-registry").refresh()
 
-  -- Register :DapInstall/:DapUninstall synchronously while Lazy is loading
-  -- this command-triggered plugin. If setup itself waits for registry.refresh,
-  -- Lazy replays the original command before Mason has registered it.
+  ts_adapters.setAdapters(js_based_languages, dap, dap_utils)
+
+  local mason_nvim_dap = require("mason-nvim-dap")
   mason_nvim_dap.setup({
     automatic_installation = true,
-    ensure_installed = {},
-  })
-
-  -- Resolve TypeScript's package path only after the registry is available.
-  require("mason-registry").refresh(function()
-    ts_adapters.setAdapters(js_based_languages, dap, dap_utils)
-
     -- These are mason-nvim-dap source identifiers, not filetype names.
     -- The legacy node2 source maps to node-debug2-adapter, which is no longer
     -- present in the current Mason registry. TypeScript uses the maintained
     -- js-debug-adapter source through the custom pwa-node/pwa-chrome adapters.
-    mason_settings.set({
-      ensure_installed = { "delve", "codelldb", "js", "python", "dart" },
-    })
-    require("mason-nvim-dap.ensure_installed")()
-    require("mason-nvim-dap.automatic_installation")()
+    ensure_installed = { "delve", "codelldb", "js", "python", "dart" },
+  })
 
-    require("dap.ext.vscode").load_launchjs(nil, {
-      ["pwa-node"] = js_based_languages,
-      ["node"] = js_based_languages,
-      ["chrome"] = js_based_languages,
-      ["pwa-chrome"] = js_based_languages,
-    })
-  end)
+  require("dap.ext.vscode").load_launchjs(nil, {
+    ["pwa-node"] = js_based_languages,
+    ["node"] = js_based_languages,
+    ["chrome"] = js_based_languages,
+    ["pwa-chrome"] = js_based_languages,
+  })
 end
 
 return M
