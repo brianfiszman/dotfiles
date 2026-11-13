@@ -354,9 +354,11 @@ For Mason-managed adapters, observe lifecycle events instead of polling
 - Assert that every expected package was requested and that every terminal
   result is successful. Preserve stderr for failed handles in the test output.
 
-Incident 2026-11-13: polling the registry while five DAP adapters were being
-installed caused the headless scenario to time out without terminal results.
-Replacing the polling loop with Mason lifecycle events passed all five adapter
-installations in 20 seconds on exact PR head
+Incident 2026-11-13: a headless test that polled the registry while five DAP
+adapters were installing timed out without terminal results. Replacing the
+polling loop with Mason lifecycle events passed all five adapter installations
+in 20 seconds on exact PR head
 `605010ffc6825500bdab6b07bb1192e79791e3cc`, run
 [43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
+This validates the event-driven signal; it does not establish that every Mason
+install stall has the same root cause.
