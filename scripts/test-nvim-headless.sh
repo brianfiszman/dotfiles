@@ -81,6 +81,18 @@ run_nvim() {
   local command_status=0
   local tee_status=0
   local -a pipeline_status=()
+  local -a nvim_args=(--headless)
+  local startup_verbose_file="$WORK_DIR/startup-verbose.log"
+  local startup_timing_file="$WORK_DIR/startup-startuptime.log"
+
+  # A timeout during normal startup is not actionable without knowing which
+  # scripts/functions were reached. Keep Neovim's own startup profile and
+  # verbose trace as separate artifacts; do not alter plugin loading behavior.
+  if [[ "$label" == "startup" ]]; then
+    nvim_args+=(--startuptime "$startup_timing_file" "-V12$startup_verbose_file")
+    printf '[startup] Diagnostic timing: %s\n' "$startup_timing_file"
+    printf '[startup] Diagnostic trace: %s\n' "$startup_verbose_file"
+  fi
 
   printf '\n[%s] Starting Neovim headless (limit: %s).\n' "$label" "$time_limit"
   printf '[%s] Live output follows; the full log is saved to %s\n' "$label" "$log_file"
@@ -90,11 +102,11 @@ run_nvim() {
   set +e
   if command -v timeout >/dev/null 2>&1; then
     timeout --signal=TERM --kill-after=30s "$time_limit" \
-      "$NVIM_BIN" --headless -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
+      "$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
     pipeline_status=("${PIPESTATUS[@]}")
   else
     printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
-    "$NVIM_BIN" --headless -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
+    "$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
     pipeline_status=("${PIPESTATUS[@]}")
   fi
   set -e
@@ -108,6 +120,12 @@ run_nvim() {
     printf 'Error: %s exceeded its %s time limit. The live output above and saved log identify the last visible operation.\n' \
       "$label" "$time_limit" >&2
     tail -n 80 "$log_file" >&2 || true
+    if [[ "$label" == "startup" ]]; then
+      printf '\\n--- Neovim startup verbose trace (last 120 lines) ---\\n' >&2
+      tail -n 120 "$startup_verbose_file" >&2 || true
+      printf '\\n--- Neovim startup timing profile (last 120 lines) ---\\n' >&2
+      tail -n 120 "$startup_timing_file" >&2 || true
+    fi
     return 124
   fi
 
