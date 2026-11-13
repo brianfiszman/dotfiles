@@ -10,16 +10,43 @@ vim.opt.sessionoptions = { -- required
 -- optionally enable 24-bit colour
 vim.opt.termguicolors = true
 
+-- Prefer an isolated pynvim environment when one has been created for this setup.
+-- If the maintainer has configured a different Python host explicitly, respect it.
+local python_host = vim.fn.stdpath("data") .. "/python3-venv/bin/python"
+if vim.g.python3_host_prog == nil and vim.fn.executable(python_host) == 1 then
+  vim.g.python3_host_prog = python_host
+end
+
+local uv = vim.uv or vim.loop
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not (vim.uv or vim.loop).fs_stat(lazypath) then
-  vim.fn.system({
+local lazy_init = lazypath .. "/lua/lazy/init.lua"
+
+if not uv.fs_stat(lazy_init) then
+  if vim.fn.executable("git") ~= 1 then
+    error("[dotfiles] Git is required to install lazy.nvim. Install Git and restart Neovim.")
+  end
+
+  -- Remove an incomplete clone left by an interrupted first launch.
+  if uv.fs_stat(lazypath) then
+    vim.fn.delete(lazypath, "rf")
+  end
+
+  vim.fn.mkdir(vim.fn.fnamemodify(lazypath, ":h"), "p")
+  local output = vim.fn.system({
     "git",
     "clone",
     "--filter=blob:none",
     "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable", -- latest stable release
+    "--branch=stable",
     lazypath,
   })
+
+  if vim.v.shell_error ~= 0 or not uv.fs_stat(lazy_init) then
+    error(
+      "[dotfiles] Could not bootstrap lazy.nvim. Check your internet connection and GitHub access, then restart Neovim.\n"
+      .. (output or "")
+    )
+  end
 end
 
 vim.opt.rtp:prepend(lazypath)
