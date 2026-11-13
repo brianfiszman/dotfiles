@@ -31,7 +31,10 @@ assert(package.loaded["dap"] == nil, "nvim-dap loaded during idle startup")
 assert(package.loaded["dapui"] == nil, "DAP UI loaded during idle startup")
 assert(package.loaded["mason-nvim-dap"] == nil, "Mason DAP loaded during idle startup")
 assert(package.loaded["nvim-dap-virtual-text"] == nil, "DAP virtual text loaded during idle startup")
-assert(vim.fn.exists(":DapContinue") == 0, "DAP commands exist during idle startup")
+assert(
+  vim.fn.exists(":DapContinue") == 2 and vim.fn.exists(":DapStepInto") == 2,
+  "native DAP commands are not registered as lazy triggers during idle startup"
+)
 
 local idle_log = mason_log()
 assert(
