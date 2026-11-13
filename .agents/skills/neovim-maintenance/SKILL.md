@@ -379,3 +379,19 @@ arguments in a fresh headless process. An empty adapter list is a no-op, so it
 tests the real command entry point without opening Mason UI or changing installed
 packages. After activation, assert both commands were registered by
 `mason-nvim-dap`.
+
+
+## Asynchronous registry refresh and command registration
+
+Lazy replays a command trigger immediately after the plugin's `config()`
+returns. Do not place the registration of that command only inside an async
+Mason registry refresh callback: on a first-use command invocation, the
+replayed command can run before Mason has registered it.
+
+For `mason-nvim-dap`, call `setup()` synchronously with an empty
+`ensure_installed` list first so its `:DapInstall` and `:DapUninstall`
+commands exist before Lazy replays the triggering command. Then refresh the
+registry asynchronously; in its callback, configure registry-dependent
+adapters, set the real `ensure_installed` list, and invoke the ensure-installed
+helper. Test this with a clean registry and make that first-use command
+scenario run before any test that populates the shared Mason registry.
