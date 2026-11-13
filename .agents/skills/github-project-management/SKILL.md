@@ -41,7 +41,7 @@ Include:
 - **Scope:** likely affected areas, without over-prescribing the implementation.
 - **Acceptance criteria:** observable conditions that determine completion.
 - **Validation:** the checks needed and whether they are static, automated,
-  headless, or manual.
+  headless, full integration, or manual.
 
 Create separate issues only when the behaviors can be implemented and verified
 independently. Keep closely related work together when splitting it would make
@@ -103,6 +103,41 @@ Never describe a change as incorporated unless the target branch actually
 contains it. Closing a PR is not the same as merging it, and preserving a branch
 does not mean its changes have been accepted.
 
+## Review and classify preserved work
+
+A change that exists only on a preserved branch is **unreviewed work**, not
+automatically approved work. Do not port every unique diff merely to avoid
+losing it.
+
+For each unique change, compare the actual patch with the relevant issue's
+expected behavior and acceptance criteria. Check the surrounding implementation
+and whether the change introduces a separate behavior or broadens scope.
+
+Assign exactly one working disposition:
+
+| Disposition | Meaning | Next action |
+|---|---|---|
+| **Accept and port** | The change is correct, needed, and meets an existing issue's criteria | Port it and validate it on the canonical branch |
+| **Track separately** | The change may be useful but is outside the current PR/issue scope | Link an existing issue or create one if the outcome is genuinely new |
+| **Investigate** | The evidence is incomplete or behavior is uncertain | Reproduce, inspect upstream contracts, or ask for targeted validation |
+| **Reject** | The change is incorrect, harmful, or conflicts with the intended behavior | Do not port it; record the technical reason |
+| **Already covered** | The canonical branch already provides the same behavior | Do not port duplicate implementation |
+
+For each preserved change, record its file/path, intended behavior, disposition,
+reason, and destination (issue or PR). Reassess the disposition if new evidence
+appears.
+
+Keep these distinctions explicit:
+
+- **Unique** means only that a diff exists in one branch.
+- **Useful** means there is a substantiated benefit.
+- **Correct** means the implementation matches the relevant contract and does
+  not introduce regressions.
+- **Accepted** means it was deliberately selected for the project.
+- **Ported** means it is actually present in the destination branch.
+
+Never infer one of these states from another.
+
 ## Execution continuity
 
 At the end of a meaningful work session, leave durable state:
@@ -111,6 +146,8 @@ At the end of a meaningful work session, leave durable state:
   blocker, or handoff would otherwise exist only in conversation.
 - Keep the epic and functional backlog aligned with the actual state.
 - Record the canonical PR and any preserved branches when work is consolidated.
+- Record the disposition of unique changes so they are not silently forgotten
+  or accidentally treated as approved.
 - Distinguish completed changes from proposed changes and unverified work.
 - Identify the next concrete action without claiming it has already happened.
 
@@ -137,7 +174,8 @@ commit and validation level when those details matter.
 Summarize work in terms the maintainer can act on:
 
 1. What changed, with links to the relevant issues, commits, or PRs.
-2. What was deliberately not changed or preserved for later.
+2. What was deliberately not changed or preserved for later, including the
+   disposition of unique branch work.
 3. Which checks actually ran and their results.
 4. What remains unverified or blocked.
 5. The next concrete step, if one is needed.
