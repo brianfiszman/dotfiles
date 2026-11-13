@@ -260,21 +260,21 @@ startup() {
     "+lua assert(pcall(vim.treesitter.language.add, 'norg_meta'), 'Neorg norg_meta parser could not be loaded')" \
     "+qa!"
 
-  printf '\\n[behavior] Verifying Go tooling loads only for Go-related filetypes.\\n'
-  run_nvim "go-lazy-loading-go" "$NVIM_STARTUP_TIMEOUT" \\
-    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded during an unrelated startup')" \\
-    "+lua vim.api.nvim_exec_autocmds('CmdlineEnter', { modeline = false })" \\
-    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded on CmdlineEnter in a non-Go buffer')" \\
-    "+setfiletype go" \\
-    "+lua assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the Go filetype')" \\
-    "+lua assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing after Go plugin load')" \\
+  printf '\n[behavior] Verifying Go tooling loads only for Go-related filetypes.\n'
+  run_nvim "go-lazy-loading-go" "$NVIM_STARTUP_TIMEOUT" \
+    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded during an unrelated startup')" \
+    "+lua vim.api.nvim_exec_autocmds('CmdlineEnter', { modeline = false })" \
+    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded on CmdlineEnter in a non-Go buffer')" \
+    "+setfiletype go" \
+    "+lua assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the Go filetype')" \
+    "+lua assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing after Go plugin load')" \
     "+qa!"
 
-  run_nvim "go-lazy-loading-gomod" "$NVIM_STARTUP_TIMEOUT" \\
-    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded before the go.mod filetype')" \\
-    "+setfiletype gomod" \\
-    "+lua assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the go.mod filetype')" \\
-    "+lua assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing for go.mod buffers')" \\
+  run_nvim "go-lazy-loading-gomod" "$NVIM_STARTUP_TIMEOUT" \
+    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded before the go.mod filetype')" \
+    "+setfiletype gomod" \
+    "+lua assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the go.mod filetype')" \
+    "+lua assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing for go.mod buffers')" \
     "+qa!"
 }
 
