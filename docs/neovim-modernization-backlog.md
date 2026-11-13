@@ -72,8 +72,9 @@ Issue state on the PR branch (not yet merged):
 | #72 | Optional Go helper bulk install removed; restore now detects failed tool-install notifications | Keep open until PR #71 merges |
 | #73 | Neorg parser dependencies and runtimepath are fixed; clean startup asserts both parsers | Keep open until PR #71 merges |
 | #43 | Tracking parent for on-demand optional workflows | Children #74, #75, and #76 are planned |
-| #74 | Neotest/adapters lazy-loading work defined | Not started |
-| #75 | DAP/UI/adapter lazy-loading work defined | Not started; keep #40 Run with Args separate |
+| #75 | DAP/UI/adapter lazy-loading work defined; prerequisite for #74's no-DAP assertion | Next, not started; keep #40 Run with Args separate |
+| #74 | Neotest/adapters lazy-loading work defined | Blocked on #75; then validate normal test vs explicit Debug Test |
+
 | #76 | Telescope/extension lazy-loading work defined | Not started |
 
 Do not close or mark branch-implemented issues complete before PR #71 is
