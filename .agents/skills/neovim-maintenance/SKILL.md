@@ -335,3 +335,63 @@ for the validated snapshot, not by assumption for all future revisions.
 - If a lazy plugin's own autocmd is registered only after the event that triggered lazy loading, do not assume that autocmd will run retroactively. Invoke the intended entry point explicitly from the plugin config when that is required.
 - When diagnosing a clean headless startup, distinguish plugin restoration from runtime activation. A successful locked restore does not prove that optional services or first-run language-server downloads can initialize.
 - Remove stale integration calls only after verifying that no corresponding plugin/spec or mapping exists. Here, `repeat#set` had no configured provider or matching mapping and was removed rather than adding an unrelated plugin.
+
+
+
+## Mason package-install regression tests
+
+For Mason-managed adapters, observe lifecycle events instead of polling
+`Package:is_installed()` inside a `vim.wait()` predicate:
+
+- Subscribe to `registry:on("package:handle", ...)` to record which configured
+  packages were requested.
+- Subscribe to `package:install:success` and `package:install:failed` and keep
+  terminal results in an in-memory table.
+- Wait on that table. Avoid repeated `Package:is_installed()` calls during
+  active installs: the current Mason implementation scans the shared install
+  root synchronously, so polling is expensive and is not a reliable async
+  completion signal.
+- Assert that every expected package was requested and that every terminal
+  result is successful. Preserve stderr for failed handles in the test output.
+
+Incident 2026-11-13: a headless test that polled the registry while five DAP
+adapters were installing timed out without terminal results. Replacing the
+polling loop with Mason lifecycle events passed all five adapter installations
+in 20 seconds on exact PR head
+`605010ffc6825500bdab6b07bb1192e79791e3cc`, run
+[43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
+This validates the event-driven signal; it does not establish that every Mason
+install stall has the same root cause.
+
+
+
+## Lazy entry points for Mason DAP commands
+
+`mason-nvim-dap.setup()` registers `:DapInstall` and `:DapUninstall`
+from its command module. When `mason-nvim-dap.nvim` is moved behind a lazy
+parent spec, these commands need to be included in the parent's Lazy `cmd`
+triggers as well; otherwise a user cannot invoke either command to cause the
+parent plugin to load.
+
+Regression coverage should assert both commands exist as lazy placeholders
+while the DAP modules are still unloaded, then invoke `:DapInstall` with no
+arguments in a fresh headless process. An empty adapter list is a no-op, so it
+tests the real command entry point without opening Mason UI or changing installed
+packages. After activation, assert both commands were registered by
+`mason-nvim-dap`.
+
+
+## Registry-dependent command entry points
+
+Lazy replays a command trigger immediately after the plugin's `config()`
+returns. Mason's `:DapInstall` and `:DapUninstall` commands are registered
+by `mason-nvim-dap.setup()`, so a lazy command-triggered load must make those
+commands available synchronously before returning from config.
+
+When the first command may need registry data (for example
+`:DapInstall python`), use Mason's no-callback `registry.refresh()` form,
+which completes the refresh before setup and command replay. An asynchronous
+refresh callback can register commands too late for Lazy's immediate replay.
+Keep the expensive adapter package installations asynchronous through Mason's
+normal ensure-installed flow. Test the Mason command trigger first in the
+headless sequence, before any other DAP test populates the registry.
