@@ -79,3 +79,32 @@ Report, at minimum:
 - What changed, what remains unverified, and the next concrete action.
 
 Use these labels accurately: **not run**, **pending**, **failed**, **passed**, **unavailable**, and **mocked**. Never collapse them into a generic "CI is fine".
+
+
+## Long-running headless operations: progress, timeouts, and diagnosis
+
+A workflow step that stays `in_progress` is not automatically hung. Distinguish an operation that is making progress from one that is silent or genuinely blocked.
+
+- Never redirect a long-running command's complete stdout/stderr to a file and show nothing until exit. Stream to the Actions console with `tee` while retaining a complete log artifact.
+- Split distinct phases into distinct Actions steps when they have different purposes and failure modes. For this Neovim smoke test, installer preparation, locked plugin restoration/build hooks, and normal startup are separate steps.
+- Use per-operation timeouts in addition to the job-level timeout. A timeout should identify which phase exceeded its budget and preserve the last log lines.
+- Keep timeouts generous enough for real compilation and network dependency work. A timeout is a failure signal for investigation, not proof that the underlying operation is inherently broken.
+- Capture the exit code of the timed command separately from the log-streaming process. Preserve signal/timeout status; do not let a successful `tee` mask a failed Neovim process.
+- Keep the full logs as workflow artifacts even on failure. A live job may not yet expose downloadable logs/artifacts; use visible step output while it runs.
+- Do not increase a job timeout just because progress is invisible. First improve observability and identify which command/build is consuming time.
+- Avoid duplicate expensive runs. Run feature branches through the PR event, run push events on the default branch, and cancel older runs for the same PR when a newer commit supersedes them.
+
+### Incident fingerprint — 2026-11-13
+
+The previous workflow presented install, `Lazy! restore`, and normal startup as one Actions step. The script redirected Neovim output to `plugin-restore.log` and did not print it until the process exited or failed. Therefore the Actions UI showed a static step label during potentially long plugin downloads/build hooks, with no live evidence of which dependency was active. The log-download connector also returned 404 while the job remained in progress; that was not evidence that Neovim itself had failed.
+
+The corrected implementation in PR #71:
+
+- exposes separate `prepare`, `restore`, and `startup` workflow steps;
+- streams Neovim output live while saving per-phase logs;
+- bounds plugin restoration to 20 minutes and normal startup to 5 minutes, within a 30-minute job limit;
+- prints elapsed time and identifies timeout vs process failure;
+- runs push CI only on `master` while PRs validate feature branches, avoiding the duplicate push+PR restore on every feature-branch commit;
+- cancels superseded runs for the same PR/branch.
+
+The 20-minute restore budget is an initial operational limit, not a measured performance target. Revisit it only from actual run durations and the specific plugin/build log.
