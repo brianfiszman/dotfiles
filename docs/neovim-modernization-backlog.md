@@ -15,7 +15,6 @@ underlying fix.
 - [#30 Run a headless Neovim startup smoke test on every change](https://github.com/brianfiszman/dotfiles/issues/30)
 - [#31 Make lazy.nvim bootstrap failures clear and actionable](https://github.com/brianfiszman/dotfiles/issues/31)
 - [#66 Exclude the committed Python virtual environment from installation](https://github.com/brianfiszman/dotfiles/issues/66)
-- [#68 Install every declared plugin from a clean setup](https://github.com/brianfiszman/dotfiles/issues/68)
 
 ## P1 — Make everyday editing predictable
 
