@@ -8,7 +8,16 @@ CONFIG_HOME="$TEMP_HOME/.config"
 NVIM_CONFIG="$CONFIG_HOME/nvim"
 
 cleanup() {
-  rm -rf -- "$TEMP_HOME"
+  # lazy.nvim can leave short-lived Git/build subprocesses behind after a
+  # failed sync. Retry cleanup so the test does not report a misleading
+  # secondary failure while those processes finish.
+  for attempt in 1 2 3 4 5; do
+    if rm -rf -- "$TEMP_HOME" 2>/dev/null; then
+      return
+    fi
+    sleep 1
+  done
+  rm -rf -- "$TEMP_HOME" || true
 }
 trap cleanup EXIT
 
@@ -32,6 +41,7 @@ export XDG_DATA_HOME="$TEMP_HOME/.local/share"
 export XDG_CACHE_HOME="$TEMP_HOME/.cache"
 export XDG_STATE_HOME="$TEMP_HOME/.local/state"
 export NVIM_CONFIG
+export DOTFILES_CI=1
 
 run_and_check() {
   local label="$1"
