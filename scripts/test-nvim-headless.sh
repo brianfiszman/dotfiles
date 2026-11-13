@@ -262,26 +262,11 @@ startup() {
 
   printf '\n[behavior] Verifying Go tooling loads only for Go-related filetypes.\n'
   run_nvim "go-lazy-loading-go" "$NVIM_STARTUP_TIMEOUT" \
-    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded during an unrelated startup')" \
-    "+setfiletype text" \
-    "+lua assert(vim.bo.filetype == 'text', 'non-Go test buffer was not set to text')" \
-    "+lua vim.api.nvim_exec_autocmds('CmdlineEnter', { modeline = false })" \
-    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded on CmdlineEnter in a non-Go buffer')" \
-    "+lua print('PASS: CmdlineEnter in a text buffer leaves go.nvim unloaded')" \
-    "+enew" \
-    "+setfiletype go" \
-    "+lua assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the Go filetype')" \
-    "+lua assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing after Go plugin load')" \
-    "+lua print('PASS: Go filetype loads go.nvim and registers :GoBuild')" \
+    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded during an unrelated startup'); vim.cmd('setfiletype text'); assert(vim.bo.filetype == 'text', 'non-Go test buffer was not set to text'); vim.api.nvim_exec_autocmds('CmdlineEnter', { modeline = false }); assert(package.loaded['go'] == nil, 'go.nvim loaded on CmdlineEnter in a non-Go buffer'); print('PASS: CmdlineEnter in a text buffer leaves go.nvim unloaded'); vim.cmd('enew'); vim.cmd('setfiletype go'); assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the Go filetype'); assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing after Go plugin load'); print('PASS: Go filetype loads go.nvim and registers :GoBuild')" \
     "+qa!"
 
   run_nvim "go-lazy-loading-gomod" "$NVIM_STARTUP_TIMEOUT" \
-    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded before the go.mod filetype')" \
-    "+setfiletype gomod" \
-    "+lua assert(vim.bo.filetype == 'gomod', 'go.mod test buffer was not set to gomod')" \
-    "+lua assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the go.mod filetype')" \
-    "+lua assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing for go.mod buffers')" \
-    "+lua print('PASS: gomod filetype loads go.nvim and registers :GoBuild')" \
+    "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded before the go.mod filetype'); vim.cmd('setfiletype gomod'); assert(vim.bo.filetype == 'gomod', 'go.mod test buffer was not set to gomod'); assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the go.mod filetype'); assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing for go.mod buffers'); print('PASS: gomod filetype loads go.nvim and registers :GoBuild')" \
     "+qa!"
 }
 
