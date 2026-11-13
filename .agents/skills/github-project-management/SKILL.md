@@ -154,6 +154,33 @@ At the end of a meaningful work session, leave durable state:
 Do not create a status issue or extra documentation file when an existing epic,
 issue, PR, or backlog is the right place.
 
+## Parent issues and independently testable work
+
+Use a parent/tracking issue when one user goal contains several independently
+implementable behaviors, but do not force those behaviors into one oversized
+acceptance checklist.
+
+- Search open and closed issues before splitting. Preserve prior decisions and
+  closed-duplicate relationships; do not reopen a superseded issue merely
+  because it contains useful wording.
+- Create one child issue per independently testable user-visible behavior.
+  Give each child its own scope, acceptance criteria, and validation plan.
+- Keep the parent issue as coordination only: link its children, describe the
+  shared goal and boundaries, and state when the parent can close.
+- Avoid duplicating the full child acceptance criteria in the parent. Changes
+  should be tracked and closed on the child; the parent closes after all children
+  are merged and validated.
+- When splitting an existing issue, update its body and the functional backlog
+  in the same work session. Preserve its existing intent; do not silently drop
+  scope that is still valuable.
+- Do not create a second umbrella for the same outcome. Link older duplicate
+  issues as historical decisions instead.
+
+Example in this repository: issue #43 now coordinates three distinct work
+streams—Neotest (#74), DAP (#75), and Telescope (#76). Older #18 and #63 remain
+closed as duplicates of #43. DAP Run with Args (#40) remains a separate bug and
+must not be merged into the DAP lazy-loading ticket.
+
 ## Backlog status and issue sequencing
 
 Keep implementation, validation, merge, and issue closure as separate states:
