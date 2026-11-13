@@ -45,6 +45,8 @@ jobs:
             golang-go \
             make \
             libreadline-dev \
+            liblua5.1-0-dev \
+            lua5.1 \
             nodejs \
             npm \
             python3 \
