@@ -335,3 +335,28 @@ for the validated snapshot, not by assumption for all future revisions.
 - If a lazy plugin's own autocmd is registered only after the event that triggered lazy loading, do not assume that autocmd will run retroactively. Invoke the intended entry point explicitly from the plugin config when that is required.
 - When diagnosing a clean headless startup, distinguish plugin restoration from runtime activation. A successful locked restore does not prove that optional services or first-run language-server downloads can initialize.
 - Remove stale integration calls only after verifying that no corresponding plugin/spec or mapping exists. Here, `repeat#set` had no configured provider or matching mapping and was removed rather than adding an unrelated plugin.
+
+
+
+## Mason package-install regression tests
+
+For Mason-managed adapters, observe lifecycle events instead of polling
+`Package:is_installed()` inside a `vim.wait()` predicate:
+
+- Subscribe to `registry:on("package:handle", ...)` to record which configured
+  packages were requested.
+- Subscribe to `package:install:success` and `package:install:failed` and keep
+  terminal results in an in-memory table.
+- Wait on that table. Avoid repeated `Package:is_installed()` calls during
+  active installs: the current Mason implementation scans the shared install
+  root synchronously, so polling is expensive and is not a reliable async
+  completion signal.
+- Assert that every expected package was requested and that every terminal
+  result is successful. Preserve stderr for failed handles in the test output.
+
+Incident 2026-11-13: polling the registry while five DAP adapters were being
+installed caused the headless scenario to time out without terminal results.
+Replacing the polling loop with Mason lifecycle events passed all five adapter
+installations in 20 seconds on exact PR head
+`605010ffc6825500bdab6b07bb1192e79791e3cc`, run
+[43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
