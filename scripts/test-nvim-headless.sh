@@ -271,6 +271,10 @@ startup() {
   run_nvim "dap-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-lazy-loading.lua" \
     "+qa!"
+
+  run_nvim "dap-neotest-trigger" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-neotest-trigger.lua" \
+    "+qa!"
 }
 
 case "$PHASE" in
