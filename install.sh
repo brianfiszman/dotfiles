@@ -79,7 +79,9 @@ while (($#)); do
 done
 
 [[ "$CONFIG_HOME" = /* ]] || die "XDG_CONFIG_HOME must be an absolute path."
-command -v git >/dev/null 2>&1 || die "Git is required by lazy.nvim. Install Git and run this script again."
+if "$INSTALL_NVIM"; then
+  command -v git >/dev/null 2>&1 || die "Git is required by lazy.nvim. Install Git and run this script again."
+fi
 
 if "$SYNC_PLUGINS"; then
   "$INSTALL_NVIM" || die "--sync-plugins requires a Neovim installation."
