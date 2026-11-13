@@ -182,3 +182,25 @@ Summarize work in terms the maintainer can act on:
 
 Do not claim that work is complete merely because files or GitHub artifacts
 were created. Verify their final state after writing.
+
+
+## GitHub Actions evidence and handoff
+
+When a PR's readiness or a CI failure is part of the decision, follow
+`.agents/skills/github-actions-validation/SKILL.md` and:
+
+- Anchor every status to the exact current PR head SHA.
+- Inspect workflow runs by event. A PR-triggered run does not prove that the
+  corresponding push-triggered run exists or passed.
+- Treat integration output as a potentially filtered view. In this repository,
+  `fetch_commit_workflow_runs` returned only `pull_request` runs and omitted
+  `push` runs; never infer "no run" from that helper alone.
+- Read job steps and failure logs. If the job is still running and logs are not
+  available yet, report pending rather than inventing a cause.
+- Record the incident, mitigation commit, exact run IDs, and unresolved status
+  in the relevant skill and existing issue/PR. Do not open a new issue just to
+  store an execution transcript when the existing functional issue already
+  describes the outcome.
+- A documentation-only commit can move the PR head without triggering a
+  path-filtered runtime workflow. State which code SHA the runtime result
+  actually covers, and separately review the later documentation diff.
