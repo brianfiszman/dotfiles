@@ -52,9 +52,10 @@ currently open, mergeable, and not merged. The latest validated code head is
 passing isolated preparation, locked plugin restore/build hooks, normal startup,
 and the Go lazy-loading regression scenarios.
 
-The current PR head is `8a236144bf596da22cc16f8fd326cd2262a9daaf`; its only commit after the validated code head
-changes this backlog document. The workflow does not run for this docs-only path,
-so run #43501627966 remains the applicable runtime result.
+The branch received only documentation/backlog changes after the validated code
+head. I compared the complete commit range: no Neovim configuration, installer,
+test-script, or workflow code changed. The workflow is path-filtered away from
+backlog-only updates, so run #43501627966 remains the applicable runtime result.
 
 The final artifact [14072829773](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966/artifacts/14072829773)
 was inspected. It contains explicit PASS lines for the non-Go `CmdlineEnter`
@@ -77,7 +78,8 @@ Issue state on the PR branch (not yet merged):
 
 Do not close or mark branch-implemented issues complete before PR #71 is
 merged. After each subsequent commit, use the exact latest PR head SHA and its
-own Actions result; run #43501627966 validates head `4d745c2`.
+own Actions result; run #43501627966 validates the latest executable-code snapshot
+(`4d745c2`). Later commits only update documentation/backlog.
 
 ## Working agreement
 
