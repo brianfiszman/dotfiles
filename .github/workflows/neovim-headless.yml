@@ -1,0 +1,75 @@
+name: Neovim headless smoke test
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".config/nvim/**"
+      - "install.sh"
+      - "scripts/test-nvim-headless.sh"
+      - ".github/workflows/neovim-headless.yml"
+      - "README.md"
+  pull_request:
+    paths:
+      - ".config/nvim/**"
+      - "install.sh"
+      - "scripts/test-nvim-headless.sh"
+      - ".github/workflows/neovim-headless.yml"
+      - "README.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  headless-startup:
+    name: Fresh install and headless startup
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEOVIM_VERSION: v0.11.0
+      NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-smoke
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install system tools used by plugin builds
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            build-essential \
+            cmake \
+            curl \
+            fd-find \
+            git \
+            golang-go \
+            make \
+            nodejs \
+            npm \
+            python3 \
+            python3-pynvim \
+            ripgrep \
+            unzip
+
+      - name: Install pinned Neovim
+        run: |
+          archive="$RUNNER_TEMP/neovim.tar.gz"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/$NEOVIM_VERSION/nvim-linux-x86_64.tar.gz" \
+            --output "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Run isolated install, plugin restore, and startup tests
+        run: bash ./scripts/test-nvim-headless.sh
+        env:
+          NVIM_BIN: nvim
+
+      - name: Upload headless logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nvim-headless-smoke-logs
+          path: ${{ runner.temp }}/nvim-headless-smoke/
+          if-no-files-found: ignore
