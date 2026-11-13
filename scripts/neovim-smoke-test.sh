@@ -85,6 +85,7 @@ printf '\n[3/4] Installing/synchronizing plugins from lazy-lock.json\n'
 run_and_check "lazy-sync" nvim --headless -u "$NVIM_CONFIG/init.lua" "+Lazy! sync" +qa
 
 printf '\n[4/4] Starting Neovim headlessly with the installed plugins\n'
+unset DOTFILES_CI
 run_and_check "headless-startup" nvim --headless -u "$NVIM_CONFIG/init.lua" \
   -c "lua assert(vim.g.mapleader == ' ', 'mapleader should be Space')" +qa
 
