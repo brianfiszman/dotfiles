@@ -59,7 +59,7 @@ Existing Emacs files are backed up before replacement, just like the Neovim conf
 Run the isolated headless smoke test locally:
 
 ```bash
-scripts/neovim-smoke-test.sh
+bash scripts/neovim-smoke-test.sh
 ```
 
 It creates a temporary HOME and XDG directories, installs the config there, syncs lazy.nvim plugins, and launches Neovim headlessly. It does not change your real Neovim setup.
