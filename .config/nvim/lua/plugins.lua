@@ -103,8 +103,22 @@ require("lazy").setup({
   {
     "nvim-neorg/neorg",
     version = "*",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-neorg/tree-sitter-norg",
+      "nvim-neorg/tree-sitter-norg-meta",
+    },
     config = function()
+      -- Neorg's LuaRocks parsers live outside the default runtimepath.
+      -- Expose them before Neorg checks for and initializes its grammars.
+      local data_dir = vim.fn.stdpath("data")
+      for _, parser in ipairs({ "tree-sitter-norg", "tree-sitter-norg-meta" }) do
+        local parser_runtime = data_dir .. "/lazy-rocks/" .. parser .. "/lib/lua/5.1"
+        if vim.fn.isdirectory(parser_runtime) == 1 then
+          vim.opt.runtimepath:prepend(parser_runtime)
+        end
+      end
+
       require("neorg").setup {
         load = {
           ["core.defaults"] = {},  -- Loads default behaviour
