@@ -16,6 +16,10 @@ fi
 if [[ -n "${NVIM_TEST_DIR:-}" ]]; then
   WORK_DIR="$NVIM_TEST_DIR"
   mkdir -p "$WORK_DIR"
+  if [[ -n "$(find "$WORK_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    printf 'Error: NVIM_TEST_DIR must be empty: %s\n' "$WORK_DIR" >&2
+    exit 1
+  fi
   CLEAN_WORK_DIR=0
 else
   WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-nvim-smoke.XXXXXX")"
@@ -41,10 +45,11 @@ export XDG_CACHE_HOME="$WORK_DIR/cache"
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 
 printf '[0/3] Checking shell syntax...\n'
-bash -n "$REPO_ROOT/install.sh" "$REPO_ROOT/scripts/test-nvim-headless.sh"
+bash -n "$REPO_ROOT/install.sh"
+bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
 
 printf 'Testing Neovim: '
-"$NVIM_BIN" --version | head -n 1
+"$NVIM_BIN" --version | sed -n '1p'
 
 # Seed an existing config so dry-run and backup behavior are tested, not assumed.
 mkdir -p "$XDG_CONFIG_HOME/nvim"
