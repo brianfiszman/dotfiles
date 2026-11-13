@@ -91,6 +91,29 @@ because the same files are involved.
 - Keep the parent branch stable while a child PR is being prepared; re-check its
   head SHA before branching and before opening the child PR.
 
+## One-PR-at-a-time delivery cadence
+
+Default to completing one functional PR end to end before starting the next:
+
+1. Finish the current issue scope; do not expand it with unrelated backlog work.
+2. Review the complete diff and verify the latest PR head with the required checks.
+3. Merge the PR only after the user has authorized the merge and the exact head is clean.
+4. After the merge, reconcile the default branch and close only issues whose
+   acceptance criteria are satisfied by the merged code and validation.
+5. Update the canonical backlog with the merge commit, validation run, completed
+   issues, remaining verification, and the next ticket.
+6. Only then continue with the next PR/branch.
+
+Preserve branches for dependent or unrelated work, but do not keep multiple
+functional PRs in flight merely because their branches already exist. Before
+reusing a branch created before a squash merge, compare its unique diff against
+the old PR head and the new default branch. Port only the reviewed unique work
+onto a clean branch from the current default branch; do not carry the old PR
+history into a new PR.
+
+Do not close an issue because a branch contains a candidate implementation.
+Issue closure follows merge plus acceptance evidence, not branch status.
+
 ## Pull request overlap and duplicate audit
 
 Similar titles, descriptions, or goals do not prove that two PRs contain the
