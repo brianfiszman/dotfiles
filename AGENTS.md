@@ -45,6 +45,8 @@ state as user data, not disposable test fixtures.
 - Follow `.agents/skills/neovim-maintenance/SKILL.md` for Neovim-specific work.
 - Follow `.agents/skills/github-project-management/SKILL.md` when creating,
   updating, comparing, or closing GitHub issues and pull requests.
+- Follow `.agents/skills/github-actions-validation/SKILL.md` when inspecting,
+  diagnosing, or reporting GitHub Actions workflows and check results.
 
 ## Preserving work across branches and PRs
 
