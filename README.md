@@ -83,6 +83,16 @@ inside Neovim with:
 
 ### Troubleshooting and validation
 
+If plugin help tags ever become stale or a plugin's help topic cannot be found,
+rebuild them manually from inside Neovim:
+
+```vim
+:helptags ALL
+```
+
+This is intentionally not run on every startup; rebuilding every help directory
+on every launch adds work even when no plugin documentation has changed.
+
 Run the headless smoke test from the repository root:
 
 ```sh
