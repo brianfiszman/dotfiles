@@ -1,4 +1,4 @@
-require("lazy").setup({
+local plugin_specs = {
   'ryanoasis/powerline-extra-symbols',
   'yuttie/comfortable-motion.vim',
   'nvim-lua/plenary.nvim',
@@ -197,7 +197,32 @@ require("lazy").setup({
   require 'linting.nvim-lint',
   require 'formatting.conform',
   require 'ai.codeium',
-}, {
+}
+
+-- During CI, install plugin repositories and their build products without
+-- loading UI/LSP/test plugins from startup events. The next process starts
+-- normally (without DOTFILES_CI) and exercises the real configuration.
+if vim.env.DOTFILES_CI == "1" then
+  local function defer_plugins(specs)
+    for _, spec in ipairs(specs) do
+      if type(spec) == "table" then
+        if type(spec[1]) == "string" then
+          spec.lazy = true
+          spec.event = nil
+          spec.cmd = nil
+          spec.ft = nil
+          spec.keys = nil
+        end
+        if type(spec.dependencies) == "table" then
+          defer_plugins(spec.dependencies)
+        end
+      end
+    end
+  end
+  defer_plugins(plugin_specs)
+end
+
+require("lazy").setup(plugin_specs, {
   -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
   -- bootstrap its own toolchain. CI syncs plugins in a separate phase.
   defaults = {
