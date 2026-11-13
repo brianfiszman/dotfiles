@@ -1,9 +1,7 @@
 require("lazy").setup({
-  {
-    'ryanoasis/powerline-extra-symbols',
-    'yuttie/comfortable-motion.vim',
-    'nvim-lua/plenary.nvim',
-  },
+  'ryanoasis/powerline-extra-symbols',
+  'yuttie/comfortable-motion.vim',
+  'nvim-lua/plenary.nvim',
   -- SNIPPETS --
   {
     'hrsh7th/nvim-cmp',
@@ -68,7 +66,9 @@ require("lazy").setup({
   {
     'nvim-tree/nvim-tree.lua',
     version = '*',
-    lazy = false,
+    -- In CI, install plugins first and defer eager setup until the second
+    -- headless startup. Normal interactive startup keeps the eager behavior.
+    lazy = vim.env.DOTFILES_CI == "1",
     dependencies = {
       'nvim-tree/nvim-web-devicons',
     },
@@ -199,8 +199,10 @@ require("lazy").setup({
   require 'ai.codeium',
 }, {
   -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
-  -- bootstrap its own toolchain. CI disables auto-install so the explicit
-  -- Lazy sync command is the only installer process.
+  -- bootstrap its own toolchain. CI syncs plugins in a separate phase.
+  defaults = {
+    lazy = vim.env.DOTFILES_CI == "1",
+  },
   install = {
     missing = vim.env.DOTFILES_CI ~= "1",
   },
