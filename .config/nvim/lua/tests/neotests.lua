@@ -33,7 +33,6 @@ local M = {
     "rcasia/neotest-bash",
     "antoinemadec/FixCursorHold.nvim",
     "nvim-lua/plenary.nvim",
-    "mfussenegger/nvim-dap"
   },
 }
 
@@ -54,7 +53,8 @@ function M.config()
     ["<leader>tt"] = { "<cmd>lua require'neotest'.run.run()<cr>", "Test Nearest" },
     ["<leader>tw"] = { "<cmd>lua require('neotest').run.run({ jestCommand = 'jest --watch ' })<cr>", "Test Watch" },
     ["<leader>tf"] = { "<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<cr>", "Test File" },
-    ["<leader>td"] = { "<cmd>lua require('neotest').run.run({strategy = 'dap'})<cr>", "Debug Test" },
+    -- Debug Test is the explicit exception that loads the lazy DAP stack.
+    ["<leader>td"] = { "<cmd>lua require('lazy').load({ plugins = { 'mason-nvim-dap.nvim' } }); require('neotest').run.run({strategy = 'dap'})<cr>", "Debug Test" },
     ["<leader>ts"] = { "<cmd>lua require('neotest').run.stop()<cr>", "Test Stop" },
     ["<leader>ta"] = { "<cmd>lua require('neotest').run.attach()<cr>", "Attach Test" },
   }
