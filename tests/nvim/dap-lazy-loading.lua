@@ -72,7 +72,7 @@ end)
 
 -- Use Mason's terminal package events as the completion signal. Polling
 -- Package:is_installed() repeatedly scans the shared install directory and
--- floods Mason's own TRACE log while installers are active.
+-- is not an appropriate async installation-completion signal.
 registry:on("package:install:success", function(pkg, handle)
   if not vim.tbl_contains(package_names, pkg.name) then
     return
