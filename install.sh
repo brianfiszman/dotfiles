@@ -1,99 +1,166 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-GREEN=$(tput setaf 28)
-MAGENTA=$(tput setaf 13)
-BLUE=$(tput setaf 12)
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
+INSTALL_NVIM=true
+INSTALL_EMACS=false
+DRY_RUN=false
+SYNC_PLUGINS=false
+BACKUP_DIR="$HOME/.local/state/dotfiles/backups/$(date +%Y%m%d-%H%M%S)-$$"
+TEMP_DIR=""
 
-IS_ARCH=`cat /etc/*-release | grep Arch\ Linux`
-IS_DEBIAN=`cat /etc/*-release | grep Debian`   # move to script directory so all relative paths work
-IS_UBUNTU=`cat /etc/*-release | grep Ubuntu`   cd "$(dirname "$0")"
-IS_MINT=`cat /etc/*-release | grep Mint`
+usage() {
+  cat <<'USAGE'
+Usage: ./install.sh [options]
 
-error() {
-  echo $1
+Install this repository's dotfiles without deleting existing user data.
+
+Options:
+  --nvim            Install the Neovim config (default)
+  --emacs           Install the Emacs config only
+  --all             Install Neovim and Emacs configs
+  --sync-plugins    After installing Neovim, run lazy.nvim sync
+  --dry-run         Print actions without changing files
+  -h, --help        Show this help
+
+Examples:
+  ./install.sh
+  ./install.sh --nvim --sync-plugins
+  ./install.sh --emacs
+  ./install.sh --all --dry-run
+
+Existing config paths are moved to a timestamped backup under:
+  ~/.local/state/dotfiles/backups/
+USAGE
 }
 
-show_message() {
-  printf "$1\n\n"
+die() {
+  printf 'Error: %s\n' "$*" >&2
+  exit 1
 }
 
-delete_directory() {
-  if [ -d $1 ]; then
-    rm $1 -rfv
+cleanup() {
+  if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
+    rm -rf -- "$TEMP_DIR"
+  fi
+}
+trap cleanup EXIT
+
+while (($#)); do
+  case "$1" in
+    --nvim)
+      INSTALL_NVIM=true
+      INSTALL_EMACS=false
+      ;;
+    --emacs)
+      INSTALL_NVIM=false
+      INSTALL_EMACS=true
+      ;;
+    --all)
+      INSTALL_NVIM=true
+      INSTALL_EMACS=true
+      ;;
+    --sync-plugins)
+      SYNC_PLUGINS=true
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "Unknown option: $1 (use --help to see available options)"
+      ;;
+  esac
+  shift
+done
+
+[[ "$CONFIG_HOME" = /* ]] || die "XDG_CONFIG_HOME must be an absolute path."
+command -v git >/dev/null 2>&1 || die "Git is required by lazy.nvim. Install Git and run this script again."
+
+if "$SYNC_PLUGINS"; then
+  "$INSTALL_NVIM" || die "--sync-plugins requires a Neovim installation."
+  command -v nvim >/dev/null 2>&1 || die "Neovim is required for --sync-plugins. Install Neovim or omit this option."
+fi
+
+install_path() {
+  local source_path="$1"
+  local target_path="$2"
+  local label="$3"
+  local parent_path
+  local staged_path
+  local backup_path=""
+
+  [[ -e "$source_path" ]] || die "Source path does not exist: $source_path"
+  parent_path="$(dirname -- "$target_path")"
+
+  if "$DRY_RUN"; then
+    printf 'Would install %s\n  from: %s\n  to:   %s\n' "$label" "$source_path" "$target_path"
+    if [[ -e "$target_path" || -L "$target_path" ]]; then
+      printf '  backup: %s/%s\n' "$BACKUP_DIR" "$label"
+    fi
+    return
+  fi
+
+  mkdir -p -- "$parent_path"
+  TEMP_DIR="$(mktemp -d "$parent_path/.dotfiles-install.XXXXXX")"
+  staged_path="$TEMP_DIR/$(basename -- "$target_path")"
+
+  if [[ -d "$source_path" ]]; then
+    mkdir -p -- "$staged_path"
+    cp -a -- "$source_path/." "$staged_path/"
+    # A checked-in virtualenv is machine-specific and must never be installed.
+    if [[ "$label" == "nvim" ]]; then
+      rm -rf -- "$staged_path/venv"
+    fi
+  else
+    cp -a -- "$source_path" "$staged_path"
+  fi
+
+  if [[ -e "$target_path" || -L "$target_path" ]]; then
+    mkdir -p -- "$BACKUP_DIR"
+    backup_path="$BACKUP_DIR/$label"
+    [[ ! -e "$backup_path" && ! -L "$backup_path" ]] || die "Backup already exists: $backup_path"
+    mv -- "$target_path" "$backup_path"
+  fi
+
+  if ! mv -- "$staged_path" "$target_path"; then
+    if [[ -n "$backup_path" && ( -e "$backup_path" || -L "$backup_path" ) ]]; then
+      mv -- "$backup_path" "$target_path"
+    fi
+    die "Could not install $label at $target_path. The previous config was restored when possible."
+  fi
+
+  rm -rf -- "$TEMP_DIR"
+  TEMP_DIR=""
+  printf 'Installed %s: %s\n' "$label" "$target_path"
+  if [[ -n "$backup_path" ]]; then
+    printf 'Previous config backed up to: %s\n' "$backup_path"
   fi
 }
 
-check_distro() {
-  if [[ $IS_ARCH == "" && $IS_DEBIAN == "" && $IS_UBUNTU == "" && $IS_MINT == "" ]]; then
-    error "Warning!"
-    error "Please, only run this script on ArchLinux, Debian, Mint or Ubuntu"
-    exit 1;
-  fi
-}
+if "$INSTALL_NVIM"; then
+  install_path "$REPO_ROOT/.config/nvim" "$CONFIG_HOME/nvim" "nvim"
+fi
 
-install_silver_searcher() {
-if ! [[ -x "$(command -v ag)" ]]; then 
-  echo "Installing The Silver Searcher"
-  if [[ $IS_ARCH != "" ]]; then
-    sudo pacman -Sy the_silver_searcher bat neovim python-pynvim ripgrep
-  fi
+if "$INSTALL_EMACS"; then
+  install_path "$REPO_ROOT/.emacs" "$HOME/.emacs" "emacs-file"
+  install_path "$REPO_ROOT/.emacs.d" "$HOME/.emacs.d" "emacs-dir"
+fi
 
-  if [[ $IS_DEBIAN != "" || $IS_UBUNTU != "" || $IS_MINT != "" ]]; then
-    sudo apt-get install silversearcher-ag bat
+if "$SYNC_PLUGINS" && ! "$DRY_RUN"; then
+  printf 'Syncing Neovim plugins with lazy.nvim...\n'
+  XDG_CONFIG_HOME="$CONFIG_HOME" nvim --headless -u "$CONFIG_HOME/nvim/init.lua" "+Lazy! sync" +qa
+fi
+
+if "$DRY_RUN"; then
+  printf 'Dry run complete. No files were changed.\n'
+else
+  printf 'Setup complete. Start Neovim with: nvim\n'
+  if "$INSTALL_NVIM" && ! "$SYNC_PLUGINS"; then
+    printf 'lazy.nvim will install the configured plugins on first launch.\n'
   fi
 fi
-}
-
-clean_up() {
-  echo "Cleaning up"
-  rm -v ./installer.sh
-}
-
-install_process() {
-  echo "Installing dein plugin manager"
-  curl https://raw.githubusercontent.com/Shougo/dein.vim/master/bin/installer.sh > installer.sh
-  sh ./installer.sh ~/.cache/dein
-
-  echo "Copying .vim files"
-  cp -rTv ./.config/nvim ~/.config/nvim
-
-  echo "Copying Emacs files"
-
-  cp -rv ./.emacs ~/
-  cp -rv ./.emacs.d ~/
-}
-
-delete_previous_setup() {
-  echo "Deleting previous install"
-  delete_directory ~/.config/nvim
-  delete_directory ~/.cache/dein
-  delete_directory ~/.emacs.d
-  
-  rm -f ~/.emacs
-}
-
-#check distro
-check_distro
-
-#install the silver searcher
-install_silver_searcher
-
-# Delete existant installation.
-delete_previous_setup
-
-# Install!
-install_process
-
-# Clean Up
-clean_up
-
-source ./install/draw.sh
-
-
-show_message ""
-show_message "NeoVim and Emacs are installed!!"
-show_message "${MAGENTA}Now all you have to do is run nvim."
-show_message "Once inside the text editor type the following in the NORMAL mode: "
-show_message "${P}:call dein#install()${MAGENTA}"
-show_message "Wait until every script is installed...${BLUE}"
-show_message "Enjoy!!!"
