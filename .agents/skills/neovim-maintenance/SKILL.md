@@ -207,6 +207,28 @@ downloads or starts an external service, separate the deterministic lazy-load
 assertion from the network/bootstrap check; do not make CI silently skip the
 normal plugin configuration or claim that the external service was tested.
 
+### Headless test command limits and diagnostic output
+
+Neovim limits how many `+{command}` / `-c {command}` options a single
+invocation accepts. A behavioral test that adds one CLI option per assertion can
+fail before Neovim starts with `Too many "+command" ... arguments`. That is a
+test-harness construction failure, not an application regression.
+
+- Group related assertions and state transitions into one `+lua` command, or
+  move them into a dedicated Lua test file invoked with one `+luafile` command.
+- Keep independent lazy-loading cases in fresh Neovim processes when a plugin
+  can only be loaded once per process.
+- Print a concise `PASS:` line after each meaningful assertion group so the
+  per-phase log artifact explains what was actually verified.
+- When a harness run fails before the editor executes, read the exact error and
+  fix the harness; do not weaken the behavioral assertions.
+
+Incident 2026-11-13: the first Go lazy-loading probe exceeded Neovim's command
+limit because it passed each assertion as a separate `+` option. Grouping the
+Lua statements into one option per scenario fixed the harness. The final exact
+head and successful run are recorded in
+[the validation skill](./github-actions-validation/SKILL.md).
+
 ## CI must exercise the real configuration
 
 CI may use a dedicated installation phase, but it must not make the tested
@@ -309,7 +331,7 @@ for the validated snapshot, not by assumption for all future revisions.
 
 ## Startup side effects and deferred integrations
 
-- Keep optional external integrations lazy until the user performs the action that needs them. In this repo, Codeium's language server must not download/start merely because Neovim enters an empty buffer; defer the plugin to \`InsertEnter\` and explicitly start its server from the lazy-plugin config at that event.
+- Keep optional external integrations lazy until the user performs the action that needs them. In this repo, Codeium's language server must not download/start merely because Neovim enters an empty buffer; defer the plugin to `InsertEnter` and explicitly start its server from the lazy-plugin config at that event.
 - If a lazy plugin's own autocmd is registered only after the event that triggered lazy loading, do not assume that autocmd will run retroactively. Invoke the intended entry point explicitly from the plugin config when that is required.
 - When diagnosing a clean headless startup, distinguish plugin restoration from runtime activation. A successful locked restore does not prove that optional services or first-run language-server downloads can initialize.
-- Remove stale integration calls only after verifying that no corresponding plugin/spec or mapping exists. Here, \`repeat#set\` had no configured provider or matching mapping and was removed rather than adding an unrelated plugin.
+- Remove stale integration calls only after verifying that no corresponding plugin/spec or mapping exists. Here, `repeat#set` had no configured provider or matching mapping and was removed rather than adding an unrelated plugin.
