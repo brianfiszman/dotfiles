@@ -204,3 +204,18 @@ When a PR's readiness or a CI failure is part of the decision, follow
 - A documentation-only commit can move the PR head without triggering a
   path-filtered runtime workflow. State which code SHA the runtime result
   actually covers, and separately review the later documentation diff.
+
+
+## Incident fingerprint — closed PR #67 recovery (2026-11-13)
+
+When PR #67 (`chore/neovim-setup-and-ci`) was closed in favor of PR #71, the branch was preserved but its unique runtime changes were not all carried forward. The recovery audit established these rules:
+
+- Compare the complete per-file patch of the closed PR with the canonical PR branch; do not infer completeness from overlapping file names or similar PR descriptions.
+- Classify each unique change explicitly: port, keep as separate backlog work, reject with evidence, or record as an intentional omission.
+- In this incident, the Neovim 0.11 version guard and removal of unconditional `helptags ALL` were valid and were ported into PR #71. The latter also received a manual repair instruction in README.
+- The CI-only mutations of plugin specs, plugin config callbacks, native build hooks, and Treesitter parser updates were intentionally rejected. They weakened the test by skipping real build behavior; PR #71 instead restores locked plugins and starts the normal config without CI-only plugin mutations.
+- The proposed grouped lazy.nvim spec rewrite was rejected because inspection of the exact locked lazy.nvim revision proved the existing grouped form valid; issue #68 was closed as not planned.
+- Old tickets #46–#65 were duplicates/superseded by canonical issues #26–#45, not completed work. Issue #66 remained open for Python provider runtime validation.
+- An optional installer convenience flag (`--sync-plugins`) was not carried forward because first launch already installs plugins and no separate user requirement was established. Record such omissions rather than silently treating them as equivalent.
+
+Never close a competing PR until every unique file-level change and every ticket it introduced has an explicit disposition.
