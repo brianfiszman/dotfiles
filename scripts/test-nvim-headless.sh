@@ -141,11 +141,26 @@ run_nvim() {
     return "$tee_status"
   fi
 
-  # Neovim can report Lua/plugin errors while still returning exit status 0.
+  # Neovim can report Lua/Vimscript errors while still returning exit status 0.
+  # The verbose trace captures messages that do not reach stdout/stderr.
   if grep -Eiq 'Error detected while processing|E[0-9]{3}:|Error executing lua|Failed to run .*config|module .+ not found' "$log_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
+  fi
+
+  if [[ "$label" == "startup" && -s "$startup_verbose_file" ]]; then
+    local unexpected_vim_errors
+    unexpected_vim_errors="$(grep -E 'E[0-9]{3}:' "$startup_verbose_file" \
+      | grep -Fv 'E216: No such group or event: FileExplorer *' || true)"
+    if [[ -n "$unexpected_vim_errors" ]]; then
+      printf 'Error: Neovim reported Vimscript errors in its startup trace:\n%s\n' "$unexpected_vim_errors" >&2
+      printf 'Full trace: %s\n' "$startup_verbose_file" >&2
+      return 1
+    fi
+    if grep -Fq 'E216: No such group or event: FileExplorer *' "$startup_verbose_file"; then
+      printf '[startup] Note: ignored NvimTree 1.18.0 compatibility noise from its silent FileExplorer autocmd cleanup.\n'
+    fi
   fi
 
   printf 'Passed: %s\n' "$label"
