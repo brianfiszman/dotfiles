@@ -40,6 +40,30 @@ underlying fix.
 - [#72 Keep optional Go helper binaries out of the default plugin installation](https://github.com/brianfiszman/dotfiles/issues/72)
 - [#73 Expose installed Norg parsers on Neovim's runtimepath](https://github.com/brianfiszman/dotfiles/issues/73)
 
+## Current handoff — 2026-11-13
+
+Canonical implementation branch: [PR #71](https://github.com/brianfiszman/dotfiles/pull/71),
+currently open and not merged. The latest previously validated head is
+`98479d39470e82609402ca30e7f3e363978022b1`, with full integration run
+[43495833655](https://github.com/brianfiszman/dotfiles/actions/runs/43495833655)
+passing installation preparation, locked plugin restore/build hooks, and normal
+headless startup.
+
+Issue state on that PR branch (not yet merged):
+
+| Issue | Branch status | Remaining work |
+|---|---|---|
+| #30 | Implemented and full smoke flow passed | Keep open until PR #71 merges |
+| #66 | Installer excludes the committed virtualenv; README documents a dedicated provider environment | Provider health still needs an explicit runtime check |
+| #69 | Codeium loads on InsertEnter; empty-buffer startup no longer starts it | First InsertEnter activation and external language-server bootstrap are not yet verified |
+| #70 | Next focused change | Remove the unrelated CmdlineEnter trigger and test both Go filetype triggers |
+| #72 | Optional Go helper bulk install removed; restore now detects failed tool-install notifications | Keep open until PR #71 merges |
+| #73 | Neorg parser dependencies and runtimepath are fixed; clean startup asserts both parsers | Keep open until PR #71 merges |
+
+Do not close or mark the branch-implemented issues complete before PR #71 is
+merged. After each subsequent commit, use the exact latest PR head SHA and its
+own Actions result; the run above does not validate later changes.
+
 ## Working agreement
 
 - Each ticket describes a visible problem, desired behavior, scope, and acceptance
