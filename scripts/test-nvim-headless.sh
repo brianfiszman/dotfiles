@@ -15,7 +15,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee timeout; do
+for required_command in "$NVIM_BIN" git find grep tee; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -75,9 +75,15 @@ run_nvim() {
   # Stream output to the Actions console while preserving a complete log file.
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
   set +e
-  timeout --signal=TERM --kill-after=30s "$time_limit" \
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --signal=TERM --kill-after=30s "$time_limit" \
+      "$NVIM_BIN" --headless -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
+    pipeline_status=("${PIPESTATUS[@]}")
+  else
+    printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
     "$NVIM_BIN" --headless -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
-  pipeline_status=("${PIPESTATUS[@]}")
+    pipeline_status=("${PIPESTATUS[@]}")
+  fi
   set -e
 
   command_status="${pipeline_status[0]:-1}"
