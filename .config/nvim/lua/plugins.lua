@@ -212,6 +212,9 @@ if vim.env.DOTFILES_CI == "1" then
           spec.cmd = nil
           spec.ft = nil
           spec.keys = nil
+          spec.config = function() end
+          spec.opts = nil
+          spec.init = nil
         end
         if type(spec.dependencies) == "table" then
           defer_plugins(spec.dependencies)
