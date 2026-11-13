@@ -38,6 +38,7 @@ underlying fix.
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
 - [#72 Keep optional Go helper binaries out of the default plugin installation](https://github.com/brianfiszman/dotfiles/issues/72)
+- [#73 Expose installed Norg parsers on Neovim's runtimepath](https://github.com/brianfiszman/dotfiles/issues/73)
 
 ## Working agreement
 
