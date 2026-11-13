@@ -81,8 +81,12 @@ run_and_check "lua-syntax" nvim --headless -u NONE \
   -c "lua local files = vim.fn.globpath(vim.env.NVIM_CONFIG, '**/*.lua', false, true); table.insert(files, vim.env.NVIM_CONFIG .. '/init.lua'); for _, file in ipairs(files) do local chunk, err = loadfile(file); assert(chunk, file .. ': ' .. tostring(err)) end" \
   +qa
 
-printf '\n[3/4] Installing/synchronizing plugins from lazy-lock.json\n'
+printf '\n[3/4] Installing locked plugin sources (without optional native builds)\n'
 run_and_check "lazy-sync" nvim --headless -u "$NVIM_CONFIG/init.lua" "+Lazy! sync" +qa
+
+for plugin in lazy.nvim plenary.nvim nvim-treesitter nvim-cmp; do
+  [[ -d "$XDG_DATA_HOME/nvim/lazy/$plugin" ]] || fail "Plugin source was not installed: $plugin"
+done
 
 printf '\n[4/4] Starting Neovim headlessly with the installed plugins\n'
 unset DOTFILES_CI
