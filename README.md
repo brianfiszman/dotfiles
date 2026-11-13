@@ -58,8 +58,28 @@ On its first launch, `init.lua` downloads lazy.nvim and lazy.nvim installs the
 plugins declared by the configuration. This requires Git and internet access.
 Use `:Lazy` inside Neovim to inspect plugin status.
 
-If lazy.nvim cannot be downloaded, check that Git is installed and that the
-network can reach GitHub, then restart Neovim.
+If lazy.nvim cannot be downloaded, Neovim displays an actionable error. Check
+that Git is installed and that the network can reach GitHub, then restart Neovim.
+
+### Optional: Python provider
+
+Most editing features do not require Neovim's Python provider. A few plugins
+and Python integrations may use it. To create a dedicated environment without
+committing or reusing a machine-specific virtualenv, run:
+
+```sh
+PYTHON_VENV="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/python3-venv"
+python3 -m venv "$PYTHON_VENV"
+"$PYTHON_VENV/bin/python" -m pip install --upgrade pip pynvim
+```
+
+On the next launch, Neovim automatically uses this interpreter when it exists.
+A manually configured `vim.g.python3_host_prog` takes precedence. Verify it
+inside Neovim with:
+
+```vim
+:checkhealth provider
+```
 
 ### Troubleshooting and validation
 
