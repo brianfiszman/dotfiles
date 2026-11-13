@@ -149,6 +149,15 @@ run_nvim() {
     return 1
   fi
 
+  if [[ "$label" == "startup" ]]; then
+    local missing_neorg_parser
+    missing_neorg_parser="$(grep -Ei 'norg(_meta)? treesitter parser was not found' "$log_file" || true)"
+    if [[ -n "$missing_neorg_parser" ]]; then
+      printf 'Error: Neorg could not discover its Treesitter parsers during startup:\n%s\n' "$missing_neorg_parser" >&2
+      return 1
+    fi
+  fi
+
   # Some plugin build hooks report failed external-tool installs through
   # vim.notify(..., ERROR) without returning a non-zero Neovim exit status.
   # Treat these as failed restore attempts rather than accepting a false-green.
@@ -244,7 +253,12 @@ startup() {
   unset DOTFILES_CI
   printf '[startup] Starting the installed configuration without CI-only flags.\n'
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" \
-    "+lua assert(package.loaded['lazy'], 'lazy.nvim did not load')" "+qa!"
+    "+lua assert(package.loaded['lazy'], 'lazy.nvim did not load')" \
+    "+lua assert(#vim.api.nvim_get_runtime_file('parser/norg.so', true) > 0, 'Neorg norg parser is missing from runtimepath')" \
+    "+lua assert(#vim.api.nvim_get_runtime_file('parser/norg_meta.so', true) > 0, 'Neorg norg_meta parser is missing from runtimepath')" \
+    "+lua assert(pcall(vim.treesitter.language.add, 'norg'), 'Neorg norg parser could not be loaded')" \
+    "+lua assert(pcall(vim.treesitter.language.add, 'norg_meta'), 'Neorg norg_meta parser could not be loaded')" \
+    "+qa!"
 }
 
 case "$PHASE" in
