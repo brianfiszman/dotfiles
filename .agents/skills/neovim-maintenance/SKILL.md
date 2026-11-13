@@ -381,17 +381,17 @@ packages. After activation, assert both commands were registered by
 `mason-nvim-dap`.
 
 
-## Asynchronous registry refresh and command registration
+## Registry-dependent command entry points
 
 Lazy replays a command trigger immediately after the plugin's `config()`
-returns. Do not place the registration of that command only inside an async
-Mason registry refresh callback: on a first-use command invocation, the
-replayed command can run before Mason has registered it.
+returns. Mason's `:DapInstall` and `:DapUninstall` commands are registered
+by `mason-nvim-dap.setup()`, so a lazy command-triggered load must make those
+commands available synchronously before returning from config.
 
-For `mason-nvim-dap`, call `setup()` synchronously with an empty
-`ensure_installed` list first so its `:DapInstall` and `:DapUninstall`
-commands exist before Lazy replays the triggering command. Then refresh the
-registry asynchronously; in its callback, configure registry-dependent
-adapters, set the real `ensure_installed` list, and invoke the ensure-installed
-helper. Test this with a clean registry and make that first-use command
-scenario run before any test that populates the shared Mason registry.
+When the first command may need registry data (for example
+`:DapInstall python`), use Mason's no-callback `registry.refresh()` form,
+which completes the refresh before setup and command replay. An asynchronous
+refresh callback can register commands too late for Lazy's immediate replay.
+Keep the expensive adapter package installations asynchronous through Mason's
+normal ensure-installed flow. Test the Mason command trigger first in the
+headless sequence, before any other DAP test populates the registry.
