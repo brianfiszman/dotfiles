@@ -199,6 +199,10 @@ require("lazy").setup({
   require 'ai.codeium',
 }, {
   -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
-  -- bootstrap its own toolchain
+  -- bootstrap its own toolchain. CI disables auto-install so the explicit
+  -- Lazy sync command is the only installer process.
+  install = {
+    missing = vim.env.DOTFILES_CI ~= "1",
+  },
   rocks = { hererocks = true },
 })
