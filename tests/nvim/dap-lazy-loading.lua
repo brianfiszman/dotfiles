@@ -50,6 +50,16 @@ local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dar
 local requested_packages = {}
 local package_event_chunks = {}
 local install_results = {}
+-- A preceding DapInstall-trigger scenario may already have installed the
+-- adapters in this shared isolated workspace. One upfront scan is safe; do
+-- not poll is_installed() inside the async wait predicate.
+for _, name in ipairs(package_names) do
+  if registry.is_installed(name) then
+    requested_packages[name] = true
+    install_results[name] = { status = "success", existing = true }
+  end
+end
+
 registry:on("package:handle", function(pkg, handle)
   if not vim.tbl_contains(package_names, pkg.name) then
     return
