@@ -149,6 +149,18 @@ run_nvim() {
     return 1
   fi
 
+  # Some plugin build hooks report failed external-tool installs through
+  # vim.notify(..., ERROR) without returning a non-zero Neovim exit status.
+  # Treat these as failed restore attempts rather than accepting a false-green.
+  if [[ "$label" == "plugin-restore" ]]; then
+    local failed_tool_installs
+    failed_tool_installs="$(grep -Ei 'Vim:install [^[:space:]]+ failed:' "$log_file" || true)"
+    if [[ -n "$failed_tool_installs" ]]; then
+      printf 'Error: a configured plugin build hook failed to install an external tool:\n%s\n' "$failed_tool_installs" >&2
+      return 1
+    fi
+  fi
+
   if [[ "$label" == "startup" && -s "$startup_verbose_file" ]]; then
     local unexpected_vim_errors
     unexpected_vim_errors="$(grep -E 'E[0-9]{3}:' "$startup_verbose_file" \
