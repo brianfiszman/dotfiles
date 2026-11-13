@@ -268,16 +268,18 @@ startup() {
   run_nvim "go-lazy-loading-gomod" "$NVIM_STARTUP_TIMEOUT" \
     "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded before the go.mod filetype'); vim.cmd('setfiletype gomod'); assert(vim.bo.filetype == 'gomod', 'go.mod test buffer was not set to gomod'); assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the go.mod filetype'); assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing for go.mod buffers'); print('PASS: gomod filetype loads go.nvim and registers :GoBuild')" \
     "+qa!"
+  # Exercise Mason's first-use command with a clean registry before any
+  # other DAP scenario downloads or installs adapters.
+  run_nvim "dap-mason-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-mason-command-trigger.lua" \
+    "+qa!"
+
   run_nvim "dap-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-lazy-loading.lua" \
     "+qa!"
 
   run_nvim "dap-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-command-trigger.lua" \
-    "+qa!"
-
-  run_nvim "dap-mason-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/dap-mason-command-trigger.lua" \
     "+qa!"
 
   run_nvim "dap-neotest-trigger" "$NVIM_STARTUP_TIMEOUT" \
