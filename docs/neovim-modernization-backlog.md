@@ -12,6 +12,7 @@ This backlog describes the changes in terms of what you should notice while usin
 - [#49 — Make Neovim-only, Emacs-only, and combined setup explicit](https://github.com/brianfiszman/dotfiles/issues/49)
 - [#51 — Show a useful error when lazy.nvim cannot be installed](https://github.com/brianfiszman/dotfiles/issues/51)
 - [#66 — Do not copy the machine-specific Python virtualenv](https://github.com/brianfiszman/dotfiles/issues/66)
+- [#68 — Register every plugin so clean installs can sync them](https://github.com/brianfiszman/dotfiles/issues/68)
 - [#50 — Run a clean headless startup test in GitHub Actions](https://github.com/brianfiszman/dotfiles/issues/50)
 
 ## 2. LSP and language tooling
@@ -39,7 +40,7 @@ Parent: [#22 — Editing UX and autocmds](https://github.com/brianfiszman/dotfil
 
 Parent: [#18 — Lazy loading and startup performance](https://github.com/brianfiszman/dotfiles/issues/18)
 
-- [#54 — Stop rebuilding all help tags on every startup](https://github.com/brianfiszman/dotfiles/issues/54)
+- [#54 — Stop rebuilding all help tags on every startup](https://github.com/brianfiszman/dotfiles/issues/54) (removed from the initial implementation branch)
 - [#63 — Load test, debug, and search tools when they are first used](https://github.com/brianfiszman/dotfiles/issues/63)
 - [#65 — Avoid machine-specific shell, font, and clipboard assumptions](https://github.com/brianfiszman/dotfiles/issues/65)
 
