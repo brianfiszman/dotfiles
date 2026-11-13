@@ -12,12 +12,19 @@ local function wait_for(description, timeout_ms, predicate)
 end
 
 local function mason_log()
-  local path = vim.fn.stdpath("state") .. "/mason.log"
+  -- Mason's logger uses stdpath("log") on Neovim >= 0.8.
+  local path = vim.fn.stdpath("log") .. "/mason.log"
   if vim.fn.filereadable(path) ~= 1 then
     return ""
   end
   return table.concat(vim.fn.readfile(path), "\n")
 end
+
+-- Capture Mason diagnostics from the start of explicit activation. The
+-- settings module is shared with mason-core.log, which reads log_level for
+-- every write, so changing it here covers installer startup and progress.
+require("mason.settings").set({ log_level = vim.log.levels.DEBUG })
+print("STEP: Mason DEBUG logging enabled before DAP activation")
 
 -- An unrelated startup must not load any part of the debugger stack or query
 -- the Mason registry for DAP adapters.
@@ -76,12 +83,6 @@ assert(
   "Mason could not resolve a requested DAP adapter: " .. active_log
 )
 pass("explicit DAP activation requests js-debug-adapter installation")
-
--- The default Mason log level is INFO, which only records that an installer
--- started. Enable DEBUG in this test process so a stalled installer exposes
--- its current phase and external command without changing normal user config.
-require("mason.settings").set({ log_level = vim.log.levels.DEBUG })
-print("STEP: Mason DEBUG logging enabled for this test process")
 
 local registry = require("mason-registry")
 local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
