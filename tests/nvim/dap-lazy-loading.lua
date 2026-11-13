@@ -77,6 +77,12 @@ assert(
 )
 pass("explicit DAP activation requests js-debug-adapter installation")
 
+-- The default Mason log level is INFO, which only records that an installer
+-- started. Enable DEBUG in this test process so a stalled installer exposes
+-- its current phase and external command without changing normal user config.
+require("mason.settings").set({ log_level = vim.log.levels.DEBUG })
+print("STEP: Mason DEBUG logging enabled for this test process")
+
 local registry = require("mason-registry")
 local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
 local packages = {}
@@ -85,8 +91,25 @@ for _, name in ipairs(package_names) do
 end
 
 local last_pending = nil
+local last_log_line_count = 0
+local function emit_new_mason_log_lines()
+  local path = vim.fn.stdpath("log") .. "/mason.log"
+  if vim.fn.filereadable(path) ~= 1 then
+    return
+  end
+
+  local lines = vim.fn.readfile(path)
+  for index = last_log_line_count + 1, #lines do
+    print("MASON: " .. lines[index])
+  end
+  last_log_line_count = #lines
+end
+
+emit_new_mason_log_lines()
 print("WAIT: waiting for configured Mason DAP adapters to finish installing")
 local packages_installed = vim.wait(240000, function()
+  emit_new_mason_log_lines()
+
   local pending = {}
   for _, name in ipairs(package_names) do
     if not packages[name]:is_installed() then
