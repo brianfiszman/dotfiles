@@ -33,12 +33,11 @@ assert(
 )
 pass("DAP stack remains unloaded and does not query Mason during idle startup")
 
--- Queue the same key a user presses, but let Neovim's event loop process it.
--- Synchronous feedkeys(..., 'x') can hold this test inside input processing
--- while the plugin's async registry/install work is being scheduled.
+-- Queue the same key a user presses without blocking on input processing.
+-- nvim_input() is non-blocking; vim.wait() below lets Neovim process the key
+-- mapping and the plugin's asynchronous registry callback on its event loop.
 local leader = vim.g.mapleader or "\\"
-local keys = vim.api.nvim_replace_termcodes(leader .. "Db", true, false, true)
-vim.api.nvim_feedkeys(keys, "t", false)
+assert(vim.api.nvim_input(leader .. "Db") > 0, "Neovim could not queue the first DAP key")
 
 wait_for("the first DAP key to load the debugger stack", 30000, function()
   return package.loaded["dap"] ~= nil
