@@ -23,6 +23,8 @@ local command_names = {
   "DapRestartFrame",
   "DapNew",
   "DapEval",
+  "DapInstall",
+  "DapUninstall",
 }
 
 assert(package.loaded["dap"] == nil, "nvim-dap loaded before a native DAP command was invoked")
@@ -33,7 +35,7 @@ assert(package.loaded["nvim-dap-virtual-text"] == nil, "DAP virtual text loaded 
 for _, name in ipairs(command_names) do
   assert(vim.fn.exists(":" .. name) == 2, ("native DAP command is not registered as a lazy trigger: %s"):format(name))
 end
-print("PASS: all 15 native DAP commands are registered as lazy triggers")
+print("PASS: all 15 native DAP commands and both Mason DAP commands are registered as lazy triggers")
 
 -- DapSetLogLevel is non-destructive and has a simple required argument, so it
 -- exercises the native command loader without opening a UI or starting a session.
@@ -47,4 +49,6 @@ wait_for("native DAP command to load the full debugger stack", 30000, function()
     and package.loaded["nvim-dap-virtual-text"] ~= nil
     and vim.fn.exists(":DapContinue") == 2
 end)
-print("PASS: native DAP command loads the complete DAP stack")
+assert(vim.fn.exists(":DapInstall") == 2, "Mason DAPInstall command was not registered after activation")
+assert(vim.fn.exists(":DapUninstall") == 2, "Mason DapUninstall command was not registered after activation")
+print("PASS: native DAP command loads the complete DAP stack and Mason commands register")
