@@ -284,20 +284,27 @@ before changing plugin configuration:
 - Treat a dependency-install change as a hypothesis until a fresh restore and a
   separate normal headless startup both complete successfully.
 
-### Incident fingerprint — 2026-11-13
+### Resolved Neorg restore and parser-discovery incidents — 2026-11-13
 
-The Neovim headless workflow failed while restoring Neorg dependencies
-`tree-sitter-norg` and `tree-sitter-norg-meta`. The log reported that the
-Hererocks environment did not have Lua 5.1 installed. The active configuration
-in `.config/nvim/lua/plugins.lua` explicitly sets
-`rocks = { hererocks = true }`, because the system LuaRocks toolchain was
-documented as Lua 5.5.
+The original Neorg restore failure was caused by the Hererocks environment
+lacking Lua 5.1. The CI workflow now installs `lua5.1` and
+`liblua5.1-0-dev` while preserving the real plugin setting
+`rocks = { hererocks = true }`. Do not disable Hererocks or skip native parser
+builds to get a green CI run.
 
-Commit [9d12427](https://github.com/brianfiszman/dotfiles/commit/9d124270ce393fa07ce3498b21c5503a4d2400fd)
-added `lua5.1` and `liblua5.1-0-dev` to the CI runner. This is not considered
-resolved until the follow-up plugin restore and normal startup succeed:
-[push run 43476997602](https://github.com/brianfiszman/dotfiles/actions/runs/43476997602)
-and [pull-request run 43477005808](https://github.com/brianfiszman/dotfiles/actions/runs/43477005808).
+A second problem remained after both rocks built: Neorg could not discover the
+parser shared libraries because their `lazy-rocks/<rock>/lib/lua/5.1`
+directories were missing from Neovim's runtimepath. PR #71 now declares both
+parser repositories as Neorg dependencies, prepends their runtime directories
+before `neorg.setup()`, and asserts that each parser is discoverable and
+loadable.
+
+Full clean integration passed in [run 43495833655](https://github.com/brianfiszman/dotfiles/actions/runs/43495833655)
+for exact head `98479d39470e82609402ca30e7f3e363978022b1`: isolated preparation,
+locked plugin restore/build hooks, normal headless startup, and both parser
+assertions. The final trace contained no Neorg missing-parser warning. Later
+commits require their own current-head validation; this incident is resolved
+for the validated snapshot, not by assumption for all future revisions.
 
 
 ## Startup side effects and deferred integrations
