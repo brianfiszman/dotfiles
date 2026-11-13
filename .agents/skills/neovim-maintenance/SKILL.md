@@ -35,7 +35,7 @@ Issue titles should describe the function, not only the plugin. Use one issue pe
 
 ## 4. Validate
 
-Run `scripts/neovim-smoke-test.sh` for configuration changes when network access and Neovim are available. It installs the config into an isolated temporary HOME, syncs lazy.nvim plugins, checks Lua syntax, and starts Neovim headlessly.
+Run `bash scripts/neovim-smoke-test.sh` for configuration changes when network access and Neovim are available. It installs the config into an isolated temporary HOME, syncs lazy.nvim plugins, checks Lua syntax, and starts Neovim headlessly.
 
 For changes to interactive behavior, also define a short manual test for the affected keymap, UI, LSP, formatter, linter, or debugger. Headless startup alone is not proof that these workflows behave correctly.
 
