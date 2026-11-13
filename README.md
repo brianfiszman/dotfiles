@@ -66,7 +66,7 @@ network can reach GitHub, then restart Neovim.
 Run the headless smoke test from the repository root:
 
 ```sh
-./scripts/test-nvim-headless.sh
+bash ./scripts/test-nvim-headless.sh
 ```
 
 It creates a temporary HOME and XDG directories, installs the config there,
