@@ -1,3 +1,13 @@
+-- The configuration uses APIs introduced in Neovim 0.11.
+local nvim_version = vim.version()
+if nvim_version.major == 0 and nvim_version.minor < 11 then
+  error(("[dotfiles] Neovim 0.11 or newer is required (found %d.%d.%d)."):format(
+    nvim_version.major,
+    nvim_version.minor,
+    nvim_version.patch
+  ))
+end
+
 -- disable netrw at the very start of your init.lua
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
