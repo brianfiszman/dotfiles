@@ -1,6 +1,6 @@
 ---
 name: neovim-maintenance
-description: Maintain and improve this repository's Neovim configuration safely, with evidence-based diagnosis, functional issues, incremental changes, and honest validation.
+description: Maintain and improve this repository's Neovim configuration safely, with evidence-based diagnosis, behavior-preserving tests, incremental changes, and honest validation.
 ---
 
 # Neovim maintenance
@@ -61,6 +61,26 @@ For each proposed fix, record:
 Do not turn an unverified suspicion into a functional issue. When the diagnosis
 is uncertain, investigate first or mark the uncertainty explicitly.
 
+## Review every change as code
+
+Before accepting a patch or reporting a change complete:
+
+- Read the full diff, not just the PR title, issue, commit message, or summary.
+- Inspect surrounding code to understand the control flow and the configuration
+  that remains active outside the changed lines.
+- Look for accidental comments, literal escape sequences (for example, a
+  visible `\\n` where a line break or separate comment was intended), malformed
+  Lua tables, overwritten options, duplicate setup calls, and stale names.
+- Check that environment-specific branches do not silently change normal
+  interactive behavior.
+- Verify that test-only conditions are scoped and reset deliberately; do not
+  leave a CI environment variable active for the normal-startup phase.
+- Compare the final files with the relevant issue's acceptance criteria. A
+  change being unique to a branch does not make it correct or necessary.
+
+When reviewing a multi-file change, inspect each modified file's actual patch
+and identify any behavior that could change outside the stated scope.
+
 ## Issue quality
 
 Create one issue for each independently testable behavior. A good issue contains:
@@ -69,8 +89,8 @@ Create one issue for each independently testable behavior. A good issue contains
 2. **Desired behavior** — describe what should happen from the user's perspective.
 3. **Scope** — list the configuration area or files likely involved.
 4. **Acceptance criteria** — concrete checks that prove the behavior changed.
-5. **Validation** — say whether the check is static, headless, or requires manual
-   interaction.
+5. **Validation** — say whether the check is static, targeted headless, full
+   integration, or requires manual interaction.
 
 Avoid tickets such as "clean up Neovim". Prefer a ticket like "Opening a file
 should not start the AI completion plugin until the user enters Insert mode".
@@ -96,6 +116,26 @@ or source that disproves it.
 - Tests must redirect HOME and all relevant XDG directories into a temporary
   directory. Never test installation against the maintainer's real home.
 
+## Select tests by change impact
+
+Use the smallest test set that gives meaningful evidence, then expand it when
+the change can affect more of the startup or installation path. Do not run the
+full plugin restore for every comment or documentation edit, but do not use a
+quick check to sign off a high-impact change.
+
+| Change type | Minimum useful validation |
+|---|---|
+| Documentation-only | Markdown/diff review; no Neovim run required |
+| Shell script or installer | `bash -n`, isolated dry-run, and focused install/backup tests |
+| Lua-only logic or keymap | Lua syntax and targeted headless check when the environment permits |
+| Plugin spec, lazy loading, LSP, Treesitter, startup | Real Neovim headless startup; add plugin restore when dependencies or lockfile are involved |
+| Bootstrap, installer flow, XDG paths, CI harness | Full isolated integration: install, restore locked plugins, then normal headless startup |
+| Performance optimization | Repeatable before/after measurement under the same conditions, plus behavior regression checks |
+
+When a required dependency is unavailable, run the strongest useful lower-level
+checks and state exactly what remains unverified. Do not silently downgrade the
+acceptance criteria.
+
 ## Neovim test strategy
 
 Choose the strongest available test level and report the level actually reached.
@@ -114,22 +154,49 @@ Do not imply that a weaker level proves a stronger one.
 5. **Mocked harness:** use only to verify orchestration or installer logic when
    a real dependency is unavailable. Label the result as mocked; it is not
    proof that Neovim started or that plugins loaded.
-6. **Plugin restore with real Neovim:** use `:Lazy! restore` to install the
-   versions recorded in `lazy-lock.json`, rather than silently upgrading
-   everything. Record network or dependency failures separately from config
-   failures.
+6. **Plugin restore with real Neovim:** use the repository's documented restore
+   or sync command against the versions in `lazy-lock.json`. Do not silently
+   upgrade plugins. Record network, build, or dependency failures separately
+   from configuration failures.
 7. **Real headless startup:** launch the installed configuration again with a
    real Neovim binary and fail on Lua/plugin startup errors. A script named
    "headless test" or a mocked `nvim` executable does not by itself establish
    that this level passed.
-8. **Interactive macOS check:** validate terminal rendering, font, clipboard,
+8. **Behavioral assertions:** when an issue concerns a specific plugin or
+   behavior, assert that behavior directly. Check that critical lazy-loaded
+   plugins can load through their real trigger or a deliberate test command;
+   checking only that lazy.nvim itself loaded is insufficient.
+9. **Interactive macOS check:** validate terminal rendering, font, clipboard,
    keymaps, LSP attachment, completion, and perceived typing latency on the
    maintainer's Mac.
 
 The automated test is intended to prove that a clean checkout can install and
 start in an isolated environment. Confirm what the current script really
-executes before describing its coverage. Clearly distinguish an expected CI
-check, a missing CI run, a failed CI run, and a passing CI run.
+executes before describing its coverage. A successful plugin download does not
+prove plugin configuration works; a successful startup does not prove every
+lazy-loaded plugin or user workflow works.
+
+## CI must exercise the real configuration
+
+CI may use a dedicated installation phase, but it must not make the tested
+configuration materially different from the one the maintainer runs.
+
+- Prefer separate processes for dependency installation and normal startup.
+- If a flag such as `DOTFILES_CI` is necessary, document exactly what it changes
+  and ensure it is unset for the normal-startup test.
+- Do not broadly rewrite plugin specs or silently remove `config`, `opts`,
+  `init`, `build`, events, commands, filetypes, or key triggers just to make
+  the installation phase pass.
+- Do not skip native builds or plugin setup without naming the skipped work and
+  adding a later test that covers it when it affects normal use.
+- Any test-only branch must be narrow, explicit, and covered by a separate
+  normal-mode startup test.
+- Keep failure logs and artifacts available so CI failures can be diagnosed.
+- A CI run that merely downloads plugin repositories must not be described as
+  proving successful plugin initialization.
+
+Clearly distinguish an expected CI check, a missing CI run, a failed CI run,
+and a passing CI run.
 
 ## Setup, CI, and documentation changes
 
@@ -137,7 +204,7 @@ check, a missing CI run, a failed CI run, and a passing CI run.
   a reproducibility or safety gap.
 - Keep CI focused on deterministic checks; do not hide failures by weakening
   assertions or silently skipping unavailable steps.
-- Update the README when installation commands, prerequisites, or user-visible
+- Update the README when installation commands, prerequisites, or user-facing
   setup behavior changes.
 - Keep `docs/neovim-modernization-backlog.md` aligned with the functional
   issues. Do not create a second backlog in a skill or README.
@@ -162,6 +229,7 @@ check, a missing CI run, a failed CI run, and a passing CI run.
 A fix is complete only when:
 
 - Its acceptance criteria pass, or the remaining blocker is explicitly recorded.
+- The diff has been reviewed against the intended behavior and surrounding code.
 - Relevant automated checks pass, or the reason they cannot run is documented.
 - The exact validation level and environment are reported honestly.
 - The README/backlog is updated when behavior or setup instructions change.
