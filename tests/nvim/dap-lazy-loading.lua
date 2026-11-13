@@ -41,6 +41,76 @@ assert(
 )
 pass("DAP stack remains unloaded and does not query Mason during idle startup")
 
+-- Instrument the exact boundary where Mason's installer setup currently stalls.
+-- This is test-process-only: record scheduled callback execution, mkdir return
+-- values, package handle states, and installer stdout/stderr.
+local original_schedule = vim.schedule
+local scheduled_count = 0
+vim.schedule = function(callback)
+  scheduled_count = scheduled_count + 1
+  local id = scheduled_count
+  if id <= 60 then
+    print(("SCHEDULE QUEUED %d"):format(id))
+  end
+  return original_schedule(function()
+    if id <= 60 then
+      print(("SCHEDULE BEGIN %d"):format(id))
+    end
+    callback()
+    if id <= 60 then
+      print(("SCHEDULE END %d"):format(id))
+    end
+  end)
+end
+
+local original_mkdir = vim.fn.mkdir
+vim.fn.mkdir = function(path, flags)
+  local mason_path = path:find("/mason/", 1, true) ~= nil
+  if mason_path then
+    print(("MKDIR ENTER path=%s flags=%s"):format(path, tostring(flags)))
+  end
+  local ok, result = pcall(original_mkdir, path, flags)
+  if mason_path then
+    print(("MKDIR RETURN path=%s ok=%s result=%s"):format(path, tostring(ok), tostring(result)))
+  end
+  if not ok then
+    error(result, 0)
+  end
+  return result
+end
+
+local registry = require("mason-registry")
+local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
+local package_event_chunks = {}
+registry:on("package:handle", function(pkg, handle)
+  if not vim.tbl_contains(package_names, pkg.name) then
+    return
+  end
+  print(("PACKAGE HANDLE %s"):format(pkg.name))
+  handle:on("state:change", function(new_state, old_state)
+    print(("PACKAGE STATE %s %s->%s"):format(pkg.name, tostring(old_state), tostring(new_state)))
+  end)
+  for _, stream in ipairs({ "stdout", "stderr" }) do
+    handle:on(stream, function(chunk)
+      package_event_chunks[pkg.name] = package_event_chunks[pkg.name] or 0
+      package_event_chunks[pkg.name] = package_event_chunks[pkg.name] + 1
+      if package_event_chunks[pkg.name] <= 12 then
+        print(("PACKAGE %s %s: %s"):format(pkg.name, stream, chunk:gsub("%s+$", ""):sub(1, 240)))
+      end
+    end)
+  end
+end)
+registry:on("package:install:success", function(pkg)
+  if vim.tbl_contains(package_names, pkg.name) then
+    print(("PACKAGE INSTALL SUCCESS %s"):format(pkg.name))
+  end
+end)
+registry:on("package:install:failed", function(pkg)
+  if vim.tbl_contains(package_names, pkg.name) then
+    print(("PACKAGE INSTALL FAILED %s"):format(pkg.name))
+  end
+end)
+
 -- Execute the actual remapped key. Neovim's headless input API does not
 -- process a queued key during this scripted phase; "x" is required to dispatch
 -- the mapping before the script continues. Keep explicit markers around it so
@@ -84,8 +154,6 @@ assert(
 )
 pass("explicit DAP activation requests js-debug-adapter installation")
 
-local registry = require("mason-registry")
-local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
 local packages = {}
 for _, name in ipairs(package_names) do
   packages[name] = registry.get_package(name)
