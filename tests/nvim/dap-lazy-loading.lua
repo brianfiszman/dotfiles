@@ -6,6 +6,7 @@ local function pass(message)
 end
 
 local function wait_for(description, timeout_ms, predicate)
+  print(("WAIT: %s"):format(description))
   local ready = vim.wait(timeout_ms, predicate, 50)
   assert(ready, ("Timed out waiting for %s"):format(description))
 end
@@ -33,12 +34,15 @@ assert(
 )
 pass("DAP stack remains unloaded and does not query Mason during idle startup")
 
--- Queue the same remappable key a user presses. Do not use the "x" flag:
--- it synchronously drains typeahead while Lazy is loading plugins and Mason is
--- scheduling asynchronous adapter installations.
+-- Execute the actual remapped key. Neovim's headless input API does not
+-- process a queued key during this scripted phase; "x" is required to dispatch
+-- the mapping before the script continues. Keep explicit markers around it so
+-- a future timeout distinguishes key-dispatch stalls from Mason install waits.
 local leader = vim.g.mapleader or "\\"
 local keys = vim.api.nvim_replace_termcodes(leader .. "Db", true, false, true)
-vim.api.nvim_feedkeys(keys, "mt", false)
+print("STEP: dispatching the first DAP key")
+vim.api.nvim_feedkeys(keys, "xt", false)
+print("STEP: first DAP key dispatch returned")
 
 wait_for("the first DAP key to load the debugger stack", 30000, function()
   return package.loaded["dap"] ~= nil
