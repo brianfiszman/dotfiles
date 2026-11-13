@@ -176,6 +176,37 @@ executes before describing its coverage. A successful plugin download does not
 prove plugin configuration works; a successful startup does not prove every
 lazy-loaded plugin or user workflow works.
 
+## Lazy-loading behavior tests
+
+A plugin spec can have multiple triggers. Every trigger is an independent way to
+load the plugin, so test both the unwanted path and the intended path.
+
+For a filetype-driven plugin such as `go.nvim`:
+
+1. Start a fresh Neovim process with the real configuration and confirm the
+   plugin's setup module is not loaded during an unrelated empty-buffer startup.
+2. Dispatch an unrelated event that previously triggered the plugin (for
+   example, `CmdlineEnter`) and assert that it remains unloaded.
+3. Set the buffer filetype to each supported value in separate fresh processes
+   (for example, `go` and `gomod`). Assert that the plugin setup module loads.
+4. Assert one user-visible integration point after loading, such as the
+   expected user command (`:GoBuild`), rather than only checking a package
+   flag.
+5. Keep plugin restoration and lockfile revisions unchanged unless the issue
+   explicitly requires them.
+
+Use Neovim's real event dispatch, such as
+`vim.api.nvim_exec_autocmds()`, to exercise lazy.nvim's registered handlers.
+A direct `require()` of the plugin module does not prove that the lazy trigger
+works. Use a fresh process for each positive filetype case because a plugin
+loaded once cannot demonstrate a second independent trigger.
+
+For Insert-mode integrations, verify that browsing a buffer leaves the plugin
+unloaded and that the first Insert-mode entry activates the plugin. If activation
+downloads or starts an external service, separate the deterministic lazy-load
+assertion from the network/bootstrap check; do not make CI silently skip the
+normal plugin configuration or claim that the external service was tested.
+
 ## CI must exercise the real configuration
 
 CI may use a dedicated installation phase, but it must not make the tested
