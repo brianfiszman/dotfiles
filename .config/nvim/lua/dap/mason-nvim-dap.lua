@@ -1,41 +1,90 @@
 local M = {
   "jay-babu/mason-nvim-dap.nvim",
-  opts = {},
   dependencies = {
+    -- One lazy trigger owns the whole debug stack. Load DAP first so dependent
+    -- plugin setup callbacks can safely require it.
     require "dap.nvim-dap",
+    require "dap.nvim-dap-ui",
     {
-      "williamboman/mason.nvim",
-      opts = function(_, opts)
-        opts.ensure_installed = opts.ensure_installed or {}
-        table.insert(opts.ensure_installed, "js-debug-adapter")
-      end,
+      "theHamsta/nvim-dap-virtual-text",
+      opts = {},
     },
+    {
+      "folke/which-key.nvim",
+      optional = true,
+      opts = {
+        defaults = {
+          ["<leader>D"] = { name = "+debug" },
+        },
+      },
+    },
+    "williamboman/mason.nvim",
+  },
+  keys = {
+    { "<leader>DB", function() require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: ")) end, desc = "Breakpoint Condition" },
+    { "<leader>Db", function() require("dap").toggle_breakpoint() end, desc = "Toggle Breakpoint" },
+    { "<leader>Dc", function() require("dap").continue() end, desc = "Continue" },
+    { "<leader>Da", function() require("dap").continue({ before = get_args }) end, desc = "Run with Args" },
+    { "<leader>DC", function() require("dap").run_to_cursor() end, desc = "Run to Cursor" },
+    { "<leader>Dg", function() require("dap").goto_() end, desc = "Go to line (no execute)" },
+    { "<leader>Di", function() require("dap").step_into() end, desc = "Step Into" },
+    { "<leader>Dj", function() require("dap").down() end, desc = "Down" },
+    { "<leader>Dk", function() require("dap").up() end, desc = "Up" },
+    { "<leader>Dl", function() require("dap").run_last() end, desc = "Run Last" },
+    { "<leader>Do", function() require("dap").step_out() end, desc = "Step Out" },
+    { "<leader>DO", function() require("dap").step_over() end, desc = "Step Over" },
+    { "<leader>Dp", function() require("dap").pause() end, desc = "Pause" },
+    { "<leader>Dr", function() require("dap").repl.toggle() end, desc = "Toggle REPL" },
+    { "<leader>Ds", function() require("dap").session() end, desc = "Session" },
+    { "<leader>Dt", function() require("dap").terminate() end, desc = "Terminate" },
+    { "<leader>Dw", function() require("dap.ui.widgets").hover() end, desc = "Widgets" },
+    {
+      "<leader>da",
+      function()
+        -- Keep the existing Run with Args behavior tracked separately in #40.
+        require("dap").continue()
+      end,
+      desc = "Run with Args",
+    },
+    { "<leader>du", function() require("dapui").toggle({}) end, desc = "Dap UI" },
+    { "<leader>de", function() require("dapui").eval() end, desc = "Eval", mode = { "n", "v" } },
+    { "<leader>dk", function() require("dap").continue() end, desc = "Continue" },
+    { "<leader>dl", function() require("dap").run_last() end, desc = "Run Last" },
+    { "<leader>b", function() require("dap").toggle_breakpoint() end, desc = "Toggle Breakpoint", mode = { "n", "v" } },
   },
 }
 
 function M.config()
-  local dap = require 'dap'
-  local dap_utils = require 'dap.utils'
-  local tsAdapters = require 'dap.languages.typescript'
-  local js_based_languages = { 'javascript', 'typescript', 'typescriptreact', 'javascriptreact' }
+  local dap = require("dap")
+  local dap_utils = require("dap.utils")
+  local ts_adapters = require("dap.languages.typescript")
+  local js_based_languages = {
+    "javascript",
+    "typescript",
+    "typescriptreact",
+    "javascriptreact",
+  }
 
-  tsAdapters.setAdapters(js_based_languages, dap, dap_utils)
+  -- The TypeScript adapter resolves its executable through Mason's registry.
+  -- Refresh first; querying the package before this callback can fail on a
+  -- clean machine before Mason has installed its registry.
+  require("mason-registry").refresh(function()
+    ts_adapters.setAdapters(js_based_languages, dap, dap_utils)
 
+    require("mason-nvim-dap").setup({
+      automatic_installation = true,
+      -- These are mason-nvim-dap source identifiers, not filetype names.
+      ensure_installed = { "delve", "codelldb", "node2", "js", "python", "dart" },
+      cmd = { "DapInstall", "DapUninstall" },
+    })
 
-  require("mason-nvim-dap").setup({
-    automatic_installation = true,
-    ensure_installed = { "go", "rust", "delve", "node2", "js", "python", "typescript", "typescriptreact", "javascript", "javascriptreact", "vue", "dart" },
-    cmd = { "DapInstall", "DapUninstall" },
-  })
-
-  require('dap.ext.vscode').load_launchjs(nil,
-    {
-      ['pwa-node'] = js_based_languages,
-      ['node'] = js_based_languages,
-      ['chrome'] = js_based_languages,
-      ['pwa-chrome'] = js_based_languages
-    }
-  )
+    require("dap.ext.vscode").load_launchjs(nil, {
+      ["pwa-node"] = js_based_languages,
+      ["node"] = js_based_languages,
+      ["chrome"] = js_based_languages,
+      ["pwa-chrome"] = js_based_languages,
+    })
+  end)
 end
 
 return M
