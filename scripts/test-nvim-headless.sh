@@ -40,10 +40,21 @@ export XDG_STATE_HOME="$WORK_DIR/state"
 export XDG_CACHE_HOME="$WORK_DIR/cache"
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 
+printf '[0/3] Checking shell syntax...\n'
+bash -n "$REPO_ROOT/install.sh" "$REPO_ROOT/scripts/test-nvim-headless.sh"
+
 printf 'Testing Neovim: '
 "$NVIM_BIN" --version | head -n 1
 
-printf '\n[1/3] Installing dotfiles into an isolated HOME...\n'
+# Seed an existing config so dry-run and backup behavior are tested, not assumed.
+mkdir -p "$XDG_CONFIG_HOME/nvim"
+printf 'keep-this-file\n' > "$XDG_CONFIG_HOME/nvim/install-test-sentinel"
+
+printf '\n[1/3] Verifying dry-run leaves the existing config untouched...\n'
+bash "$REPO_ROOT/install.sh" --dry-run
+grep -qx 'keep-this-file' "$XDG_CONFIG_HOME/nvim/install-test-sentinel"
+
+printf '\nInstalling dotfiles into an isolated HOME...\n'
 bash "$REPO_ROOT/install.sh" --nvim
 
 NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
@@ -53,6 +64,16 @@ NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
 }
 if [[ -e "$NVIM_CONFIG/venv" ]]; then
   printf 'Error: installer copied the machine-specific Python virtualenv.\n' >&2
+  exit 1
+fi
+if [[ -e "$HOME/.emacs" || -e "$HOME/.emacs.d" ]]; then
+  printf 'Error: Neovim-only install unexpectedly changed Emacs configuration.\n' >&2
+  exit 1
+fi
+
+backup_dir="$(find "$XDG_CONFIG_HOME" -maxdepth 1 -type d -name 'nvim.backup.*' -print -quit)"
+if [[ -z "$backup_dir" ]] || ! grep -qx 'keep-this-file' "$backup_dir/install-test-sentinel"; then
+  printf 'Error: existing Neovim config was not preserved in a backup.\n' >&2
   exit 1
 fi
 
