@@ -34,7 +34,10 @@ underlying fix.
 - [#40 Make the Run with Args keymap actually pass debug arguments](https://github.com/brianfiszman/dotfiles/issues/40)
 - [#41 Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41)
 - [#42 Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
-- [#43 Load testing, debugging, and search tools only when used](https://github.com/brianfiszman/dotfiles/issues/43)
+- [#43 Load testing, debugging, and search tools only when used (tracking parent)](https://github.com/brianfiszman/dotfiles/issues/43)
+- [#74 Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
+- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75)
+- [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
 - [#72 Keep optional Go helper binaries out of the default plugin installation](https://github.com/brianfiszman/dotfiles/issues/72)
@@ -43,26 +46,34 @@ underlying fix.
 ## Current handoff — 2026-11-13
 
 Canonical implementation branch: [PR #71](https://github.com/brianfiszman/dotfiles/pull/71),
-currently open and not merged. The latest previously validated head is
-`98479d39470e82609402ca30e7f3e363978022b1`, with full integration run
-[43495833655](https://github.com/brianfiszman/dotfiles/actions/runs/43495833655)
-passing installation preparation, locked plugin restore/build hooks, and normal
-headless startup.
+currently open, mergeable, and not merged. The latest validated PR head is
+`f28be42d5b2172aa0ff6c2caa578ef5fd1276e0a`, with full integration run
+[43500608304](https://github.com/brianfiszman/dotfiles/actions/runs/43500608304)
+passing isolated preparation, locked plugin restore/build hooks, normal startup,
+and the Go lazy-loading regression scenarios.
 
-Issue state on that PR branch (not yet merged):
+The final artifact [14073049817](https://github.com/brianfiszman/dotfiles/actions/runs/43500608304/artifacts/14073049817)
+was downloaded and inspected. It contains explicit PASS lines for the
+non-Go `CmdlineEnter` path and the positive `go` and `gomod` filetype paths.
+
+Issue state on the PR branch (not yet merged):
 
 | Issue | Branch status | Remaining work |
 |---|---|---|
 | #30 | Implemented and full smoke flow passed | Keep open until PR #71 merges |
 | #66 | Installer excludes the committed virtualenv; README documents a dedicated provider environment | Provider health still needs an explicit runtime check |
 | #69 | Codeium loads on InsertEnter; empty-buffer startup no longer starts it | First InsertEnter activation and external language-server bootstrap are not yet verified |
-| #70 | Fix committed to PR #71; exact-head validation pending | Remove the unrelated CmdlineEnter trigger; smoke tests now cover CmdlineEnter, go, gomod, and :GoBuild |
+| #70 | Implemented and validated in PR #71 head `f28be42` / run #43500608304 | Keep open until PR #71 merges |
 | #72 | Optional Go helper bulk install removed; restore now detects failed tool-install notifications | Keep open until PR #71 merges |
 | #73 | Neorg parser dependencies and runtimepath are fixed; clean startup asserts both parsers | Keep open until PR #71 merges |
+| #43 | Tracking parent for on-demand optional workflows | Children #74, #75, and #76 are planned |
+| #74 | Neotest/adapters lazy-loading work defined | Not started |
+| #75 | DAP/UI/adapter lazy-loading work defined | Not started; keep #40 Run with Args separate |
+| #76 | Telescope/extension lazy-loading work defined | Not started |
 
-Do not close or mark the branch-implemented issues complete before PR #71 is
+Do not close or mark branch-implemented issues complete before PR #71 is
 merged. After each subsequent commit, use the exact latest PR head SHA and its
-own Actions result; the run above does not validate later changes.
+own Actions result; run #43500608304 validates only head `f28be42`.
 
 ## Working agreement
 
