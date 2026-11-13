@@ -31,27 +31,7 @@ export XDG_CONFIG_HOME="$CONFIG_HOME"
 export XDG_DATA_HOME="$TEMP_HOME/.local/share"
 export XDG_CACHE_HOME="$TEMP_HOME/.cache"
 export XDG_STATE_HOME="$TEMP_HOME/.local/state"
-
-printf '\n[1/5] Checking installer dry-run and backup behavior\n'
-mkdir -p "$NVIM_CONFIG"
-printf 'keep this local setting\n' > "$NVIM_CONFIG/local-only.txt"
-"$REPO_ROOT/install.sh" --nvim --dry-run
-[[ -f "$NVIM_CONFIG/local-only.txt" ]] || fail "Dry-run changed the existing config."
-
-"$REPO_ROOT/install.sh" --nvim
-[[ -f "$NVIM_CONFIG/init.lua" ]] || fail "Installer did not create init.lua."
-[[ ! -e "$NVIM_CONFIG/venv" ]] || fail "Installer copied the machine-specific Python virtualenv."
-[[ ! -e "$NVIM_CONFIG/local-only.txt" ]] || fail "Installer did not replace the config directory."
-
-BACKUP_FILE="$(find "$XDG_STATE_HOME/dotfiles/backups" -name local-only.txt -print -quit)"
-[[ -n "$BACKUP_FILE" && -f "$BACKUP_FILE" ]] || fail "Installer did not preserve the previous config in a backup."
-[[ ! -e "$HOME/.emacs" && ! -e "$HOME/.emacs.d" ]] || fail "Default install unexpectedly changed Emacs files."
-
-printf '\n[2/5] Checking Lua syntax in the installed config\n'
 export NVIM_CONFIG
-nvim --headless -u NONE \
-  -c "lua local files = vim.fn.globpath(vim.env.NVIM_CONFIG, '**/*.lua', false, true); table.insert(files, vim.env.NVIM_CONFIG .. '/init.lua'); for _, file in ipairs(files) do local chunk, err = loadfile(file); assert(chunk, file .. ': ' .. tostring(err)) end" \
-  +qa
 
 run_and_check() {
   local label="$1"
@@ -71,14 +51,31 @@ run_and_check() {
   cat "$log_file"
 }
 
-printf '\n[3/5] Installing/synchronizing plugins from lazy-lock.json\n'
+printf '\n[1/4] Checking installer dry-run and backup behavior\n'
+mkdir -p "$NVIM_CONFIG"
+printf 'keep this local setting\n' > "$NVIM_CONFIG/local-only.txt"
+"$REPO_ROOT/install.sh" --nvim --dry-run
+[[ -f "$NVIM_CONFIG/local-only.txt" ]] || fail "Dry-run changed the existing config."
+
+"$REPO_ROOT/install.sh" --nvim
+[[ -f "$NVIM_CONFIG/init.lua" ]] || fail "Installer did not create init.lua."
+[[ ! -e "$NVIM_CONFIG/venv" ]] || fail "Installer copied the machine-specific Python virtualenv."
+[[ ! -e "$NVIM_CONFIG/local-only.txt" ]] || fail "Installer did not replace the config directory."
+
+BACKUP_FILE="$(find "$XDG_STATE_HOME/dotfiles/backups" -name local-only.txt -print -quit)"
+[[ -n "$BACKUP_FILE" && -f "$BACKUP_FILE" ]] || fail "Installer did not preserve the previous config in a backup."
+[[ ! -e "$HOME/.emacs" && ! -e "$HOME/.emacs.d" ]] || fail "Default install unexpectedly changed Emacs files."
+
+printf '\n[2/4] Checking Lua syntax in the installed config\n'
+run_and_check "lua-syntax" nvim --headless -u NONE \
+  -c "lua local files = vim.fn.globpath(vim.env.NVIM_CONFIG, '**/*.lua', false, true); table.insert(files, vim.env.NVIM_CONFIG .. '/init.lua'); for _, file in ipairs(files) do local chunk, err = loadfile(file); assert(chunk, file .. ': ' .. tostring(err)) end" \
+  +qa
+
+printf '\n[3/4] Installing/synchronizing plugins from lazy-lock.json\n'
 run_and_check "lazy-sync" nvim --headless -u "$NVIM_CONFIG/init.lua" "+Lazy! sync" +qa
 
-printf '\n[4/5] Starting Neovim headlessly with the installed plugins\n'
+printf '\n[4/4] Starting Neovim headlessly with the installed plugins\n'
 run_and_check "headless-startup" nvim --headless -u "$NVIM_CONFIG/init.lua" \
   -c "lua assert(vim.g.mapleader == ' ', 'mapleader should be Space')" +qa
-
-printf '\n[5/5] Verifying that the temporary test environment can be discarded\n'
-printf 'All files used by this test are under %s\n' "$TEMP_HOME"
 
 printf '\nHeadless Neovim smoke test passed.\n'
