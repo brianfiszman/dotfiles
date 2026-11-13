@@ -29,8 +29,15 @@ neotest.run.run = function(options)
   received_options = options
 end
 
--- which-key intentionally finalizes queued registrations in a scheduled
--- callback. Wait until the mapping exists before simulating a real keypress.
+-- which-key is lazy-loaded by Neotest. In this headless +luafile process,
+-- its setup may register the final mapping pass on VimEnter, which has not
+-- necessarily fired yet. Complete that startup event before waiting for maparg.
+if vim.v.vim_did_enter == 0 then
+  print("STEP: firing VimEnter so Which-Key can finalize queued mappings")
+  vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
+end
+
+-- Wait until the mapping exists before simulating a real keypress.
 local leader = vim.g.mapleader or "\\"
 local lhs = leader .. "td"
 wait_for("which-key to register the Debug Test mapping", 30000, function()
