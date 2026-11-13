@@ -236,3 +236,28 @@ known NvimTree 1.18.0 `E216: No such group or event: FileExplorer *`
 compatibility cleanup message. Do not widen the allowlist without a separate
 root-cause review.
 
+
+
+
+## Artifact hygiene for isolated install tests
+
+The isolated XDG workspace is intentionally populated with downloaded plugin
+repositories, native adapter binaries, language-server executables, compiler
+caches, and package-manager caches. Do not upload the entire workspace after a
+successful integration test.
+
+Upload the root-level phase logs and the relevant XDG state logs explicitly,
+for example:
+
+```yaml
+path: |
+  ${{ runner.temp }}/nvim-headless-smoke/*.log
+  ${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log
+```
+
+Keep the full workspace local to the runner for the duration of the job, but
+exclude `data/`, `cache/`, plugin checkouts, and installed Mason packages from
+the artifact. A 2026-11-13 successful Neovim run uploaded a 271 MB ZIP because
+the artifact path included the full workspace; its useful diagnostic content
+was only a small set of phase logs plus Mason and plugin logs. Retain enough
+logs to diagnose failures without preserving generated binaries or build caches.
