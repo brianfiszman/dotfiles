@@ -8,13 +8,8 @@ underlying fix.
 
 ## P0 — Make a fresh setup safe and reproducible
 
-- [#26 Remove the obsolete dein.vim installation step](https://github.com/brianfiszman/dotfiles/issues/26)
-- [#27 Preserve existing Neovim and Emacs configs with backups](https://github.com/brianfiszman/dotfiles/issues/27)
-- [#28 Keep system package installation separate from dotfiles setup](https://github.com/brianfiszman/dotfiles/issues/28)
-- [#29 Make Neovim and Emacs installation choices explicit](https://github.com/brianfiszman/dotfiles/issues/29)
-- [#30 Run a headless Neovim startup smoke test on every change](https://github.com/brianfiszman/dotfiles/issues/30)
-- [#31 Make lazy.nvim bootstrap failures clear and actionable](https://github.com/brianfiszman/dotfiles/issues/31)
-- [#66 Exclude the committed Python virtual environment from installation](https://github.com/brianfiszman/dotfiles/issues/66)
+- [#31 Make lazy.nvim bootstrap failures clear and actionable](https://github.com/brianfiszman/dotfiles/issues/31) — success path is covered; missing-Git and failed-clone error paths still need focused tests.
+- [#66 Exclude the committed Python virtual environment from installation](https://github.com/brianfiszman/dotfiles/issues/66) — installer exclusion is merged; Python provider health still needs a real runtime check.
 
 ## P1 — Make everyday editing predictable
 
@@ -26,8 +21,7 @@ underlying fix.
 - [#37 Run one chosen linter per language instead of duplicate tools](https://github.com/brianfiszman/dotfiles/issues/37)
 - [#38 Reduce repeated lint runs while typing and opening files](https://github.com/brianfiszman/dotfiles/issues/38)
 - [#39 Define Tab and Shift-Tab behavior only once](https://github.com/brianfiszman/dotfiles/issues/39)
-- [#69 Load Codeium when entering insert mode, not when opening any buffer](https://github.com/brianfiszman/dotfiles/issues/69)
-- [#70 Load Go tooling for Go files, not every command prompt](https://github.com/brianfiszman/dotfiles/issues/70)
+- [#69 Load Codeium when entering insert mode, not when opening any buffer](https://github.com/brianfiszman/dotfiles/issues/69) — empty-buffer deferral is validated; the first InsertEnter activation remains unverified.
 
 ## P1 — Keep language and navigation tools reliable
 
@@ -40,47 +34,59 @@ underlying fix.
 - [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
-- [#72 Keep optional Go helper binaries out of the default plugin installation](https://github.com/brianfiszman/dotfiles/issues/72)
-- [#73 Expose installed Norg parsers on Neovim's runtimepath](https://github.com/brianfiszman/dotfiles/issues/73)
 
-## Current handoff — 2026-11-13
 
-Canonical implementation branch: [PR #71](https://github.com/brianfiszman/dotfiles/pull/71),
-currently open, mergeable, and not merged. The latest validated code head is
-`4d745c2f38bb5eb15e27f13e8fd0a34ad5eaf4c3`, with full integration run
-[43501627966](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966)
-passing isolated preparation, locked plugin restore/build hooks, normal startup,
-and the Go lazy-loading regression scenarios.
+## Completed — PR #71 merged on 2026-11-13
 
-The branch received only documentation/backlog changes after the validated code
-head. I compared the complete commit range: no Neovim configuration, installer,
-test-script, or workflow code changed. The workflow is path-filtered away from
-backlog-only updates, so run #43501627966 remains the applicable runtime result.
+[PR #71](https://github.com/brianfiszman/dotfiles/pull/71) was squash-merged
+into `master` as [`8e721cd`](https://github.com/brianfiszman/dotfiles/commit/8e721cddee895a12367184fca1d588fbee9e1f4f).
 
-The final artifact [14072829773](https://github.com/brianfiszman/dotfiles/actions/runs/43501627966/artifacts/14072829773)
-was inspected. It contains explicit PASS lines for the non-Go `CmdlineEnter`
-path and the positive `go` and `gomod` filetype paths.
+The runtime code head `f1273d8cab4b3c0aec090abee20e22cd45fce2f5` passed
+[Actions run #43504068345](https://github.com/brianfiszman/dotfiles/actions/runs/43504068345):
+isolated installer preparation, locked plugin restore/build hooks, normal headless
+startup, and behavioral checks for Go's `CmdlineEnter`, `go`, and `gomod`
+triggers. The artifact was uploaded successfully.
 
-Issue state on the PR branch (not yet merged):
+Completed issues:
+- [#26](https://github.com/brianfiszman/dotfiles/issues/26) — remove obsolete dein.vim setup.
+- [#27](https://github.com/brianfiszman/dotfiles/issues/27) — preserve existing configs with backups.
+- [#28](https://github.com/brianfiszman/dotfiles/issues/28) — keep OS package installation out of the dotfiles installer.
+- [#29](https://github.com/brianfiszman/dotfiles/issues/29) — make Neovim/Emacs install modes explicit.
+- [#30](https://github.com/brianfiszman/dotfiles/issues/30) — clean isolated install and headless smoke test.
+- [#70](https://github.com/brianfiszman/dotfiles/issues/70) — load Go tooling only for Go filetypes.
+- [#72](https://github.com/brianfiszman/dotfiles/issues/72) — keep optional Go binaries out of default restore.
+- [#73](https://github.com/brianfiszman/dotfiles/issues/73) — make Norg parsers discoverable and loadable.
 
-| Issue | Branch status | Remaining work |
-|---|---|---|
-| #30 | Implemented and full smoke flow passed | Keep open until PR #71 merges |
-| #66 | Installer excludes the committed virtualenv; README documents a dedicated provider environment | Provider health still needs an explicit runtime check |
-| #69 | Codeium loads on InsertEnter; empty-buffer startup no longer starts it | First InsertEnter activation and external language-server bootstrap are not yet verified |
-| #70 | Implemented and validated in PR #71 head `4d745c2` / run #43501627966 | Keep open until PR #71 merges |
-| #72 | Optional Go helper bulk install removed; restore now detects failed tool-install notifications | Keep open until PR #71 merges |
-| #73 | Neorg parser dependencies and runtimepath are fixed; clean startup asserts both parsers | Keep open until PR #71 merges |
-| #43 | Tracking parent for on-demand optional workflows | Children #74, #75, and #76 are planned |
-| #75 | DAP/UI/adapter lazy-loading work defined; prerequisite for #74's no-DAP assertion | Next, not started; keep #40 Run with Args separate |
-| #74 | Neotest/adapters lazy-loading work defined | Blocked on #75; then validate normal test vs explicit Debug Test |
+Still open after the merge:
+- [#31](https://github.com/brianfiszman/dotfiles/issues/31) — test missing-Git and failed-clone bootstrap paths.
+- [#34](https://github.com/brianfiszman/dotfiles/issues/34) — verify help tags remain discoverable after a clean install.
+- [#66](https://github.com/brianfiszman/dotfiles/issues/66) — verify the Python provider in a real Neovim runtime.
+- [#69](https://github.com/brianfiszman/dotfiles/issues/69) — verify the first InsertEnter activation and Codeium startup.
 
-| #76 | Telescope/extension lazy-loading work defined | Not started |
+## Current handoff — next functional PR
 
-Do not close or mark branch-implemented issues complete before PR #71 is
-merged. After each subsequent commit, use the exact latest PR head SHA and its
-own Actions result; run #43501627966 validates the latest executable-code snapshot
-(`4d745c2`). Later commits only update documentation/backlog.
+The next target is [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75),
+the prerequisite for [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74).
+[Telescope #76](https://github.com/brianfiszman/dotfiles/issues/76) stays separate
+and follows after these.
+
+An existing branch, `feat/dap-on-demand`, contains eight commits beyond the
+validated #71 code head. Its exclusive diff is limited to the DAP configuration
+files, the Neotest-to-DAP dependency/mapping, and the headless test script.
+The branch predates the squash merge in its ancestry, so do not open a PR from
+it directly or port the old #71 history again.
+
+The final branch commit introduced doubled shell escape characters in
+`scripts/test-nvim-headless.sh` (including line continuations). Treat this as
+a harness defect to repair, not as validated DAP work. Preserve the original
+branch and review/port its DAP-only changes onto a clean branch based on the
+new `master`. Then validate #75 before starting #74.
+
+**Working cadence:** one functional PR at a time. Finish implementation, inspect
+the full diff, validate the exact PR head, merge it, close only its completed
+issues, reconcile this backlog, and only then start the next PR. Keep unrelated
+or dependent work on separate branches/issues; do not mix them into the PR being
+closed.
 
 ## Working agreement
 
