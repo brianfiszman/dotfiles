@@ -577,3 +577,12 @@ here rather than copying it.
 - The resolved Actions `display_title` is `Neovim headless smoke test [nvim-ci-baseline base=9e43312f2afa523e658ed583b4f48bebffb98568 pr_head=1e0875fe48732548e78c14e162c2118d47c74a66 tested=d1b264b13fec542a549cf5484e65f0534d9ac19f]`.
 - Live PR metadata confirms the recorded base equals `base_sha`, recorded PR head equals workflow run `head_sha`, and recorded tested SHA equals the PR's exact `merge_commit_sha`. This is the full-integration baseline for the final docs-only reuse proof.
 - Senior Reviewer re-pass (simulated) inspected the corrected workflow, metadata parsing, same-PR/successful-job checks, base/head matching, fail-open paths, cancellation condition, path classification and regression tests. **APPROVE**: no blocking findings remain in the corrected diff. This remains an assistant review, not an independent human review.
+
+
+## 2026-11-14 — PR #92 end-to-end docs-only baseline reuse passed
+
+- After the full integration baseline on code/test head `1e0875fe48732548e78c14e162c2118d47c74a66` (run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247)), a follow-up commit changed only `AGENT_STATE.md` and `AGENT_WORKLOG.md`.
+- Exact docs-only head `db8eca9163560c02d58dc85db13e65148fa50390` passed [run #43644267041](https://github.com/brianfiszman/dotfiles/actions/runs/43644267041). The decision log explicitly said: `skipped — only non-integration files changed since successful integration 1e0875f on the current PR base`.
+- Fast shell/lockfile/decision checks passed; the full fresh-install/headless integration job was skipped-success; the overall workflow conclusion was `success`.
+- This validates the real run-name/display_title metadata handoff, exact current-base SHA comparison, same-PR successful-full-integration baseline selection, and docs-only changed-path classification after the final fixed-prefix hardening. A separate earlier docs-only experiment before fixed-prefix hardening also passed (#43643566371); this final run is the authoritative validation for the corrected final workflow.
+- Final state: PR #92 remains open, Ready for review, mergeable, and unmerged. The assistant Senior Reviewer pass returned simulated APPROVE; there is no external human review and no merge authorization.
