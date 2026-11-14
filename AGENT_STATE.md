@@ -4,69 +4,58 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Sprint 2 is active. [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implements [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41). Code/README head at this checkpoint: `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`; run #43552641966 is in progress on that head. The system-tools install step is running; later test phases are pending. QA and Senior Reviewer have not started.
-- **Repository:** `brianfiszman/dotfiles`
-- **Base:** `master` after PR #86 merge commit `c587c8854faf2e99770ca6f30a51a529a38140bb`.
-- **Implementation branch:** `feat/lsp-native-setup-41`.
-- **Last inspected implementation/README commit before this checkpoint update:** `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`; the persisted checkpoint/worklog commits will advance the PR branch with docs-only changes.
-- **Issue:** [#41](https://github.com/brianfiszman/dotfiles/issues/41).
-- **PR:** [#87](https://github.com/brianfiszman/dotfiles/pull/87), open.
+- **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Goal: modernize the LSP foundation using one native Neovim setup/activation path per server while preserving supported workflows.
+- **Issue:** [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41), estimate M.
+- **PR:** [#87](https://github.com/brianfiszman/dotfiles/pull/87), open and unmerged.
+- **Branch:** `feat/lsp-native-setup-41`.
+- **Base:** `master` at `c587c8854faf2e99770ca6f30a51a529a38140bb`.
+- **Current implementation head:** `dd801182126c65a01123c65daf72a43220243e22`.
+- **Exact-head validation:** [Actions run #43600006360](https://github.com/brianfiszman/dotfiles/actions/runs/43600006360) is in progress for the current head. Do not claim it passed until it completes.
+- **Merge:** not authorized. Brian must explicitly authorize PR #87 after all required gates.
 
-## Sprint 2
+## Current implementation and manual feedback
 
-- **Dates:** 2026-11-14 through 2026-11-20.
-- **Estimate:** #41 — M.
-- **Sprint Goal:** move LSP setup to one explicit native Neovim configuration and activation path per server while preserving current supported workflows.
-- **Committed scope:** #41 only.
-- **Not committed:** #42 (lazydev), #44 (Treesitter), #76 (Telescope), and the full remaining-plugin update audit.
+- Replaced lsp-zero orchestration and legacy direct lspconfig setup with native `vim.lsp.config()` and one explicit `vim.lsp.enable()` activation path.
+- Mason-LSPConfig uses `automatic_enable = false`; server overrides are centralized and each server is configured once.
+- Replaced TypeScript Tools with native `ts_ls`; preserved function-call completions, references/implementations CodeLens, and lockfile-based workspace root behavior.
+- Moved nvim-cmp Tab/Shift-Tab behavior off lsp-zero while preserving LuaSnip behavior.
+- Updated only the LSP-related dependency versions and removed lsp-zero/TypeScript Tools lock entries. Neovim minimum/CI baseline is 0.11.3.
+- Neodev remains temporarily for #42; its `before_init` helper still imports `lspconfig.util`. Remove that transitional dependency in the separate lazydev migration.
+- Preserved keymaps: `K` hover, `F3` format buffer/selection, `Ctrl-Shift-F` synchronous format, `<leader>DF` diagnostic float, `[d` / `]d` diagnostic navigation, and `<leader>D` Telescope diagnostics.
+- Brian manually confirmed that completion works and `K` shows symbol information. He also reported that diagnostic signs appeared without the error text being visible; this was traced to `virtual_text = false`.
+- In response, current head `dd801182` changes diagnostics to `virtual_text = { spacing = 2, source = "if_many" }`, so diagnostic messages should display inline without a keypress. The headless assertion was updated to require a virtual-text table. This exact change is not yet validated by the in-progress run.
+- Brian does not recall using any proprietary `:TSTools*` commands. The repository has no mapped/configured use of them; native `ts_ls` migration proceeds without preserving those commands.
+- Manual F3 formatting and the new always-visible inline diagnostic presentation still need Brian's validation after the branch is installed. Real-project TS/ESLint attachment and interactive macOS behavior also remain outside headless CI.
 
-## Completed and verified before this sprint
+## Validation status
 
-- [#75 DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75) merged in [PR #77](https://github.com/brianfiszman/dotfiles/pull/77), merge commit `b30cf6f87dc1a8adbd573a25c712f540db2e548a`.
-- [#74 Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74) merged in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84), merge commit `110c3658085c4c23d847de36108b5e15e72b605`.
-- Documentation PRs #85 and #86 are merged. PR #86 merge commit is `c587c8854faf2e99770ca6f30a51a529a38140bb`.
-- Parent [#43](https://github.com/brianfiszman/dotfiles/issues/43) remains open. #75 and #74 are complete; #76 remains open.
-- PR #83 remains open/unmerged as a historical Sprint 1 planning checkpoint. It is not part of the current implementation.
-
-## Sprint 2 diagnosis and decisions
-
-- The prior LSP path combined lsp-zero v3.x, Mason-LSPConfig v1-style handlers, direct legacy `require("lspconfig").setup()` calls, repeated server configuration, and special TypeScript/ESLint setup.
-- Correction to the earlier audit: lsp-zero's upstream README mentions a v4 branch. Do not claim the entire project is officially dead. This migration removes the repository's v3.x orchestration in favor of native Neovim APIs.
-- The exact locked TypeScript Tools revision calls the deprecated `require("lspconfig")` framework internally. The selected replacement is native `ts_ls`, with complete-function-call completion and references/implementations CodeLens retained in settings.
-- Targeted dependency versions: nvim-lspconfig v2.12.0 (`4d363f93c3581b9212a24f7a830d7590b3f050af`), Mason-LSPConfig v2.3.0 (`a5671269a1ddfa7790cdf97c14e600e269da550f`), Mason v2.3.1 (`2a6940af80375532e5e9e7c1f2fc6319a1b7a69d`).
-- nvim-lspconfig v2.12.0 requires Neovim 0.11.3+, so the CI baseline is now v0.11.3.
-- Neodev remains for the separate #42 migration. Its compatibility helper still imports `lspconfig.util`; remove this remaining transitive legacy dependency when replacing neodev with lazydev.
-
-## Implementation changes on the branch
-
-- Replaced lsp-zero's plugin spec with `lsp.native`.
-- Reworked `lsp/config.lua` around `vim.lsp.config()` and one per-server override table, followed by one `vim.lsp.enable(M.servers)` call.
-- Configured Mason-LSPConfig with `automatic_enable=false`; Mason installs packages, explicit native config owns activation.
-- Replaced TypeScript Tools with native `ts_ls`; retained completion and CodeLens settings and the previous lockfile-based workspace root policy.
-- Moved nvim-cmp's Tab/Shift-Tab behavior to local LuaSnip mappings instead of lsp-zero helpers; retained cmp-nvim-lsp setup and hover/signature float borders.
-- Updated Mason repository namespace in the DAP spec.
-- Updated only the LSP dependency lock entries and removed lsp-zero/TypeScript Tools lock entries; no repository-wide update.
-- Raised CI Neovim from v0.11.0 to v0.11.3.
-- Added `tests/nvim/lsp-native-setup.lua` and wired it into `scripts/test-nvim-headless.sh`.
-
-## Validation
-
-| Check | Status | Evidence |
+| Gate | Status | Evidence |
 |---|---|---|
-| Static review of upstream API/version requirements | passed | Selected releases and requirements inspected; see issue #41 and work log |
-| Real plugin restore | pending | Run #43552641966 in progress on code head `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`; system-tools install step running |
-| Normal real Neovim headless startup | pending | Run #43552641966 in progress; Neovim install and startup steps have not started |
-| Native LSP behavior assertions | pending | New test file wired into CI; not run yet |
-| QA | pending | Separate QA pass required |
-| Senior Reviewer | pending | Separate full-diff review required |
-| PR #41 merge | not authorized | Requires Brian's explicit authorization for this PR |
+| Previous code head runtime validation | passed | Run [#43598472873](https://github.com/brianfiszman/dotfiles/actions/runs/43598472873), successful on predecessor head `131b8c3831dc2dfce243bc611c3dfe992fec8b0a` |
+| Current head runtime validation | in progress | Run [#43600006360](https://github.com/brianfiszman/dotfiles/actions/runs/43600006360), exact head `dd801182126c65a01123c65daf72a43220243e22` |
+| Earlier QA pass | passed on predecessor | QA reviewed issue #41 acceptance criteria before the inline-diagnostic preference change; repeat against final exact head |
+| Earlier Senior Reviewer pass | approved predecessor | Separate simulated pass before the inline-diagnostic preference change; repeat against final complete diff |
+| Manual completion and hover | passed | Brian's report |
+| Manual formatting and inline diagnostics | pending | Await validation of F3 and inline messages |
+| PR #87 merge | not authorized | Requires Brian's explicit authorization |
 
-## Blockers / known limitations
+The QA and Senior Reviewer roles are separate sequential simulated passes by the assistant, not independent human reviewers.
 
-- No real Neovim runtime or plugin restore has yet run for this branch.
-- Neodev's `before_init` helper still imports `lspconfig.util`; #42 owns removing that transitive compatibility path.
-- Headless tests can assert configuration and activation wiring, but representative project attachment, TypeScript/ESLint save behavior, and interactive macOS behavior still need manual validation.
+## Sprint scope boundaries
 
-## Next concrete action
+- #41 is the only committed functional issue for this sprint.
+- #42 (lazydev), #44 (Treesitter), #76 (Telescope), and the broader dependency inventory/update remain outside this PR.
+- Do not perform an indiscriminate bulk plugin update.
+- PR #83 remains open/unmerged as a historical planning checkpoint.
 
-Monitor run #43552641966 for code head `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3` through completion. Inspect system tools, Neovim install, lockfile validation, plugin restore/build hooks, normal startup, and LSP assertions. Resolve any runtime failures, then perform QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
+## Continuity and validation rules
+
+- Treat live GitHub PR, branch, commit, and Actions state as authoritative; verify this checkpoint before resuming.
+- For every runtime change, validate the exact PR head, not a predecessor SHA.
+- Inspect all jobs/steps and logs; a pending job is not a hang, and an in-progress run is neither pass nor failure.
+- Avoid commits while a run is active; workflow concurrency can cancel the superseded run.
+- Keep QA and Senior Reviewer passes separate. Never merge without explicit authorization for this PR.
+- Keep `AGENT_WORKLOG.md` append-only. Skills:
+  - `.agents/skills/neovim-maintenance/SKILL.md`
+  - `.agents/skills/github-actions-validation/SKILL.md`
+  - `.agents/skills/execution-continuity/SKILL.md`
