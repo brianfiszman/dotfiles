@@ -36,7 +36,8 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 - A representative project-level test suite and interactive macOS behavior remain unverified. The headless Test Stop scenario intentionally does not run a real project test suite.
 - All six mappings remain present; only Test Stop and Debug Test were dispatched in CI. The other four were checked statically, not individually executed.
 - Issue #76 (Telescope lazy-loading) remains open. It was not committed to Sprint 1; do not start it or treat it as committed without Brian's planning decision.
-- PR #86 is a documentation-only checkpoint correction after PR #85 merged. Its final exact diff needs QA and Senior Reviewer passes. The Neovim workflow excludes these documentation files, so no runtime run is expected.
+- **PR #86 documentation QA: PASS; Senior Reviewer: APPROVE.** The exact two-file diff was checked against live GitHub states, merge SHAs, and the path-filtered workflow. A final re-fetch/review of the recorded gate update is required before handoff. The Scrum roles are simulated sequentially by one assistant, not independent human reviewers.
+- The Neovim workflow excludes these documentation files, so no runtime run is expected or claimed.
 - Do not merge PR #86 without Brian's separate explicit authorization. Authorizations for PR #84 and #85 do not carry over.
 
 ## Validation
@@ -49,14 +50,14 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 | PR #85 documentation QA / Senior Reviewer | passed / approved | Exact three-file docs-only diff; workflow path filter excludes those files |
 | PR #85 merge | completed | `3c3abc65432d8b00bc4272866f49d000dc703eb5` |
 | Issue #74 | closed | GitHub state reason `completed` |
-| PR #86 docs-only validation | pending | Separate final review required; no runtime CI expected |
+| PR #86 docs-only QA / Senior Reviewer | passed / approved | Reviewed exact source head `0c9d2bb3f57ef28df4a7338d96875d0bd7d9d032`; final persisted head to be re-fetched before handoff |
 
 ## Blockers
 
 - No implementation blocker for #74.
 - Manual macOS and representative project-suite validation remain unverified, not blockers to the accepted headless scope.
-- No merge authorization exists yet for PR #86, PR #83, or any future implementation of #76.
+- PR #86 has QA/reviewer sign-off but still requires Brian's separate explicit merge authorization. No merge authorization exists for PR #83 or any future implementation of #76.
 
 ## Next concrete action
 
-Finish QA and Senior Reviewer review of PR #86's two-file checkpoint reconciliation, then ask Brian for separate explicit authorization before merging PR #86. After that, ask Brian whether to refine and schedule #76 or choose another backlog item.
+Re-fetch and inspect PR #86's final exact HEAD, then ask Brian for separate explicit authorization before merging it. After that, ask Brian whether to refine and schedule #76 or choose another backlog item.
