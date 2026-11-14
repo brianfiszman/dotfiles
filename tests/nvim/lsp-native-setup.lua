@@ -16,6 +16,11 @@ assert(package.loaded["lsp-zero"] == nil, "lsp-zero was loaded")
 assert(package.loaded["lspconfig"] == nil, "deprecated nvim-lspconfig framework was loaded")
 assert(package.loaded["typescript-tools"] == nil, "legacy TypeScript Tools plugin was loaded")
 
+local json_config = vim.lsp.config.jsonls
+assert(json_config.settings.json.validate.enable == true, "JSON validation setting is missing")
+assert(json_config.settings.json.schemas[1].name == "LuaLS Settings", "Neodev LuaLS JSON schema is missing")
+assert(json_config.settings.json.schemas[1].fileMatch[1] == ".luarc.json", "Neodev JSON schema file match is missing")
+
 local lua_config = vim.lsp.config.lua_ls
 assert(type(lua_config.before_init) == "function", "Neodev before_init integration is missing")
 assert(lua_config.settings.Lua.diagnostics.globals[1] == "vim", "LuaLS vim global setting is missing")
