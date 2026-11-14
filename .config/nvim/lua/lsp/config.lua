@@ -1,6 +1,6 @@
 local M = {}
 
-M.servers = {
+M.mason_servers = {
   "lua_ls",
   "arduino_language_server",
   "bashls",
@@ -20,9 +20,10 @@ M.servers = {
   "tailwindcss",
   "yamlls",
   "gopls",
-  "svelte",
   "ts_ls",
 }
+
+M.servers = vim.list_extend(vim.deepcopy(M.mason_servers), { "svelte" })
 
 local function set_lsp_keymap(mode, lhs, rhs, description, bufnr)
   vim.keymap.set(mode, lhs, rhs, {
@@ -124,7 +125,7 @@ function M.setup()
 
   -- Mason installs tools only. Explicit vim.lsp.enable() calls below own activation.
   M.mason_options = {
-    ensure_installed = M.servers,
+    ensure_installed = M.mason_servers,
     automatic_enable = false,
   }
   require("mason-lspconfig").setup(M.mason_options)
