@@ -193,10 +193,11 @@ LuaLS workspace libraries, or Lua completion:
    `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`; checking
    only `package.loaded`, Lazydev's library table, or nvim-cmp source
    registration is not enough.
-4. Replace the deliberately incomplete completion prefix with valid Lua and
-   assert LuaLS clears diagnostics for that buffer. Keep the error/diagnostic
-   check separate from the expected temporary parser error used to trigger
-   completion.
+4. Replace the deliberately incomplete completion prefix with valid Lua,
+   request hover on a resolved symbol to establish that LuaLS processed the
+   change, then allow diagnostics to settle and assert that the buffer is clean.
+   Do not rely solely on a `DiagnosticChanged` event: servers may not emit a
+   diagnostics notification when the buffer was already clean.
 5. Ensure workflow path filters include `tests/nvim/**`, so edits to behavioral
    tests actually run CI.
 
