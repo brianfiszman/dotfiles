@@ -104,27 +104,14 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
--- Recalculate the current line's indentation before entering an editing
--- command. Queue the original command without remapping so the built-in
--- insert/change behavior still owns the actual text editing and mode switch.
-local function reindent_current_line(count)
-  vim.cmd.normal({ args = { ("%d=="):format(count) }, bang = true })
-end
-
-local function execute_builtin_insert_command(keys)
-  -- Run the real Normal-mode command only after this mapping callback returns.
-  -- That lets cc/o/O perform their native Insert-mode transition themselves.
-  vim.schedule(function()
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "nxt", false)
-  end)
-end
-
+-- Reindent the current scope, then let Neovim execute its native editing
+-- command. Returning keys keeps the Insert-mode transition in the input loop.
 vim.keymap.set("n", "S", function()
   local count = vim.v.count1
-  reindent_current_line(count)
-  execute_builtin_insert_command(("%dcc"):format(count))
+  return ("<Cmd>normal! %d==<CR>%dcc"):format(count, count)
 end, {
   desc = "Reindent and replace line(s)",
+  expr = true,
   silent = true,
 })
 
@@ -134,11 +121,10 @@ for key, description in pairs({
 }) do
   vim.keymap.set("n", key, function()
     local count = vim.v.count1
-    reindent_current_line(1)
-    execute_builtin_insert_command(("%d%s"):format(count, key))
+    return ("<Cmd>normal! ==<CR>%d%s"):format(count, key)
   end, {
     desc = description,
+    expr = true,
     silent = true,
   })
 end
-
