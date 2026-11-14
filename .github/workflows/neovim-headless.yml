@@ -32,6 +32,23 @@ permissions:
   contents: read
 
 jobs:
+  fast-checks:
+    name: Fast shell and lockfile checks
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate shell syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n install.sh
+          bash -n scripts/test-nvim-headless.sh
+
+      - name: Validate lazy.nvim lockfile JSON
+        run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
+
   headless-startup:
     name: Fresh install and headless startup
     runs-on: ubuntu-26.04
