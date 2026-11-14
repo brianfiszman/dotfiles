@@ -4,55 +4,68 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** implementation complete; QA PASS; Senior Reviewer APPROVE; latest observed PR head CI passed; checkpoint update will trigger a new head validation
+- **Status:** Scrum operating model documented; child branch synchronized with latest validated parent; final child-head CI pending
 - **Repository:** `brianfiszman/dotfiles`
-- **Work branch:** `docs/agent-session-continuity-pr78`
-- **Base branch:** `master`
-- **Base HEAD:** `b30cf6f87dc1a8adbd573a25c712f540db2e548a`
-- **PR source HEAD before this checkpoint update:** `0d006c2af97137adc8f9a189d6aa2280a59dcdd2`
-- **Issue:** [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78)
-- **Pull request:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79) — open
+- **Work branch:** `docs/scrum-operating-model-pr80`
+- **Base branch:** `docs/agent-session-continuity-pr78`
+- **Parent HEAD at synchronization:** `aac9cad33373beffdfd78faa1f55589fe7142780`
+- **Issue:** [#80 — Formalize a lightweight Scrum operating model](https://github.com/brianfiszman/dotfiles/issues/80)
+- **Pull request:** [#81 — Scrum team operating model](https://github.com/brianfiszman/dotfiles/pull/81) — open
+- **Child HEAD before this synchronization:** `e2ade24b924424a814db666172fd955cec71190d`
+- **Parent PR:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79), exact head `aac9cad33373beffdfd78faa1f55589fe7142780`
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
-- **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
-- **Current phase:** quality gates complete; inspect validation after this checkpoint advances the head
+- **Scrum skill:** [`scrum-team`](.agents/skills/scrum-team/SKILL.md)
+- **Current phase:** final QA/review and exact child-head Actions validation
+
+## Scrum configuration
+
+- Sprint length: one week; exact dates set at Planning.
+- Estimation: T-shirt sizing (XS/S/M/L/XL); XL must be investigated/split before commitment.
+- Daily Scrum: manual in chat on Brian's request; no scheduled automation.
+- Quality gates: QA PASS followed by separate Senior Reviewer APPROVE; both required.
+- Product Owner: Brian; final priority, scope, acceptance, and merge authority remain with him.
+- Roles are simulated by one assistant with distinct review passes, not separate autonomous agents or independent humans.
+
+## Current cycle
+
+- **Sprint 0 — foundation/setup:** durable session continuity and Scrum operating agreement.
+- **Sprint 1 candidate:** issue [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74), to be considered at Planning after both foundation PRs are merged. Not committed.
+- Preserve the one-functional-PR-at-a-time rule.
 
 ## Completed and verified
 
-- PR [#77](https://github.com/brianfiszman/dotfiles/pull/77) merged as [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a); issue #75 closed.
-- PR #79 implements issue #78 with five documentation paths: `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`, `.agents/skills/execution-continuity/SKILL.md`, and `docs/neovim-modernization-backlog.md`. No runtime configuration or workflow definitions changed.
-- Restored the original append-only work log from commit `4994f6d` after detecting that commit `721a078` had overwritten it with a checkpoint copy. Original DAP/Mason findings and the documentation-review entry are preserved; the correction is appended.
-- Simulated fresh-session recovery passed against the checkpoint, work log, branch, issue #78, PR #77, and exact-head evidence.
-- **QA PASS:** recovery sequence, checkpoint coverage, work-log preservation, internal links, Markdown structure, and five-file scope checked.
-- **Senior Reviewer APPROVE:** complete diff reviewed against repository safety, GitHub project-management, and Actions validation rules.
-- Exact PR #79 source HEAD `0d006c2af97137adc8f9a189d6aa2280a59dcdd2` passed pull-request run [#43534384968](https://github.com/brianfiszman/dotfiles/actions/runs/43534384968). The complete job passed system prerequisites, pinned Neovim installation, isolated workspace preparation, installer safety, locked plugin restore/build hooks, normal startup, and log upload.
-- No macOS interactive validation was performed; it is outside this documentation change.
+- Parent PR #79 current head `aac9cad33373beffdfd78faa1f55589fe7142780` passed pull-request run [#43534899400](https://github.com/brianfiszman/dotfiles/actions/runs/43534899400). All steps passed: system prerequisites, pinned Neovim, isolated workspace, installer safety, locked plugin restore/build, normal startup, and log upload.
+- The parent correction restored the append-only work log from commit `4994f6d` after commit `721a078` had overwritten it. The original DAP/Mason investigation and documentation-recovery history are preserved.
+- The initial child head `fe6dd047c11ed1ca1fb4b5c479dd879df81769de` passed run #43533765889. The previous synchronized child head `e2ade24b924424a814db666172fd955cec71190d` passed run [#43534697665](https://github.com/brianfiszman/dotfiles/actions/runs/43534697665), but it included parent head `0d006c2...` rather than the latest `aac9cad33373beffdfd78faa1f55589fe7142780`.
+- The child branch is now synchronized with the validated parent head `aac9cad33373beffdfd78faa1f55589fe7142780` using a merge commit whose first parent is the current parent branch and second parent is the prior child head. Scrum files and work are preserved.
+- QA PASS and Senior Reviewer APPROVE were completed for the four-file Scrum change after synchronization with the prior parent head; this final parent sync still receives a final diff review below.
+- Added `.agents/skills/scrum-team/SKILL.md` and registered it in `AGENTS.md`.
+- No runtime configuration or workflow definitions changed. No Daily Scrum automation was created.
 
 ## Pending
 
-- This checkpoint/work-log commit advances the branch beyond `0d006c2af97137adc8f9a189d6aa2280a59dcdd2`. Resolve the branch ref and inspect the Actions run for the resulting exact PR head.
-- Keep issue #78 open until merge and final acceptance.
-- Merge remains a Product Owner decision; no merge is authorized.
+- Verify the resulting branch ref and PR #81 exact head.
+- Re-run QA and Senior Reviewer against the final four-file diff.
+- Inspect the new child-head Actions run through completion.
+- PR #81 remains dependent on PR #79. It must not merge before the parent; after #79 merges, retarget to `master`, refresh the diff, and revalidate.
+- No merge is authorized without Brian's explicit approval.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
-| PR #77 runtime integration | passed | Run #43530295202 for exact head `73b4bf80f811667a778f2105dfd9516aae3bfce4` |
-| PR #79 previous exact-head CI | passed | Run #43531552732, `pull_request`, SHA `721a078...` |
-| PR #79 work-log correction head CI | passed | Run #43534384968, `pull_request`, SHA `0d006c2af97137adc8f9a189d6aa2280a59dcdd2` |
-| Continuity/documentation QA | passed | Five-file diff and issue #78 criteria reviewed |
-| Senior Reviewer | approved | Current diff reviewed against repository working agreements |
-| Work-log preservation | passed | Restored from commit `4994f6d`; correction and result appended |
-| Checkpoint commit's new head CI | pending | New PR head will be triggered by this update |
-| Local macOS interactive validation | not run | Not required for this documentation PR |
+| Parent PR #79 exact-head CI | passed | Run #43534899400, `pull_request`, SHA `aac9cad33373beffdfd78faa1f55589fe7142780` |
+| Prior child exact-head CI | passed | Run #43534697665, `pull_request`, SHA `e2ade24b924424a814db666172fd955cec71190d`; prior to latest parent sync |
+| Scrum documentation QA | passed | Issue #80 criteria, exact four-file scope, internal paths and Markdown checked |
+| Senior Reviewer | approved | Prior synchronized diff reviewed against project and continuity rules; final sync review pending |
+| Final child exact-head CI | pending | New run required for this merge commit |
+| Neovim runtime validation | not required | Documentation-only child change |
 
 ## Blockers
 
-None technical. Await Brian's explicit merge authorization after final-head validation.
+- PR #81 depends on PR #79. The parent is now validated but remains open; child merge must wait until parent merge and Brian's authorization.
 
 ## Next concrete action
 
-Resolve `refs/heads/docs/agent-session-continuity-pr78`, verify the new PR #79 head, and inspect its pull-request Actions run. Then synchronize PR #81 with that exact parent head and validate the child.
-
-The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the remote branch ref to verify the persisted snapshot.
+Resolve `refs/heads/docs/scrum-operating-model-pr80`, confirm PR #81 is based on the updated parent, then perform final QA/Reviewer checks and inspect the exact current-head Actions run.
