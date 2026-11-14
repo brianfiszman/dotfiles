@@ -1,5 +1,5 @@
 name: Neovim headless smoke test
-run-name: ${{ github.event.pull_request.title || github.workflow }} [nvim-ci-baseline base=${{ github.event.pull_request.base.sha || github.sha }} pr_head=${{ github.event.pull_request.head.sha || github.sha }} tested=${{ github.sha }}]
+run-name: ${{ github.workflow }} [nvim-ci-baseline base=${{ github.event.pull_request.base.sha || github.sha }} pr_head=${{ github.event.pull_request.head.sha || github.sha }} tested=${{ github.sha }}]
 
 on:
   push:

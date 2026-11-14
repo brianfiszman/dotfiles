@@ -553,3 +553,10 @@ here rather than copying it.
 - The run completed with decision success, fast checks success (**19/19**), and full fresh-install/headless integration success. Locked plugin restore/build hooks, normal startup, behavior suite, and artifact upload all succeeded.
 - Actions REST returned the resolved `display_title` containing base `9e43312f2afa523e658ed583b4f48bebffb98568`, PR head `aeefc20803016cac2f9f41a640b27d782a161a26`, and tested merge SHA `880a5bbed70cb8716904b716e3dca7f106bf8e5e`. The base matches the live PR base; the marker head matches the workflow run head.
 - This is the successful full-integration baseline for the next docs-only run. The next workflow must reuse it only while the base SHA is unchanged and the delta contains no integration-relevant files.
+
+
+## 2026-11-14 — Harden integration baseline run-name against PR title input
+
+- Final review of the baseline marker transport found that the workflow interpolated the editable PR title before the marker. A title containing a marker-shaped string could be parsed before the trusted workflow-generated marker.
+- Removed the title interpolation; the run-name now uses the fixed workflow name followed by the exact base/head/tested SHAs. Added a contract test to keep the run-name prefix fixed and reject PR-title interpolation.
+- This does not alter the baseline decision or test paths; it hardens the metadata source against title ambiguity. Exact-head full integration is required because the workflow and CI contract test changed.
