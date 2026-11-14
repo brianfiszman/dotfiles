@@ -4,7 +4,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** PR #79 merged; PR #81 retargeted to master and synchronized with the squash-merge base; final exact-head validation pending
+- **Status:** PR #79 merged; PR #81 retargeted to master; final four-file QA and Senior Review passed; exact-head CI dispatch/validation pending
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `docs/scrum-operating-model-pr80`
 - **Base branch:** `master`
@@ -45,10 +45,9 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Pending
 
-- Verify the branch ref, PR base/head, and merge base after the ancestry-sync commit.
-- Confirm that the PR diff is back to exactly four Scrum documentation files, without execution-continuity or backlog duplication.
-- Re-run QA and Senior Reviewer on the final master-based PR diff.
-- Inspect the new Actions run for the final exact head through completion.
+- Trigger/observe a pull-request Actions run for the new master-based head; no run is registered for the current SHA yet.
+- Verify that run completes successfully for the exact current SHA.
+- Do not merge #81 without Brian's explicit authorization.
 - Do not merge #81 without Brian's explicit authorization.
 
 ## Validation
@@ -57,9 +56,9 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 |---|---|---|
 | PR #79 parent exact-head CI | passed | Run #43534899400, `pull_request`, SHA `aac9cad...` |
 | PR #81 prior exact-head CI | passed | Run #43535300671, `pull_request`, SHA `fb5dd83c1a066a191980be4eb53af375592dd866`; pre-retarget/pre-sync |
-| Current four-file scope | pending | Verify comparison after ancestry synchronization |
-| QA / Senior Reviewer | pending | Re-run on final master-based diff |
-| Current PR #81 exact-head CI | pending | New run required after this commit |
+| Current four-file scope | passed | Compare master...PR head: exactly four Scrum files; merge base is `a006c8a` |
+| QA / Senior Reviewer | passed | Final master-based patch inspected; no parent/backlog duplication |
+| Current PR #81 exact-head CI | pending | No run registered yet for source SHA `1e38e71...` |
 | Neovim runtime validation | not required | Documentation-only change |
 
 ## Blockers
@@ -68,6 +67,6 @@ None known after the parent merge. Final diff review and current-head CI remain 
 
 ## Next concrete action
 
-Resolve `refs/heads/docs/scrum-operating-model-pr80`, verify PR #81 compares directly against master with only the four intended documentation files, then complete QA, Senior Review, and exact-head Actions validation.
+Obtain an exact-head pull-request Actions run for the current master-based branch and inspect it through completion. Do not treat run #43535300671 for the previous head as validation for this snapshot.
 
 The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the remote branch ref to verify the persisted snapshot.

@@ -92,3 +92,15 @@ here rather than copying it.
 - Preserved the child tree and added the exact current master commit as a second parent so GitHub's merge base advances to master. This changes ancestry, not the intended Scrum content.
 - The next exact-head run is required. Verify the PR diff is only the four Scrum documentation files, then QA and Senior Review.
 - No merge of PR #81 is authorized yet; Brian's explicit approval is still required.
+
+
+---
+
+## 2026-11-14 — PR #81 retargeted and master-based diff reviewed
+
+- Parent PR #79 is merged to `master` at `a006c8afb84518098009e4bd8da4436c8e926aa4`; issue #78 is closed.
+- Retargeted PR #81 to `master`. The squash merge meant the child branch did not inherit the parent squash commit as an ancestor, so GitHub initially showed the parent documentation again in the child diff.
+- Added the exact master merge commit as an ancestor of the child branch while preserving the Scrum tree. The resulting merge base is exactly `a006c8a`, and comparison reports zero commits behind.
+- Rechecked the diff: only `.agents/skills/scrum-team/SKILL.md`, `AGENTS.md`, `AGENT_STATE.md`, and `AGENT_WORKLOG.md` are changed. The parent continuity skill and backlog are not duplicated.
+- QA PASS and Senior Reviewer APPROVE on the final master-based four-file diff. Exact-head CI remains pending: run #43535300671 validates the superseded pre-retarget head only; no run has yet registered for `1e38e71dbc07a4f6202322c5cc8afbdc61e9d863`.
+- PR #81 remains open. No merge has been authorized.
