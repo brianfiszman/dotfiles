@@ -104,3 +104,15 @@ here rather than copying it.
 - Rechecked the diff: only `.agents/skills/scrum-team/SKILL.md`, `AGENTS.md`, `AGENT_STATE.md`, and `AGENT_WORKLOG.md` are changed. The parent continuity skill and backlog are not duplicated.
 - QA PASS and Senior Reviewer APPROVE on the final master-based four-file diff. Exact-head CI remains pending: run #43535300671 validates the superseded pre-retarget head only; no run has yet registered for `1e38e71dbc07a4f6202322c5cc8afbdc61e9d863`.
 - PR #81 remains open. No merge has been authorized.
+
+
+---
+
+## 2026-11-13 — Scrum operating model merged; reconcile post-merge checkpoint
+
+- Brian explicitly authorized merging PR [#81](https://github.com/brianfiszman/dotfiles/pull/81). GitHub confirmed a squash merge as [`e43ce86`](https://github.com/brianfiszman/dotfiles/commit/e43ce86e98344094021421cbe789df5e956b8982); `master` now points to that commit.
+- The exact source head `62718319fa8e2ad121a9b2b48276c8218ef508e3` passed pull-request run [#43536799096](https://github.com/brianfiszman/dotfiles/actions/runs/43536799096). All job steps passed: checkout, system tools, pinned Neovim, isolated workspace, installer safety, locked plugin restore/build hooks, normal headless startup, and log upload.
+- Final review before merge was QA PASS and Senior Reviewer APPROVE. The merged PR contained exactly four documentation paths: `.agents/skills/scrum-team/SKILL.md`, `AGENTS.md`, `AGENT_STATE.md`, and `AGENT_WORKLOG.md`. It changed no Neovim runtime configuration or workflow definitions.
+- Issue [#80](https://github.com/brianfiszman/dotfiles/issues/80) was explicitly closed as completed after the merge. Parent PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) is also merged as `a006c8a`; issue #78 is closed.
+- Post-merge recovery audit found that the checkpoint shipped by PR #81 still described that PR as open and its exact-head CI as pending. This is stale operational state, not a code defect. Reconcile `AGENT_STATE.md` and this append-only log in a follow-up docs-only branch/PR based on the new master; do not edit master directly.
+- Next: validate the final checkpoint-reconciliation PR on its exact head, then request Brian's explicit merge authorization. No additional merge is authorized by the #81 approval.
