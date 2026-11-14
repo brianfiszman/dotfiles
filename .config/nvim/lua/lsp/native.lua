@@ -5,7 +5,16 @@ return {
     {
       "mason-org/mason.nvim",
       branch = "main",
-      opts = {},
+      opts = {
+        ui = {
+          border = "rounded",
+          icons = {
+            package_installed = "✓",
+            package_pending = "➜",
+            package_uninstalled = "✗",
+          },
+        },
+      },
     },
     {
       "neovim/nvim-lspconfig",
