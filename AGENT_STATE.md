@@ -4,11 +4,11 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** PR #84 open; implementation CI passed on `4ca54c598b55f9129f15130eabe37c5e804ea691` in pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634); QA and Senior Reviewer pending.
+- **Status:** PR #84 open; Neotest lazy-loading implementation validated on exact PR head `8c1f99a07ddf17cfa839c954817d23f87e6705be` by pull-request run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359); QA PASS; Senior Reviewer APPROVE. Awaiting Brian's Product Owner acceptance and explicit merge authorization.
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `feat/neotest-lazy-loading`
 - **Base:** `master` at `c203afd4256398ac003a28abc211cd4f8c376f19`
-- **Last implementation HEAD validated:** `4ca54c598b55f9129f15130eabe37c5e804ea691`. This checkpoint/work-log commit advances the branch; resolve the live branch ref for its resulting SHA.
+- **Last implementation and full PR snapshot validated:** `8c1f99a07ddf17cfa839c954817d23f87e6705be`. This checkpoint/work-log commit advances the branch without changing runtime or test files; resolve the live branch ref for its resulting SHA.
 - **Issue:** [#74 — Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
 - **PR:** [#84 — Lazy-load Neotest on existing test actions](https://github.com/brianfiszman/dotfiles/pull/84)
 - **Sprint:** Sprint 1, 2026-11-13 through 2026-11-19; estimate M.
@@ -27,14 +27,15 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 - Added `tests/nvim/neotest-lazy-loading.lua`, which checks idle non-loading, activates the existing Test Stop mapping without running a test suite, verifies Neotest/vim-test/adapters load, and asserts ordinary testing leaves DAP unloaded.
 - Wired the new scenario into `scripts/test-nvim-headless.sh`.
 - No lockfile or plugin version changes.
-- The exact-head regression run passed: idle startup keeps Neotest/vim-test/adapters/DAP unloaded; `<leader>ts` loads Neotest, vim-test and configured adapters; ordinary testing leaves DAP unloaded; the Debug Test mapping continues to load DAP on demand.
+- Exact-head run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359) passed on `8c1f99a07ddf17cfa839c954817d23f87e6705be`, including isolated preparation, locked plugin restore/build hooks, normal headless startup, Neotest lazy-loading, Go regressions, Mason/DAP lazy-loading, and the Debug Test trigger.
+- **QA PASS:** all #74 acceptance criteria were checked against the final PR snapshot. The actual headless test verifies idle state, the `<leader>ts` lazy trigger, Neotest/vim-test/all configured adapters loading, and DAP remaining unloaded. Static review confirms all six original triggers/mappings remain and `discovery.enabled = false` is retained. Existing Debug Test regression proves the explicit DAP path. No representative project test suite or interactive macOS session was performed.
+- **Senior Reviewer APPROVE:** separately re-fetched and reviewed the complete current diff; no blocking findings. The roles are simulated by this assistant, not independent human reviewers.
 - The prior exact-head run on `d06626861f88d61a3ca1d47f7a2ae409c3f51db3` failed only because the test compared `maparg().lhs` literally (`" ts"` vs Neovim's normalized `"<Space>ts"`). Fixed by validating the mapping's rhs-or-callback and exercising the actual key dispatch.
 
 ## Pending
 
-- This checkpoint/work-log update follows the implementation SHA validated by run #43541470634. Resolve the live `feat/neotest-lazy-loading` ref and inspect the pull-request Actions run for that resulting exact HEAD.
-- Complete the separate QA PASS and Senior Reviewer APPROVE gates against the final current diff.
-- Interactive macOS testing and a representative project test run remain separate from deterministic headless checks.
+- Interactive macOS testing and a representative project test run remain unverified; they are not required to claim the deterministic headless acceptance checks passed.
+- Await Brian's Product Owner acceptance and explicit authorization before merging PR #84. Keep issue #74 open until the accepted change is merged.
 
 ## Validation
 
@@ -43,16 +44,16 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 | Branch/base verification | passed | `master...feat/neotest-lazy-loading` comparison; base SHA `c203afd...` |
 | Static diff review | passed | All five PR paths inspected; no lockfile or plugin version changes |
 | Prior exact-head attempt | failed (superseded) | Run [#43540903350](https://github.com/brianfiszman/dotfiles/actions/runs/43540903350) on `d066268...`; incorrect literal `maparg().lhs` comparison |
-| Implementation exact-head CI | passed | Pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634) on `4ca54c598b55f9129f15130eabe37c5e804ea691`; prepare, locked restore/build, normal startup, Neotest, Go and DAP behavior checks passed |
-| Final PR-head CI | pending | Required after this checkpoint/work-log commit advances the branch |
-| QA | pending | Independent acceptance-criteria pass after final-head check |
-| Senior Reviewer | pending | Separate full-diff review after QA |
+| Implementation exact-head CI | passed | Pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634) on `4ca54c5...` after the keymap assertion fix |
+| Final PR-head CI | passed | Pull-request run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359) on exact SHA `8c1f99a07ddf17cfa839c954817d23f87e6705be`; all steps, including log artifact upload |
+| QA | passed | Separate acceptance-criteria pass against PR #84; see current task above |
+| Senior Reviewer | approved | Separate complete-diff review; no blocking findings |
 
 ## Blockers
 
-- No implementation blocker identified. Final PR-head CI and the two review gates remain.
-- PR #83 remains open; PR #84 is unmerged. No merge has been authorized.
+- No implementation blocker identified. Manual interactive Mac and representative project-suite validation remain outside the headless acceptance run.
+- PR #83 and PR #84 remain open/unmerged. Merge authority remains with Brian.
 
 ## Next concrete action
 
-Resolve the live PR #84 branch HEAD, inspect its pull-request Actions run, then perform QA and a separate Senior Reviewer pass. Do not merge or close issue #74 without Brian's explicit authorization and acceptance.
+Brian: review PR #84 and decide whether to accept it. Do not merge PR #84 or close issue #74 without your explicit authorization/acceptance.

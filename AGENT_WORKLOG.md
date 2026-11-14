@@ -163,3 +163,15 @@ here rather than copying it.
 - Commit [`4ca54c5`](https://github.com/brianfiszman/dotfiles/commit/4ca54c598b55f9129f15130eabe37c5e804ea691) corrected the test to accept callback-backed or rhs-backed mapping metadata, log the normalized lhs, and still dispatch the actual key before asserting Neotest and vim-test setup.
 - Pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634) passed for exact source SHA `4ca54c598b55f9129f15130eabe37c5e804ea691`: isolated prepare, locked restore/build hooks, normal startup, Neotest lazy loading, Go lazy-loading regressions, Mason/DAP lazy-loading, and the Debug Test mapping all passed.
 - Next: validate the branch after this checkpoint/work-log update, then complete QA PASS and a separate Senior Reviewer APPROVE. Interactive macOS behavior and a representative project test suite remain unverified.
+
+
+
+## 2026-11-13 — Final PR #84 validation and review gates (#74)
+
+- Final reviewed source snapshot: `8c1f99a07ddf17cfa839c954817d23f87e6705be` on `feat/neotest-lazy-loading`, base `master` at `c203afd4256398ac003a28abc211cd4f8c376f19`.
+- Exact-head pull-request run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359) completed successfully. Preparation, installer safety, locked plugin restore/build hooks, normal headless startup, Neotest lazy-loading, Go lazy-loading, Mason/DAP lazy-loading, and Debug Test behavior all passed. The log shows `<Space>ts` as a callback-backed lazy mapping; dispatching it loads Neotest, vim-test and all configured adapters while leaving DAP unloaded.
+- **QA PASS:** verified all #74 acceptance criteria. The six original key triggers and their which-key mappings remain; idle startup is clean; the first test action loads the testing integration; ordinary tests do not load DAP; Debug Test does; discovery remains disabled; no lockfile or plugin version changes. The headless test deliberately uses Test Stop so it can exercise first-use loading without starting a real project suite.
+- **Senior Reviewer APPROVE:** separate complete-diff review found no blocking correctness, scope, architecture, compatibility or test-quality issue. No lockfile or unrelated plugin changes.
+- The Scrum role passes are simulated by one assistant, not genuinely independent human reviewers. A representative project-level test run and interactive use on Brian's Mac remain unverified.
+- PR [#84](https://github.com/brianfiszman/dotfiles/pull/84) remains open and unmerged; issue [#74](https://github.com/brianfiszman/dotfiles/issues/74) remains open pending Product Owner acceptance and merge. No merge was authorized.
+- Next: Brian reviews the PR and gives or withholds explicit merge authorization.
