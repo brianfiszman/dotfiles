@@ -70,13 +70,17 @@ local function on_attach(client, bufnr)
   set_lsp_keymap("n", "<F4>", vim.lsp.buf.code_action, "Execute code action", bufnr)
 end
 
-local function eslint_on_attach(client, bufnr)
+local function eslint_on_attach(client, bufnr, default_on_attach)
+  -- Preserve nvim-lspconfig's native on_attach, which creates the
+  -- buffer-local :LspEslintFixAll command.
+  if default_on_attach then
+    default_on_attach(client, bufnr)
+  end
+
   on_attach(client, bufnr)
   vim.api.nvim_create_autocmd("BufWritePre", {
     buffer = bufnr,
-    callback = function()
-      vim.cmd("EslintFixAll")
-    end,
+    command = "LspEslintFixAll",
     desc = "Apply ESLint fixes before saving",
   })
 end
@@ -151,6 +155,12 @@ function M.setup()
   require("luasnip.loaders.from_vscode").lazy_load()
   require("snippets.nvim_cmp")()
 
+  local eslint_default_on_attach = vim.lsp.config.eslint.on_attach
+  assert(type(eslint_default_on_attach) == "function",
+    "nvim-lspconfig native ESLint on_attach is required for LspEslintFixAll")
+  M.eslint_default_on_attach = eslint_default_on_attach
+  M.eslint_fix_command = "LspEslintFixAll"
+
   vim.diagnostic.config({
     underline = true,
     virtual_text = { spacing = 2, source = "if_many" },
@@ -171,7 +181,9 @@ function M.setup()
 
   local server_overrides = {
     eslint = {
-      on_attach = eslint_on_attach,
+      on_attach = function(client, bufnr)
+        eslint_on_attach(client, bufnr, eslint_default_on_attach)
+      end,
       settings = {
         workingDirectories = { mode = "auto" },
       },
