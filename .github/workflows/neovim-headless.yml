@@ -39,7 +39,7 @@ jobs:
       reason: ${{ steps.decide.outputs.reason }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Compare changes since the last successful PR integration
         id: decide
         uses: actions/github-script@v9
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Validate shell syntax
         shell: bash
@@ -82,7 +82,7 @@ jobs:
       NVIM_BIN: nvim
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # This exact version exists in the ubuntu-26.04 hosted tool cache. Keep
       # Go explicit: the real Mason DAP test installs Delve from source.
@@ -200,7 +200,7 @@ jobs:
 
       - name: Upload headless logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nvim-headless-smoke-logs
           path: |
