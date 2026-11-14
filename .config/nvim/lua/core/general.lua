@@ -111,14 +111,16 @@ local function reindent_current_line(count)
   vim.cmd.normal({ args = { ("%d=="):format(count) }, bang = true })
 end
 
-local function feed_builtin_normal(keys)
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "nx", false)
+local function execute_builtin_insert_command(keys)
+  vim.cmd.normal({ args = { keys }, bang = true })
+  -- :startinsert takes effect after the current Lua callback/mapping returns.
+  vim.cmd.startinsert()
 end
 
 vim.keymap.set("n", "S", function()
   local count = vim.v.count1
   reindent_current_line(count)
-  feed_builtin_normal(("%dcc"):format(count))
+  execute_builtin_insert_command(("%dcc"):format(count))
 end, {
   desc = "Reindent and replace line(s)",
   silent = true,
@@ -131,7 +133,7 @@ for key, description in pairs({
   vim.keymap.set("n", key, function()
     local count = vim.v.count1
     reindent_current_line(1)
-    feed_builtin_normal(("%d%s"):format(count, key))
+    execute_builtin_insert_command(("%d%s"):format(count, key))
   end, {
     desc = description,
     silent = true,
