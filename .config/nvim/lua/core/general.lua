@@ -112,9 +112,11 @@ local function reindent_current_line(count)
 end
 
 local function execute_builtin_insert_command(keys)
-  vim.cmd.normal({ args = { keys }, bang = true })
-  -- :startinsert takes effect after the current Lua callback/mapping returns.
-  vim.cmd.startinsert()
+  -- Run the real Normal-mode command only after this mapping callback returns.
+  -- That lets cc/o/O perform their native Insert-mode transition themselves.
+  vim.schedule(function()
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "ni", false)
+  end)
 end
 
 vim.keymap.set("n", "S", function()
