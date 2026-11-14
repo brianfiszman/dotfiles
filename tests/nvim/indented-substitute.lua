@@ -14,7 +14,7 @@ vim.bo.autoindent = true
 vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
 
 local function press_and_wait_for_insert(keys, description)
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx", false)
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx!", false)
   assert(vim.fn.mode():sub(1, 1) == "i", description .. " must enter Insert mode")
 end
 
@@ -71,3 +71,60 @@ _G.DotfilesTestIndent = nil
 print("PASS: S reindents to the current scope before entering Insert mode")
 print("PASS: o and O open new lines at the computed scope indentation")
 print("PASS: counted S preserves its line-range behavior and computed indentation")
+
+-- Exercise the real Treesitter indentation provider used by this repository.
+-- nvim-treesitter is pinned in lazy-lock.json; Lua has its own indents query,
+-- while TypeScript inherits the pinned ECMA indentation query.
+local function new_treesitter_indent_buffer(filetype, lines)
+  vim.cmd("enew!")
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.tabstop = 2
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  vim.cmd("setfiletype " .. filetype)
+
+  assert(vim.bo.filetype == filetype, filetype .. " fixture must set its filetype")
+  assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
+    filetype .. " must use the configured nvim-treesitter indentexpr (got: "
+      .. vim.inspect(vim.bo.indentexpr) .. ")")
+
+  local parser = vim.treesitter.get_parser(0, filetype)
+  assert(parser ~= nil, filetype .. " Treesitter parser must be available")
+  parser:parse()
+end
+
+new_treesitter_indent_buffer("lua", {
+  "local options = {",
+  "enabled = true,",
+  "}",
+})
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press_and_wait_for_insert("S", "Lua S with Treesitter indentation")
+assert_current_line_indent(2, "Lua S with Treesitter indentation")
+leave_insert()
+
+new_treesitter_indent_buffer("typescript", {
+  "const options = {",
+  "enabled: true,",
+  "};",
+})
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press_and_wait_for_insert("o", "TypeScript o with Treesitter indentation")
+assert_current_line_indent(2, "TypeScript o with Treesitter indentation")
+leave_insert()
+
+new_treesitter_indent_buffer("typescript", {
+  "const options = {",
+  "enabled: true,",
+  "};",
+})
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+press_and_wait_for_insert("O", "TypeScript O with Treesitter indentation")
+assert_current_line_indent(2, "TypeScript O with Treesitter indentation")
+leave_insert()
+
+print("PASS: real Lua Treesitter indentation is preserved by S")
+print("PASS: real TypeScript Treesitter indentation is preserved by o and O")
+

@@ -265,9 +265,19 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/lsp-native-setup.lua" \
     "+qa!"
 
-  printf '\n[behavior] Verifying S reindents before replacing lines.\n'
+  printf '\n[behavior] Verifying lazydev loads only for Lua buffers.\n'
+  run_nvim "lazydev-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lazydev-lazy-loading.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying real LuaLS completion for Neovim and plugin APIs.\n'
+  run_nvim "lazydev-luals-completion" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lazydev-luals-completion.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying S, o and O indentation behavior.\n'
   run_nvim "indented-substitute" "$NVIM_STARTUP_TIMEOUT" \
-    "+lua local ok, err = xpcall(function() dofile('$REPO_ROOT/tests/nvim/indented-substitute.lua') end, debug.traceback); if not ok then vim.api.nvim_err_writeln(err); vim.cmd('cquit') end" \
+    "+luafile $REPO_ROOT/tests/nvim/indented-substitute.lua" \
     "+qa!"
 
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'

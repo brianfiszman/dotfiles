@@ -68,6 +68,8 @@ state as user data, not disposable test fixtures.
 
 ## Validation and reporting
 
+Testing is a required part of every implementation task's scope, estimate, and Definition of Done. Each issue must define behavior-first acceptance scenarios before implementation and include the automated tests needed to prove the changed behavior. Use unit tests for isolated logic, integration tests for real component boundaries, and end-to-end tests for complete workflows when appropriate. For interactive Neovim behavior, prefer local-like automated scenarios with the real headless configuration and actual plugin/LSP/tool triggers; mocks, syntax checks, startup success, or module-loaded flags alone are insufficient. Required tests must run in CI on explicit relevant triggers. Manual checks supplement automation, and any behavior that cannot reasonably be automated must have exact manual steps and a stated reason.
+
 Choose tests based on the likely impact of the change. Do not run the full plugin
 restore for every documentation or small keymap change, and do not sign off on
 bootstrap or plugin-loading changes with a syntax check alone.

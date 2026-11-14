@@ -61,6 +61,19 @@ Use plain language in titles and descriptions. Avoid vague tickets such as
 "improve config" or overly implementation-specific titles that hide the
 behavior being fixed.
 
+### Mandatory testing in every task
+
+Testing must be included when an issue is created or refined; it is not a follow-up task by default and must be included in the estimate and Definition of Done.
+
+Every functional issue must:
+- Describe the observable user-facing scenarios that prove the desired behavior, including relevant negative, edge, and regression cases.
+- Name the automated validation required: unit tests for isolated logic, integration tests for real component boundaries, and end-to-end tests when a complete user workflow crosses multiple components.
+- For editor/configuration work, prefer automated local-like tests using a real headless Neovim process, the actual configuration, and the real event/plugin/LSP/tool integration. Assert the same behavior the maintainer would exercise locally. A mock, syntax check, module-loaded flag, or startup-only assertion is not sufficient when real behavior can be exercised.
+- Identify focused tests and the broader regression/integration suite that must run. Required checks must be wired to explicit PR/path CI triggers; moving checks to scheduled/manual execution must preserve coverage and document the trigger.
+- State exact manual verification only for behavior that cannot reasonably be automated. Manual checks supplement, rather than replace, feasible automation.
+
+An issue is not complete because the code compiles or the implementation appears correct. It is complete when the required automated behavioral tests exist and pass on the exact change, CI checks pass, and the handoff accurately records passed, failed, skipped, mocked, and unverified coverage. Pure documentation-only changes may use diff/Markdown review when they do not change behavior.
+
 ## Branch and pull request workflow
 
 - Use a focused topic branch for a coherent piece of work.

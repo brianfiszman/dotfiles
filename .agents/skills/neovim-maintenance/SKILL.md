@@ -116,6 +116,20 @@ or source that disproves it.
 - Tests must redirect HOME and all relevant XDG directories into a temporary
   directory. Never test installation against the maintainer's real home.
 
+## Mandatory behavior-first testing
+
+Testing is part of every issue's scope and estimate. Do not defer it to a later cleanup task or mark an implementation complete before its required tests pass.
+
+When creating or refining an issue:
+1. Define observable scenarios before implementation: the normal user path, relevant failure/edge paths, and behavior that must not regress.
+2. Name the automated proof required. Use unit tests for isolated logic, integration tests for real boundaries, and end-to-end tests when a complete workflow crosses multiple components.
+3. For editor behavior, automate the local usage path with a real headless Neovim process and the actual configuration/plugins/LSP/tools wherever practical. Trigger the same event, mapping, command, completion request, or workflow the maintainer would use, then assert its observable result.
+4. Do not treat syntax checks, mocks, package-loaded flags, command registration, or successful startup as proof that an interactive feature works. These may be useful lower-level checks, not substitutes for behavior coverage.
+5. Include focused tests and the relevant broader regression suite in CI with explicit PR/path triggers. If a test is moved to a scheduled/manual workflow, preserve equivalent coverage and document the trigger.
+6. Isolate HOME/XDG and generated state. Manual Mac verification supplements automation; document exact steps and rationale only where a behavior cannot reasonably be automated.
+
+A task's Definition of Done requires implementation, passing automated behavioral tests on the exact change, passing required CI checks, and an honest report of anything still unverified. Pure documentation-only edits may use Markdown/diff review when they do not change behavior.
+
 ## Select tests by change impact
 
 Use the smallest test set that gives meaningful evidence, then expand it when
@@ -175,6 +189,36 @@ start in an isolated environment. Confirm what the current script really
 executes before describing its coverage. A successful plugin download does not
 prove plugin configuration works; a successful startup does not prove every
 lazy-loaded plugin or user workflow works.
+
+## Real LuaLS and Lazydev integration tests
+
+Configuration inspection is necessary but does not prove that LuaLS can resolve a
+plugin's type definitions or return useful completions. For changes to Lazydev,
+LuaLS workspace libraries, or Lua completion:
+
+1. Install a pinned LuaLS release in CI and verify its published SHA-256 before
+   execution. Do not silently depend on whatever server version happens to be
+   available on the runner.
+2. Launch the actual Neovim configuration in a fresh headless process, open a
+   named Lua buffer under a temporary workspace root, and wait for the real
+   `lua_ls` client to attach.
+3. Send `textDocument/completion` requests through that client at representative
+   plugin and Neovim API expressions. Assert concrete expected labels such as
+   `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`; checking
+   only `package.loaded`, Lazydev's library table, or nvim-cmp source
+   registration is not enough.
+4. Replace the deliberately incomplete completion prefix with valid Lua,
+   request hover on a resolved symbol to establish that LuaLS processed the
+   change, then allow diagnostics to settle and assert that the buffer is clean.
+   Do not rely solely on a `DiagnosticChanged` event: servers may not emit a
+   diagnostics notification when the buffer was already clean.
+5. Ensure workflow path filters include `tests/nvim/**`, so edits to behavioral
+   tests actually run CI.
+
+A LuaLS CLI `--check` run can be useful for diagnosing a workspace, but it is
+not a substitute for this integration test: it does not prove that Neovim
+loaded Lazydev, updated the active LSP workspace, or returned the expected
+completion response.
 
 ## Lazy-loading behavior tests
 
@@ -287,6 +331,12 @@ and a passing CI run.
   WhichKey register(). WhichKey v3 processes those queued specs during setup;
   an early headless maparg() assertion can therefore be a false negative before
   the deferred registration has completed.
+
+- Keep Lua development tooling filetype-lazy: declare lazydev as a separate
+  root plugin spec with `ft = "lua"`, not as a dependency of an eagerly loaded
+  LSP plugin. Enable its native LSP and nvim-cmp integrations deliberately.
+  Translate Neodev's explicit plugin type list into lazydev's `library` entries
+  when those APIs must remain available even before a module is required.
 - Preserve `lazy-lock.json` unless a ticket explicitly includes a plugin version
   change.
 - Pin or document APIs when upstream plugins make breaking branch migrations.
@@ -417,15 +467,26 @@ Keep the expensive adapter package installations asynchronous through Mason's
 normal ensure-installed flow. Test the Mason command trigger first in the
 headless sequence, before any other DAP test populates the registry.
 
+## Indentation ownership and mapping tests
 
-## Preserve indentation when replacing lines
-
-- The repository maps Normal-mode `S` through an expression mapping that runs
-  the buffer's `==` indentation operator before the original `cc` replacement.
-  This lets the active filetype/Tree-sitter `indentexpr` calculate the scope
-  indentation instead of relying only on whitespace already present on the line.
-- Apply the same count to both operations so `2S` still replaces two lines.
-- Keep a headless regression test for Insert-mode entry, computed cursor column,
-  and counted replacement in `tests/nvim/indented-substitute.lua`.
-- Treat headless behavior as regression evidence, not proof that every parser's
-  indentation query behaves correctly in an interactive project buffer.
+- Native `autoindent` / `smartindent` and `filetype plugin indent on` remain
+  configured in `core/general.lua`; filetype indent scripts can therefore be
+  active even when Treesitter does not provide a query for a language.
+- `treesitter.lua` enables the nvim-treesitter `indent` module. At the pinned
+  plugin revision, the module attaches `nvim_treesitter#indent()` only when the
+  parser language has an `indents` query. Verify the actual buffer-local
+  `indentexpr` and installed parser instead of assuming all configured
+  filetypes use Treesitter indentation.
+- Lua has its own pinned `queries/lua/indents.scm`; TypeScript's pinned query
+  inherits the ECMA indentation query. The indent-blankline and mini.indentscope
+  plugins provide visual guides, not the indentation calculation.
+- When a Normal-mode edit must use the active buffer indentation engine before
+  replacing/opening a line, run the native `==` operator before the native
+  `S`, `o`, or `O` action and preserve the user's count.
+- In headless tests, `nvim_feedkeys(..., "x", ...)` sends an implicit Escape at
+  end-of-typeahead if the editor remains in Insert mode. Use `"x!"` when
+  the test must assert the editor is still in Insert mode; use plain `"x"` when
+  deliberately finishing the action and returning to Normal mode.
+- Invoke behavioral Lua files directly with `+luafile` so an assertion failure
+  is reported through the normal test process and log scanner; avoid a wrapper
+  that reports an error but leaves Neovim waiting on the input queue.

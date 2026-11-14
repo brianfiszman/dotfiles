@@ -1,4 +1,5 @@
 name: Neovim headless smoke test
+run-name: ${{ github.workflow }} [nvim-ci-baseline base=${{ github.event.pull_request.base.sha || github.sha }} pr_head=${{ github.event.pull_request.head.sha || github.sha }} tested=${{ github.sha }}]
 
 on:
   push:
@@ -6,19 +7,20 @@ on:
       - master
     paths:
       - ".config/nvim/**"
+      - "tests/nvim/**"
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
+      - "scripts/ci/**"
+      - "tests/ci/**"
+  # Always create PR checks. The integration job below decides from the
+  # commits since the last successful integration, avoiding path-filter
+  # Pending checks while still skipping redundant docs-only integrations.
   pull_request:
-    paths:
-      - ".config/nvim/**"
-      - ".agents/skills/**"
-      - "install.sh"
-      - "scripts/test-nvim-headless.sh"
-      - ".github/workflows/neovim-headless.yml"
-      - "README.md"
+  schedule:
+    - cron: "21 4 * * 1"
   workflow_dispatch:
 
 # A new commit supersedes an older run for the same PR/branch.
@@ -27,41 +29,135 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
 
 jobs:
+  integration-decision:
+    name: Decide whether full integration is required
+    runs-on: ubuntu-26.04
+    outputs:
+      required: ${{ steps.decide.outputs.required }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Compare changes since the last successful PR integration
+        id: decide
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { determineIntegrationRequirement } = require("./scripts/ci/neovim-integration-decision.cjs");
+            const decision = await determineIntegrationRequirement({ context, github });
+            core.setOutput("required", decision.required ? "true" : "false");
+            core.setOutput("reason", decision.reason);
+            core.info("Full integration: " + (decision.required ? "required" : "skipped") + " — " + decision.reason);
+
+  fast-checks:
+    name: Fast shell and lockfile checks
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Validate shell syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n install.sh
+          bash -n scripts/test-nvim-headless.sh
+
+      - name: Validate lazy.nvim lockfile JSON
+        run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
+
+      - name: Test PR integration decision and fail-open behavior
+        run: node --test tests/ci/neovim-integration-decision.test.cjs
+
   headless-startup:
     name: Fresh install and headless startup
-    runs-on: ubuntu-latest
+    needs: integration-decision
+    if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
       NEOVIM_VERSION: v0.11.3
       NVIM_BIN: nvim
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Install system tools used by plugin builds
+      # This exact version exists in the ubuntu-26.04 hosted tool cache. Keep
+      # Go explicit: the real Mason DAP test installs Delve from source.
+      - name: Set up pinned Go from the hosted tool cache
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.26.11"
+          check-latest: false
+          cache: false
+
+      # Do not apt-install toolchains already present on the image. The old
+      # nodejs/npm apt packages downgraded the image's Node 24/npm 11 and pulled
+      # in hundreds of packages. Keep this probe visible in the Actions log.
+      - name: Verify hosted runner toolchain
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes \
-            build-essential \
-            cmake \
-            coreutils \
-            curl \
-            fd-find \
-            git \
-            golang-go \
-            make \
-            libreadline-dev \
-            liblua5.1-0-dev \
-            lua5.1 \
-            nodejs \
-            npm \
-            python3 \
-            python3-pynvim \
-            ripgrep \
-            unzip
+          set -Eeuo pipefail
+
+          for tool in git curl cmake gcc g++ make node npm python3 rustc cargo go \
+            sha256sum timeout find grep tee tar unzip; do
+            command -v "$tool" >/dev/null || {
+              printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
+              exit 1
+            }
+          done
+
+          printf 'Runner image: %s\n' "$ImageOS / $ImageVersion"
+          printf 'Node: '; node --version
+          printf 'npm: '; npm --version
+          printf 'Go: '; go version
+          printf 'Rust: '; rustc --version
+          printf 'Cargo: '; cargo --version
+          printf 'CMake: '; cmake --version | sed -n '1p'
+          printf 'GCC: '; gcc --version | sed -n '1p'
+          printf 'G++: '; g++ --version | sed -n '1p'
+          printf 'Python: '; python3 --version
+
+      - name: Install only missing Neovim build prerequisites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          required_packages=(
+            fd-find
+            libreadline-dev
+            liblua5.1-0-dev
+            lua5.1
+            python3-pynvim
+            ripgrep
+          )
+          missing_packages=()
+
+          for package in "${required_packages[@]}"; do
+            status="$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)"
+            if [[ "$status" != "installed" ]]; then
+              missing_packages+=("$package")
+            fi
+          done
+
+          if ((${#missing_packages[@]} == 0)); then
+            echo "All supplemental build prerequisites are already installed."
+          else
+            printf 'Installing missing prerequisites only: %s\n' "${missing_packages[*]}"
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends "${missing_packages[@]}"
+          fi
+
+          command -v fdfind >/dev/null
+          command -v rg >/dev/null
+          python3 -c 'import pynvim; print("pynvim:", pynvim.__version__)'
+          test -f /usr/include/readline/readline.h
+          test -f /usr/include/lua5.1/lua.h
 
       - name: Install pinned Neovim
         run: |
@@ -71,6 +167,20 @@ jobs:
             --output "$archive"
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned LuaLS for real completion coverage
+        run: |
+          version="3.19.2"
+          archive="$RUNNER_TEMP/lua-language-server-$version.tar.gz"
+          install_dir="$RUNNER_TEMP/lua-language-server"
+          curl --fail --location --retry 3 \
+            "https://github.com/LuaLS/lua-language-server/releases/download/$version/lua-language-server-$version-linux-x64.tar.gz" \
+            --output "$archive"
+          echo "93ad326b10f6c00911dd8c450fa098332dbd8f9f45d1052f5636a2d54479b947  $archive" | sha256sum --check
+          mkdir -p "$install_dir"
+          tar -xzf "$archive" -C "$install_dir"
+          echo "$install_dir/bin" >> "$GITHUB_PATH"
+          "$install_dir/bin/lua-language-server" --version
 
       - name: Configure isolated test workspace
         run: echo "NVIM_TEST_DIR=$RUNNER_TEMP/nvim-headless-smoke" >> "$GITHUB_ENV"
@@ -93,7 +203,7 @@ jobs:
 
       - name: Upload headless logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nvim-headless-smoke-logs
           path: |
