@@ -116,3 +116,10 @@ here rather than copying it.
 - Issue [#80](https://github.com/brianfiszman/dotfiles/issues/80) was explicitly closed as completed after the merge. Parent PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) is also merged as `a006c8a`; issue #78 is closed.
 - Post-merge recovery audit found that the checkpoint shipped by PR #81 still described that PR as open and its exact-head CI as pending. This is stale operational state, not a code defect. Reconcile `AGENT_STATE.md` and this append-only log in a follow-up docs-only branch/PR based on the new master; do not edit master directly.
 - Next: validate the final checkpoint-reconciliation PR on its exact head, then request Brian's explicit merge authorization. No additional merge is authorized by the #81 approval.
+
+
+## 2026-11-13 — Classify CI applicability for checkpoint-only PR #82
+
+- Inspected the live `.github/workflows/neovim-headless.yml` trigger configuration. Its `pull_request.paths` filter includes Neovim config, skill files, installer/test scripts, the workflow itself, and README, but excludes `AGENT_STATE.md` and `AGENT_WORKLOG.md`.
+- PR #82 changes only those two excluded documentation files. Therefore no Neovim headless run is expected or required for this PR; zero check runs is not a failure and must not be described as pending CI.
+- Validation for #82 is the exact two-file diff review, Markdown/link consistency, QA, and a separate Senior Reviewer pass. The successful #81 run remains evidence for #81's different source SHA, not for #82.
