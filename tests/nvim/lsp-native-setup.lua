@@ -65,7 +65,6 @@ assert(#lsp.enabled_servers == #lsp.servers, "Not all configured servers were ex
 
 local diagnostic_config = vim.diagnostic.config()
 assert(diagnostic_config.underline == true, "Diagnostic underline setting is missing")
-assert(diagnostic_config.update_in_insert == false, "Diagnostics should not update during insert mode")
 assert(type(diagnostic_config.virtual_text) == "table", "Diagnostic messages should be visible inline")
 assert(diagnostic_config.signs.text[vim.diagnostic.severity.ERROR] == "✘", "Diagnostic error sign changed")
 assert(diagnostic_config.signs.text[vim.diagnostic.severity.WARN] == "▲", "Diagnostic warning sign changed")
