@@ -413,3 +413,17 @@ here rather than copying it.
 - **Senior Reviewer APPROVE (simulated):** separately re-inspected the Lazydev spec, LuaLS settings, cmp registration, lockfile delta, test logic, workflow integration, and scope. No blocking finding. Both roles are sequential passes by one assistant, not independent human reviews.
 - Local macOS Neovim API completion/hover remains optional environment-parity validation; both APIs are covered by the pinned real-LuaLS CI test. Brian previously confirmed Telescope API resolution locally.
 - PR #88 remains open and unmerged; no merge authorization has been given. CI optimization is tracked separately by backlog issue #91 under parent #16.
+
+
+## 2026-11-14 — Merge Lazydev and start CI feedback optimization (#42 → #91)
+
+- Brian explicitly authorized squash-merging PR #88. Re-fetched the PR and exact-head workflow before merge; exact head `b08040f52aab1c4dd135ae3a5fd89d7695672ef4` had successful pull-request run #43619768631.
+- Squash merge succeeded: PR #88 merged into `master` at `9e43312f2afa523e658ed583b4f48bebffb98568`. A compare of that SHA to `master` reported identical (0 ahead / 0 behind).
+- Closed issue #42 as completed after verifying the merged commit contains the Lazydev implementation and tests.
+- Created branch `feat/ci-feedback-91` directly from merged `master` SHA `9e43312f2afa523e658ed583b4f48bebffb98568` for issue #91. Issue #91 is now in progress; no workflow code has been changed yet.
+- Re-read `AGENTS.md`, project-management guidance, the headless workflow, test harness, issue #91, and the active/paused PR state. Current workflow is one serial job: APT prerequisites; pinned Neovim; pinned LuaLS; lockfile validation; isolated installer preparation; locked plugin restore/build hooks; normal startup; sequential behavior processes; logs artifact.
+- The full behavior suite includes a real LuaLS completion/hover/diagnostics test and a DAP/Mason test that installs all five configured adapters. Do not weaken these checks; determine whether only their trigger/cadence can change while retaining an explicit real-install cold/relevant path.
+- Reconfirmed PR #90 remains open as Draft and explicitly paused by Brian pending the indentation-ownership/setup diagnosis. Keep it untouched; #91 is the newly authorized active branch. Do not open another functional PR while the cadence is occupied.
+- Baseline observations remain the single-run measurements from #43617823749 (~113s; apt ~53s; locked restore/build ~26s; startup+suite ~27s; DAP/Mason first-use ~21s). #43619768631 was a second doc-only-triggered full run, but compare its measured steps before treating it as a comparable performance sample.
+- Discovered that documentation-only commits inside a PR with Neovim paths still trigger the workflow because `pull_request.paths` is evaluated against the aggregate PR diff. Track this in #91; any commit-level gating must handle multi-commit pushes safely and preserve required-check semantics.
+- Next: collect per-step timings from at least two comparable runs where possible, inspect runner preinstalled tool versions, validate GitHub's path-filter/event semantics, then write an architecture proposal before making workflow edits.
