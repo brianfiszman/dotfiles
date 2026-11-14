@@ -21,6 +21,7 @@ M.servers = {
   "yamlls",
   "gopls",
   "svelte",
+  "ts_ls",
 }
 
 local function set_lsp_keymap(mode, lhs, rhs, description, bufnr)
@@ -235,26 +236,37 @@ function M.setup()
     },
   })
 
-  require("typescript-tools").setup({
-    on_attach = on_attach,
-    capabilities = M.capabilities,
-    single_file_support = false,
-    root_dir = function(bufnr, on_dir)
-      local filename = vim.api.nvim_buf_get_name(bufnr)
-      local root = vim.fs.root(filename, { "yarn.lock", "package-lock.json" })
-      if root then
-        on_dir(root)
-      end
-    end,
+  configure_server("ts_ls", {
+    root_markers = { "yarn.lock", "package-lock.json" },
+    workspace_required = true,
     settings = {
-      complete_function_calls = true,
-      code_lens = "all",
-      disable_member_code_lens = false,
+      typescript = {
+        completions = {
+          completeFunctionCalls = true,
+        },
+        implementationsCodeLens = {
+          enabled = true,
+          showOnAllClassMethods = true,
+          showOnInterfaceMethods = true,
+        },
+        referencesCodeLens = {
+          enabled = true,
+          showOnAllFunctions = true,
+        },
+      },
+      javascript = {
+        completions = {
+          completeFunctionCalls = true,
+        },
+        referencesCodeLens = {
+          enabled = true,
+          showOnAllFunctions = true,
+        },
+      },
     },
   })
 
-  -- All configured servers have one explicit activation path. TypeScript is
-  -- owned by typescript-tools and is intentionally not enabled as ts_ls.
+  -- All configured servers, including TypeScript, have one explicit activation path.
   vim.lsp.enable(M.servers)
   M.enabled_servers = vim.deepcopy(M.servers)
 end
