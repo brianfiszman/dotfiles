@@ -9,8 +9,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
 - **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
 - **Original implementation snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`.
-- **Current branch head:** `c60797241e54b1a2c0f7e1f3c92fad282e56eab8`. Added a pinned LuaLS 3.19.2 end-to-end completion test (`tests/nvim/lazydev-luals-completion.lua`) and made `tests/nvim/**` changes trigger CI. Exact-head run [#43614017547](https://github.com/brianfiszman/dotfiles/actions/runs/43614017547) is pending at this checkpoint.
-- **Phase:** original config tests passed exact-head CI; additional real LuaLS completion coverage is under validation. QA/Senior Reviewer sign-off must be revisited against the expanded diff after the new run completes.
+- **Current branch head:** `65349aeebb791c6236f49d1bb4b49ffb8b2d4bb5`. Added a pinned LuaLS 3.19.2 end-to-end test for real completions, hover, and clean diagnostics (`tests/nvim/lazydev-luals-completion.lua`); the workflow path filters include `tests/nvim/**`. Exact-head run [#43616653276](https://github.com/brianfiszman/dotfiles/actions/runs/43616653276) is in progress at this checkpoint.
+- **Phase:** original config tests passed exact-head CI. The extended test has already demonstrated real Telescope and Neovim API completion in an earlier run, but that run failed on a brittle diagnostics-event expectation. The test now uses a hover response as a synchronization barrier before checking diagnostics. Do not call the expanded validation complete until run #43616653276 passes. QA/Senior Reviewer sign-off must be revisited against the expanded diff.
 - **Merge:** not authorized for PR #88. Brian's prior authorization applied to PR #87 only.
 
 ## Completed predecessor: PR #87 / Issue #41
@@ -43,9 +43,10 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Locked plugin restore/build hooks | passed | Run #43606193476 |
 | Normal Neovim startup | passed | Run #43606193476 |
 | Native LSP, Lazydev, Neotest, Go, and DAP behavior scenarios | passed | Run #43606193476; logs show the expected PASS markers |
-| Real LuaLS completions for `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`, plus clean diagnostics for valid use | pending | New `tests/nvim/lazydev-luals-completion.lua`; exact-head run #43614017547 pending; CI pins LuaLS 3.19.2 and verifies SHA-256 |
-| QA | PASS (simulated) | All issue #42 acceptance criteria checked against complete current diff and exact-head run |
-| Senior Reviewer | APPROVE (simulated) | Separate full-diff review found no blocking correctness, architecture, compatibility, test, or scope findings. Not an independent human review. |
+| Real LuaLS completion for `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd` | passed (behavioral assertions) | Both PASS markers in run [#43616339970](https://github.com/brianfiszman/dotfiles/actions/runs/43616339970); the run failed only at the old `DiagnosticChanged` wait assertion |
+| Hover on valid Telescope API usage and clean LuaLS diagnostics | pending | Updated test uses a hover round-trip after the valid edit, then checks diagnostics; exact-head run #43616653276 is in progress; CI pins LuaLS 3.19.2 and verifies SHA-256 |
+| QA | pending re-review | Expanded LSP completion/hover test and exact-head run still need final review |
+| Senior Reviewer | pending re-review | Expanded test and its final exact-head evidence need review; previous sign-off covered the earlier PR diff only |
 | Local Telescope API completion/type resolution | partially verified | Brian confirmed `require("telescope.builtin")` and `builtin.find_files` resolve without errors in the interactive Neovim session |
 | Local Neovim API completion and hover | unverified | Still requires a representative interactive check |
 | PR #88 merge | not authorized | Requires Brian's explicit approval |
@@ -57,9 +58,9 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Complete and inspect exact-head CI run #43614017547 for the new real LuaLS completion scenario; fix any test or implementation failure before calling the expanded PR validated.
-2. On the Mac, check Neovim API completion and hover in addition to Brian's already verified Telescope API symbol completion.
-3. Review [PR #88](https://github.com/brianfiszman/dotfiles/pull/88); merge only after Brian explicitly authorizes it. Until then, leave it open and unmerged.
+1. Complete and inspect exact-head CI run #43616653276, including LuaLS hover and diagnostics assertions.
+2. On the Mac, optionally confirm Neovim API completion/hover; Telescope module completion and no-error use are already manually confirmed.
+3. Re-review [PR #88](https://github.com/brianfiszman/dotfiles/pull/88); merge only after Brian explicitly authorizes it. Until then, leave it open and unmerged.
 
 ## Scope boundaries
 
