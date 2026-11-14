@@ -275,3 +275,14 @@ here rather than copying it.
 - Current code/test head: `dd801182126c65a01123c65daf72a43220243e22`. Exact-head workflow [#43600006360](https://github.com/brianfiszman/dotfiles/actions/runs/43600006360) is in progress; no result is claimed yet.
 - Brian does not recall using proprietary `:TSTools*` commands. No repository mappings/configuration for them were found; no compatibility shim is planned.
 - Earlier exact-head CI, QA, and Senior Reviewer gates passed on the predecessor implementation. Repeat CI, QA, and Senior Reviewer against the final PR head after this adjustment. F3 formatting and the inline diagnostic display still need manual validation. PR #87 remains open and unmerged; no merge authorization was given.
+
+
+## 2026-11-14 — Final inline diagnostics validation and review gates (#41 / PR #87)
+
+- The diagnostic visibility change is `virtual_text = { spacing = 2, source = "if_many" }`; it keeps gutter signs and detailed floats while showing messages inline.
+- The first headless run after that change found that the new LSP module redundantly set `update_in_insert = false`, conflicting with the existing global setting in `.config/nvim/lua/navigation/bufferline.lua` (`true`). Removed the LSP-level assignment and removed the test's incorrect expectation. Bufferline remains the owner; the diagnostic change itself stays in place.
+- Final code/test head `380e35d0960aad312d23c2cd8509c42fb4f6d721` passed exact-head Actions run [#43600645750](https://github.com/brianfiszman/dotfiles/actions/runs/43600645750): isolated preparation, Neovim v0.11.3, lockfile validation, plugin restore/build hooks, normal startup, native LSP assertions, Neotest, Go, and DAP checks.
+- **QA PASS:** issue #41 acceptance criteria and final PR diff checked, including single server ownership/activation, native `ts_ls`, preserved server settings and custom hooks, diagnostic display, keymaps, formatting, lockfile scope, and CI evidence.
+- **Senior Reviewer APPROVE:** separate complete-diff pass found no blocking correctness, architectural, compatibility, test, or scope issues. These are sequential simulated role passes by the assistant, not independent human reviews.
+- Brian confirmed completion and `K` hover work. He does not recall using `:TSTools*` commands; no proprietary-command compatibility layer is planned. Manual confirmation of `F3` formatting and inline messages in a representative local project remains pending; so do representative TypeScript/ESLint attachment and interactive macOS checks.
+- PR #87 remains open and unmerged; issue #41 remains open pending Product Owner acceptance. No merge authorization has been given.
