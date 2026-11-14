@@ -5,14 +5,21 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 ## Current task
 
 - **Repository:** `brianfiszman/dotfiles`.
-- **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Goal: modernize native LSP ownership and keep language tooling predictable.
-- **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
-- **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
-- **Original implementation snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`.
-- **Latest validated code/test snapshot:** `e480ace30bffbb74a093db333f0759181abee224`; exact-head pull-request workflow [#43617284555](https://github.com/brianfiszman/dotfiles/actions/runs/43617284555) passed all steps on that implementation/test snapshot.
-- **Latest exact PR-head validation:** head `71cd0c6ddc5e4e00ec0dfa6b5a696649c9cce4b0` passed pull-request run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749). Comparison from the implementation/test snapshot to that head is 3 commits ahead / 0 behind and changes only `AGENT_STATE.md` and `AGENT_WORKLOG.md`; no implementation or test files changed. The continuity updates in this checkpoint are documentation-only too.
-- **Phase:** Lazydev implementation and real LuaLS integration passed on exact PR head `71cd0c6` in run #43617823749. The full workflow passed isolated install, pinned LuaLS verification, locked plugin restore/build hooks, normal startup, and all native LSP/Lazydev/Neotest/Go/DAP behavior scenarios. QA PASS and Senior Reviewer APPROVE were re-run against the complete diff and exact-head evidence as separate simulated roles by one assistant, not independent human reviews.
-- **Merge:** not authorized for PR #88. Brian's prior authorization applied to PR #87 only.
+- **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Current focus: reduce Neovim CI feedback time without weakening clean-install or behavioral coverage.
+- **Issue:** [#91 — Reduce Neovim workflow feedback time without weakening coverage](https://github.com/brianfiszman/dotfiles/issues/91), open and in progress under Epic #16.
+- **Branch / base:** `feat/ci-feedback-91` → `master`, created from merge commit `9e43312f2afa523e658ed583b4f48bebffb98568` (PR #88).
+- **Phase:** branch created; workflow and harness investigation / benchmark design in progress. No workflow implementation changes have been made yet; no PR is open for #91.
+- **Initial baseline:** PR #88 run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749), head `71cd0c6`, approximately 113 seconds total: apt install ~53s, locked plugin restore/build ~26s, normal startup plus behavior suite ~27s; DAP/Mason first-use adapters ~21s within that behavior phase. Single-run observations, not a stable performance estimate.
+- **Additional path-filter finding:** PR #88's documentation-only checkpoint commits still triggered the full workflow because `pull_request.paths` considers the aggregate PR diff. Run [#43619768631](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631) validated the doc-only head; investigate a safe way to avoid redundant heavy reruns without breaking required checks.
+- **Prior functional PR:** PR #90 remains open, Draft, and explicitly paused by Brian pending a separate indentation-ownership/setup diagnosis after PR #88. Do not resume or modify PR #90 as part of #91. #91 is the currently authorized active branch; preserve the one-functional-PR cadence and do not open a second functional PR.
+- **Next action:** inspect repeatable timing/costs across available runs, runner preinstalled-tool availability, exact `pull_request` path-filter semantics, and cache safety; propose a workflow design before changing CI.
+
+## Completed predecessor: PR #88 / Issue #42
+
+- PR [#88](https://github.com/brianfiszman/dotfiles/pull/88) was squash-merged into `master` on 2026-11-14 as [`9e43312`](https://github.com/brianfiszman/dotfiles/commit/9e43312f2afa523e658ed583b4f48bebffb98568); issue [#42](https://github.com/brianfiszman/dotfiles/issues/42) is closed as completed.
+- Exact PR head `b08040f52aab1c4dd135ae3a5fd89d7695672ef4` passed pull-request run [#43619768631](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631). The workflow passed pinned Neovim/LuaLS setup, isolated preparation, locked plugin restore/build hooks, normal startup, the full native LSP/Lazydev/Neotest/Go/DAP behavior suite, and artifact upload.
+- All four real-LuaLS markers passed: Telescope completion, Neovim API completion, hover for valid Telescope usage, and zero diagnostics for the final valid buffer. Logs artifact [`14122899940`](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631/artifacts/14122899940).
+- QA PASS and Senior Reviewer APPROVE were simulated sequential role passes by one assistant, not independent human reviews. A local macOS Neovim API completion/hover parity check remains optional and unverified.
 
 ## Completed predecessor: PR #87 / Issue #41
 
@@ -20,7 +27,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - Exact PR-head run [#43604418747](https://github.com/brianfiszman/dotfiles/actions/runs/43604418747) passed; post-merge push run [#43604690496](https://github.com/brianfiszman/dotfiles/actions/runs/43604690496) passed all steps including real locked plugin restore/build and normal startup.
 - The original JS/TS ESLint diagnostic reappearing after edit/undo was not reproduced locally. Removing duplicate ESLint publishers removed a credible source but did not prove the exact race resolved; retain as a separate manual follow-up if it recurs.
 
-## Current behavior / decisions
+## Completed LSP implementation decisions (PRs #87 and #88)
 
 - Native LSP from #41 remains: `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig `automatic_enable = false`, native `ts_ls`, one configured ESLint diagnostics owner, Conform Ctrl+F.
 - **Lazydev:** separate root plugin spec `folke/lazydev.nvim` with `ft = "lua"`; not a dependency of the eagerly loaded LSP plugin.
@@ -61,13 +68,13 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Optionally confirm Neovim API completion/hover in a local macOS Neovim session for environment parity; CI now covers both APIs and hover with the pinned real server.
-2. Brian reviews PR #88 and explicitly decides whether to authorize merge. Until then, leave PR #88 open and unmerged.
-3. Keep CI feedback optimization issue [#91](https://github.com/brianfiszman/dotfiles/issues/91) in backlog; implement it in a separate PR after PR #88 is concluded and the one-functional-PR cadence permits it.
+1. Complete the benchmark/architecture investigation for #91 before modifying workflow behavior.
+2. Preserve the clean isolated prepare → locked restore/build hooks → normal startup contract; any cache or fast path must not substitute for it.
+3. Keep PR #90 Draft/paused until its separate indentation-ownership/setup diagnosis is completed; do not mix it into #91.
 
 ## Scope boundaries
 
-- Current Sprint 2 functional item: #42, estimate S.
+- Current Sprint 2 functional item: #91, estimate M; implementation is at investigation/design stage on `feat/ci-feedback-91`.
 - #44 (Treesitter API/branch migration), #76 (Telescope lazy-loading), #40 (Run with Args), and broad plugin inventory/update remain outside this PR.
 - No bulk plugin update.
 - PR #83 remains open/unmerged as a historical Sprint 1 planning checkpoint.
@@ -75,6 +82,6 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 ## Continuity rules
 
 - Live GitHub PR, branch, issue, and Actions state are authoritative.
-- Validate exact code/test HEAD and workflow event; later documentation-only commits do not change the tested code.
+- Validate exact code/test HEAD and workflow event; later documentation-only commits can still trigger PR workflows when the aggregate PR diff matches path filters.
 - Keep `AGENT_WORKLOG.md` append-only.
 - Specialist skills: `.agents/skills/neovim-maintenance/SKILL.md`, `.agents/skills/github-actions-validation/SKILL.md`, `.agents/skills/execution-continuity/SKILL.md`, `.agents/skills/scrum-team/SKILL.md`.
