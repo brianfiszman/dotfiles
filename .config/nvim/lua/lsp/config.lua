@@ -113,17 +113,7 @@ end
 function M.setup()
   local cmp_nvim_lsp = require("cmp_nvim_lsp")
   M.capabilities = cmp_nvim_lsp.default_capabilities()
-
-  require("mason").setup({
-    ui = {
-      border = "rounded",
-      icons = {
-        package_installed = "✓",
-        package_pending = "➜",
-        package_uninstalled = "✗",
-      },
-    },
-  })
+  cmp_nvim_lsp.setup()
 
   -- Mason installs tools only. Explicit vim.lsp.enable() calls below own activation.
   M.mason_options = {
@@ -195,7 +185,13 @@ function M.setup()
 
   configure_server("docker_compose_language_service", {
     filetypes = { "yaml.docker-compose" },
-    root_markers = { "docker-compose.yml", "docker-compose.yaml" },
+    root_dir = function(bufnr, on_dir)
+      local filename = vim.api.nvim_buf_get_name(bufnr)
+      local root = vim.fs.root(filename, { "docker-compose.yml", "docker-compose.yaml" })
+      if root then
+        on_dir(root)
+      end
+    end,
     workspace_required = true,
   })
 
