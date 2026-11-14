@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - ".config/nvim/**"
+      - "tests/nvim/**"
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
       - ".config/nvim/**"
+      - "tests/nvim/**"
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
@@ -71,6 +73,20 @@ jobs:
             --output "$archive"
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned LuaLS for real completion coverage
+        run: |
+          version="3.19.2"
+          archive="$RUNNER_TEMP/lua-language-server-$version.tar.gz"
+          install_dir="$RUNNER_TEMP/lua-language-server"
+          curl --fail --location --retry 3 \
+            "https://github.com/LuaLS/lua-language-server/releases/download/$version/lua-language-server-$version-linux-x64.tar.gz" \
+            --output "$archive"
+          echo "93ad326b10f6c00911dd8c450fa098332dbd8f9f45d1052f5636a2d54479b947  $archive" | sha256sum --check
+          mkdir -p "$install_dir"
+          tar -xzf "$archive" -C "$install_dir"
+          echo "$install_dir/bin" >> "$GITHUB_PATH"
+          "$install_dir/bin/lua-language-server" --version
 
       - name: Configure isolated test workspace
         run: echo "NVIM_TEST_DIR=$RUNNER_TEMP/nvim-headless-smoke" >> "$GITHUB_ENV"

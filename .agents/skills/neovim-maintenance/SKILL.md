@@ -176,6 +176,36 @@ executes before describing its coverage. A successful plugin download does not
 prove plugin configuration works; a successful startup does not prove every
 lazy-loaded plugin or user workflow works.
 
+## Real LuaLS and Lazydev integration tests
+
+Configuration inspection is necessary but does not prove that LuaLS can resolve a
+plugin's type definitions or return useful completions. For changes to Lazydev,
+LuaLS workspace libraries, or Lua completion:
+
+1. Install a pinned LuaLS release in CI and verify its published SHA-256 before
+   execution. Do not silently depend on whatever server version happens to be
+   available on the runner.
+2. Launch the actual Neovim configuration in a fresh headless process, open a
+   named Lua buffer under a temporary workspace root, and wait for the real
+   `lua_ls` client to attach.
+3. Send `textDocument/completion` requests through that client at representative
+   plugin and Neovim API expressions. Assert concrete expected labels such as
+   `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`; checking
+   only `package.loaded`, Lazydev's library table, or nvim-cmp source
+   registration is not enough.
+4. Replace the deliberately incomplete completion prefix with valid Lua,
+   request hover on a resolved symbol to establish that LuaLS processed the
+   change, then allow diagnostics to settle and assert that the buffer is clean.
+   Do not rely solely on a `DiagnosticChanged` event: servers may not emit a
+   diagnostics notification when the buffer was already clean.
+5. Ensure workflow path filters include `tests/nvim/**`, so edits to behavioral
+   tests actually run CI.
+
+A LuaLS CLI `--check` run can be useful for diagnosing a workspace, but it is
+not a substitute for this integration test: it does not prove that Neovim
+loaded Lazydev, updated the active LSP workspace, or returned the expected
+completion response.
+
 ## Lazy-loading behavior tests
 
 A plugin spec can have multiple triggers. Every trigger is an independent way to
@@ -287,6 +317,12 @@ and a passing CI run.
   WhichKey register(). WhichKey v3 processes those queued specs during setup;
   an early headless maparg() assertion can therefore be a false negative before
   the deferred registration has completed.
+
+- Keep Lua development tooling filetype-lazy: declare lazydev as a separate
+  root plugin spec with `ft = "lua"`, not as a dependency of an eagerly loaded
+  LSP plugin. Enable its native LSP and nvim-cmp integrations deliberately.
+  Translate Neodev's explicit plugin type list into lazydev's `library` entries
+  when those APIs must remain available even before a module is required.
 - Preserve `lazy-lock.json` unless a ticket explicitly includes a plugin version
   change.
 - Pin or document APIs when upstream plugins make breaking branch migrations.
