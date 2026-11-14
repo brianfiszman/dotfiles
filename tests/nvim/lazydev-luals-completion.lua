@@ -59,13 +59,13 @@ assert(vim.wait(10000, function()
   return vim.tbl_contains(libraries, telescope_lua)
 end, 100), "Lazydev did not apply Telescope's library to the active LuaLS workspace")
 
-local function request_completion(line, character)
+local function request_completion(line, character, context)
   local params = {
     textDocument = { uri = vim.uri_from_bufnr(bufnr) },
-    -- Use the Insert-mode cursor position: one character after the typed dot.
+    -- Use the Insert-mode cursor position, after the last typed character.
     -- A Normal-mode cursor cannot sit after the last byte on the line.
     position = { line = line, character = character },
-    context = { triggerKind = 2, triggerCharacter = "." },
+    context = context or { triggerKind = 2, triggerCharacter = "." },
   }
   local response, err = client:request_sync("textDocument/completion", params, 5000, bufnr)
   assert(response, "LuaLS completion request failed: " .. tostring(err))
@@ -107,13 +107,13 @@ print("PASS: real LuaLS completion returns telescope.builtin.find_files")
 -- Also verify the Neovim API type library and the configured global.
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "local autocmd = vim.api.",
+  "local autocmd = vim.api.nvim_create_a",
 })
 local nvim_items = {}
 assert(vim.wait(10000, function()
-  nvim_items = request_completion(1, #"local autocmd = vim.api.")
+  nvim_items = request_completion(1, #"local autocmd = vim.api.nvim_create_a", { triggerKind = 1 })
   return has_completion(nvim_items, "nvim_create_autocmd")
-end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd; labels: "
+end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd from its typed prefix; labels: "
   .. vim.inspect(vim.tbl_keys(nvim_items)))
 
 print("PASS: real LuaLS completion returns vim.api.nvim_create_autocmd")
