@@ -235,3 +235,11 @@ here rather than copying it.
 - Exact-head PR workflow [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was observed for the reviewed head and is **queued**. Its job has not started; no runtime validation is claimed yet.
 - The PR's current head advanced after the reviewed snapshot due to the Svelte autocmd fix. Re-fetch the PR head and confirm the workflow is for the latest SHA before treating any result as validation.
 - Next: update the checkpoint/backlog to the live PR state, then inspect the queued run's jobs and steps until it completes. QA and Senior Reviewer remain separate pending gates; merge requires Brian's explicit authorization.
+
+
+## 2026-11-14 — CI cancellation and rerun for PR #87
+
+- Run [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb` was cancelled during the first system-tools installation step. Neovim installation, isolated workspace preparation, plugin restore/build hooks, normal startup, and tests were all skipped; this is not a test failure and provides no runtime evidence.
+- The PR had advanced to `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b` through documentation-only checkpoint/worklog updates after the code snapshot. The path-filtered runtime workflow did not produce a run for that docs-only head. The implementation code was unchanged.
+- Explicitly re-ran the cancelled workflow job. GitHub accepted the rerun; the run is pending again for the original code SHA. The final review must separately inspect the documentation-only commits at the current PR head.
+- Next: monitor the rerun through plugin restore and all test phases. Do not call the cancelled attempt a failure or a pass.
