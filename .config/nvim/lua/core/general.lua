@@ -115,7 +115,7 @@ local function execute_builtin_insert_command(keys)
   -- Run the real Normal-mode command only after this mapping callback returns.
   -- That lets cc/o/O perform their native Insert-mode transition themselves.
   vim.schedule(function()
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "ni", false)
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "nxt", false)
   end)
 end
 
