@@ -4,15 +4,16 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** PR #84 open; Neotest lazy-loading implementation validated on exact PR head `8c1f99a07ddf17cfa839c954817d23f87e6705be` by pull-request run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359); QA PASS; Senior Reviewer APPROVE. Awaiting Brian's Product Owner acceptance and explicit merge authorization.
+- **Status:** Neotest lazy-loading issue #74 is merged and closed as completed. Post-merge documentation reconciliation is in PR [#85](https://github.com/brianfiszman/dotfiles/pull/85), currently open and unmerged.
 - **Repository:** `brianfiszman/dotfiles`
-- **Work branch:** `feat/neotest-lazy-loading`
-- **Base:** `master` at `c203afd4256398ac003a28abc211cd4f8c376f19`
-- **Last implementation and full PR snapshot validated:** `8c1f99a07ddf17cfa839c954817d23f87e6705be`. This checkpoint/work-log commit advances the branch without changing runtime or test files; resolve the live branch ref for its resulting SHA.
-- **Issue:** [#74 — Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
-- **PR:** [#84 — Lazy-load Neotest on existing test actions](https://github.com/brianfiszman/dotfiles/pull/84)
-- **Sprint:** Sprint 1, 2026-11-13 through 2026-11-19; estimate M.
-- **Planning checkpoint:** [PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged. Its approval is not merge authorization.
+- **Work branch:** `docs/neotest-merge-reconciliation`
+- **Base / last verified master:** `master` at merge commit `110c3658085c4c23d847de361a08b5e15e72b605` (PR #84).
+- **Documentation PR:** [#85 — Reconcile Sprint 1 after Neotest merge](https://github.com/brianfiszman/dotfiles/pull/85). Resolve the live branch ref for the persisted documentation head; this checkpoint cannot embed its own resulting commit SHA.
+- **Completed functional PR:** [#84 — Lazy-load Neotest on existing test actions](https://github.com/brianfiszman/dotfiles/pull/84), squash-merged as [`110c365`](https://github.com/brianfiszman/dotfiles/commit/110c3658085c4c23d847de361a08b5e15e72b605).
+- **Issue:** [#74](https://github.com/brianfiszman/dotfiles/issues/74) is closed with state reason `completed`.
+- **Parent:** [#43](https://github.com/brianfiszman/dotfiles/issues/43) remains open; #75 and #74 are complete, while #76 remains open.
+- **Sprint:** Sprint 1, 2026-11-13 through 2026-11-19; one-week cadence, T-shirt sizing, manual Daily Scrum. #74 was the sole functional commitment recorded for this goal.
+- **Planning checkpoint:** [PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged. It was not included in Brian's authorization for PR #84.
 
 ## Sprint Goal
 
@@ -20,40 +21,44 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 
 ## Completed and verified
 
-- Confirmed the topic branch was created from the exact current `master` SHA; it had no pre-existing commits or unique changes.
-- Read `AGENTS.md`, the Scrum, Neovim maintenance, GitHub project-management, GitHub Actions validation, and execution-continuity guidance.
-- Confirmed prerequisite issue #75 is closed after merged PR #77; its DAP lazy-loading behavior is already present on `master`.
-- Added `lazy = true` and lazy key triggers for the six existing test mappings in `.config/nvim/lua/tests/neotests.lua`.
-- Added `tests/nvim/neotest-lazy-loading.lua`, which checks idle non-loading, activates the existing Test Stop mapping without running a test suite, verifies Neotest/vim-test/adapters load, and asserts ordinary testing leaves DAP unloaded.
-- Wired the new scenario into `scripts/test-nvim-headless.sh`.
-- No lockfile or plugin version changes.
-- Exact-head run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359) passed on `8c1f99a07ddf17cfa839c954817d23f87e6705be`, including isolated preparation, locked plugin restore/build hooks, normal headless startup, Neotest lazy-loading, Go regressions, Mason/DAP lazy-loading, and the Debug Test trigger.
-- **QA PASS:** all #74 acceptance criteria were checked against the final PR snapshot. The actual headless test verifies idle state, the `<leader>ts` lazy trigger, Neotest/vim-test/all configured adapters loading, and DAP remaining unloaded. Static review confirms all six original triggers/mappings remain and `discovery.enabled = false` is retained. Existing Debug Test regression proves the explicit DAP path. No representative project test suite or interactive macOS session was performed.
-- **Senior Reviewer APPROVE:** separately re-fetched and reviewed the complete current diff; no blocking findings. The roles are simulated by this assistant, not independent human reviewers.
-- The prior exact-head run on `d06626861f88d61a3ca1d47f7a2ae409c3f51db3` failed only because the test compared `maparg().lhs` literally (`" ts"` vs Neovim's normalized `"<Space>ts"`). Fixed by validating the mapping's rhs-or-callback and exercising the actual key dispatch.
+- Prerequisite #75 (DAP lazy-loading) is complete in merged [PR #77](https://github.com/brianfiszman/dotfiles/pull/77).
+- PR #84 implemented lazy triggers for all six existing test mappings without changing their user-facing which-key definitions.
+- Headless regression checks idle startup, dispatches the callback-backed Test Stop mapping without starting a test suite, verifies Neotest/vim-test/configured adapters load, and confirms ordinary testing leaves DAP unloaded.
+- The existing Debug Test regression verifies Neotest runs with the DAP strategy and loads the DAP stack on demand.
+- `discovery.enabled = false` remains in place. No `lazy-lock.json` updates or plugin version changes were included.
+- Exact final PR head `f4b9f2744e65a23cbf8a6600abfefcc4ca75bf12` passed pull-request workflow [#43542407243](https://github.com/brianfiszman/dotfiles/actions/runs/43542407243). All job steps passed: isolated preparation, locked plugin restore/build hooks, normal startup, Neotest lazy-loading, Go regressions, Mason/DAP lazy-loading, Debug Test, and log upload.
+- **QA PASS:** checked the issue's acceptance criteria. Test Stop and Debug Test were dispatched in headless tests; the other four preserved mappings were confirmed by static review. The Scrum QA role was performed by this assistant.
+- **Senior Reviewer APPROVE:** the complete exact PR diff was reviewed with no blocking findings. The Scrum QA and Reviewer roles were performed sequentially by one assistant, not independent human reviewers.
+- Brian gave explicit Product Owner acceptance and merge authorization. PR #84 was squash-merged; GitHub automatically closed issue #74 as completed. The issue body and parent #43 child-status section now record the result.
+- The current documentation branch updates the canonical backlog and appends this merge event to the work log. It contains documentation only; no runtime, installer, test, lockfile, or workflow files are changed.
 
-## Pending
+## Pending / unverified
 
-- Interactive macOS testing and a representative project test run remain unverified; they are not required to claim the deterministic headless acceptance checks passed.
-- Await Brian's Product Owner acceptance and explicit authorization before merging PR #84. Keep issue #74 open until the accepted change is merged.
+- A representative project-level test suite and interactive macOS behavior remain unverified. The headless Test Stop scenario intentionally does not run a real project test suite.
+- All six mappings remain present; only Test Stop and Debug Test were dispatched in CI. The other four were checked statically, not individually executed.
+- PR #85 still needs its final exact-head documentation QA and Senior Reviewer pass. The workflow `.github/workflows/neovim-headless.yml` filters out `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `docs/neovim-modernization-backlog.md`; no Neovim runtime workflow is expected or required for this documentation-only diff.
+- Issue #76 (Telescope lazy-loading) remains open. It was not committed to Sprint 1; do not start it or treat it as committed without Brian's planning decision.
+- Do not merge PR #85 without Brian's separate explicit authorization. The authorization for PR #84 does not carry over.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
-| Branch/base verification | passed | `master...feat/neotest-lazy-loading` comparison; base SHA `c203afd...` |
-| Static diff review | passed | All five PR paths inspected; no lockfile or plugin version changes |
-| Prior exact-head attempt | failed (superseded) | Run [#43540903350](https://github.com/brianfiszman/dotfiles/actions/runs/43540903350) on `d066268...`; incorrect literal `maparg().lhs` comparison |
-| Implementation exact-head CI | passed | Pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634) on `4ca54c5...` after the keymap assertion fix |
-| Final PR-head CI | passed | Pull-request run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359) on exact SHA `8c1f99a07ddf17cfa839c954817d23f87e6705be`; all steps, including log artifact upload |
-| QA | passed | Separate acceptance-criteria pass against PR #84; see current task above |
-| Senior Reviewer | approved | Separate complete-diff review; no blocking findings |
+| PR #84 exact-head CI | passed | Run [#43542407243](https://github.com/brianfiszman/dotfiles/actions/runs/43542407243) for `f4b9f2744e65a23cbf8a6600abfefcc4ca75bf12` |
+| PR #84 static diff review | passed | Five changed files; no lockfile/plugin version changes |
+| PR #84 QA | passed | Acceptance checks documented in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84) |
+| PR #84 Senior Reviewer | approved | Complete diff; simulated role, not independent human review |
+| PR #84 merge | completed | Squash merge commit `110c3658085c4c23d847de361a08b5e15e72b605` |
+| Issue #74 | closed | GitHub state reason `completed` |
+| PR #85 documentation QA/review | pending | Exact final three-file diff to be reviewed |
+| PR #85 Neovim runtime CI | not applicable | Workflow path filter excludes all changed documentation paths |
 
 ## Blockers
 
-- No implementation blocker identified. Manual interactive Mac and representative project-suite validation remain outside the headless acceptance run.
-- PR #83 and PR #84 remain open/unmerged. Merge authority remains with Brian.
+- No implementation blocker for #74.
+- Manual macOS and representative project-suite validation remain unverified, not blockers to the accepted headless scope.
+- PR #85 requires QA/reviewer sign-off and Brian's separate merge authorization.
 
 ## Next concrete action
 
-Brian: review PR #84 and decide whether to accept it. Do not merge PR #84 or close issue #74 without your explicit authorization/acceptance.
+Review PR #85's exact three-file documentation diff, validate links/Markdown/status consistency, complete separate QA and Senior Reviewer passes, then ask Brian for explicit authorization before merging PR #85. Leave PR #83 and issue #76 untouched unless Brian chooses them next.
