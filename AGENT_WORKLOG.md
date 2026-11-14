@@ -224,3 +224,14 @@ here rather than copying it.
 - Neodev is deliberately retained for #42. Its `before_init` helper still imports `lspconfig.util`; this is a known transitional compatibility path to remove when lazydev replaces neodev. No direct legacy `require("lspconfig").<server>.setup()` calls remain in the new LSP module.
 - Validation status at this checkpoint: **not run**. The real plugin restore, native startup, and LSP assertions are pending a PR-triggered Actions run. No QA PASS, Senior Reviewer APPROVE, issue closure, or merge is claimed.
 - Next: inspect the complete branch diff and test harness carefully, open the PR for #41, then run and inspect the exact-head Actions workflow before separate QA and Senior Reviewer passes. Merge still requires Brian's explicit authorization.
+
+
+## 2026-11-14 — Open PR #87 and start exact-head validation
+
+- Opened [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) for issue #41. Base is master at `c587c8854faf2e99770ca6f30a51a529a38140bb`; the branch head at first review was `09d59bf996bdd9e117ae3148c645c9030af2a2bb`.
+- Reviewed the changed-file list and key diffs. Reduced the lockfile to the repository's existing compact format so only the intended LSP dependency changes appear. Corrected the new shell test phase to use single-line continuations.
+- Further review found that the original Svelte notification autocmd combined `buffer` and `pattern`, which are mutually exclusive in Neovim's autocmd API and would also have changed the original project-wide JS/TS save behavior. Reworked it to register one project-wide JS/TS watcher per Svelte LSP client and send a proper file URI.
+- Confirmed every configured server name exists in the selected nvim-lspconfig v2.12.0 release, including native `ts_ls`.
+- Exact-head PR workflow [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was observed for the reviewed head and is **queued**. Its job has not started; no runtime validation is claimed yet.
+- The PR's current head advanced after the reviewed snapshot due to the Svelte autocmd fix. Re-fetch the PR head and confirm the workflow is for the latest SHA before treating any result as validation.
+- Next: update the checkpoint/backlog to the live PR state, then inspect the queued run's jobs and steps until it completes. QA and Senior Reviewer remain separate pending gates; merge requires Brian's explicit authorization.
