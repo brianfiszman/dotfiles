@@ -505,3 +505,13 @@ here rather than copying it.
 - These QA and Senior Reviewer passes are sequential roles performed by one assistant, not independent human reviews. PR #92 has no GitHub review submissions or review threads; no reviewer/team was requested because the repository has no CODEOWNERS file and no verified reviewer handles/team slug were available. A real external review remains outstanding.
 - The cold `workflow_dispatch` path is now validated. The scheduled cron event has not yet fired on the default branch, so schedule execution itself remains unverified. Broad plugin/Mason caching and behavior-suite parallelization remain deferred: lazy.nvim build-hook behavior on cache hits and isolation of mutable XDG/Mason state have not been proven.
 - PR #92 remains open and unmerged; issue #91 remains open/in progress. No merge authorization has been given. PR #90 remains Draft/paused and untouched.
+
+
+## 2026-11-14 — PR #92 review finding: bind integration baseline to exact base SHA
+
+- Context: [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), issue [#91](https://github.com/brianfiszman/dotfiles/issues/91), branch \`feat/ci-feedback-91\`.
+- Review finding: the delta decision compared PR-head commits since the previous green run but did not persist the base SHA used by that integration. A later update to \`master\` could therefore leave a docs-only PR delta incorrectly eligible to skip the heavy job.
+- Evidence: the current head before correction was \`10c1c62559ecf5b0fd422d25d18b951fe0bc64b3\`; PR workflow run [#43636588347](https://github.com/brianfiszman/dotfiles/actions/runs/43636588347) skipped full integration for a docs-only delta. Source review found that the baseline selector had no recorded-base equality check.
+- Correction: the full integration job records the exact PR base/head/tested SHAs in its GitHub job summary. The decision job reads that immutable check-run summary through the Checks API and may reuse a baseline only when its recorded base SHA equals the current PR event's base SHA and its recorded PR head matches the workflow run head. Missing metadata, mismatches, and API errors fail open.
+- Additional coverage: add regression tests for base advancement, mismatched/missing metadata, and Checks API failure; add \`scripts/ci/**\` and \`tests/ci/**\` to the default-branch push triggers so edits to the gate and its tests run CI.
+- Status at checkpoint: implementation is being committed to the existing PR branch; exact-head Actions validation is pending.

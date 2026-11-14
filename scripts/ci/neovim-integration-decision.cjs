@@ -1,6 +1,7 @@
 "use strict";
 const INTEGRATION_WORKFLOW_ID = "neovim-headless.yml";
 const INTEGRATION_JOB_NAME = "Fresh install and headless startup";
+const BASELINE_MARKER = /<!-- nvim-ci-baseline base=([0-9a-f]{40}) pr_head=([0-9a-f]{40}) tested=([0-9a-f]{40}) -->/i;
 
 function required(reason) {
   return { required: true, reason };
@@ -9,6 +10,7 @@ function required(reason) {
 function isIntegrationPath(path) {
   return path.startsWith(".config/nvim/") ||
     path.startsWith("tests/nvim/") ||
+    path.startsWith("tests/ci/") ||
     path.startsWith(".agents/skills/") ||
     path.startsWith("scripts/ci/") ||
     path === "install.sh" ||
@@ -17,18 +19,32 @@ function isIntegrationPath(path) {
     path === "README.md";
 }
 
+function parseIntegrationBaseline(summary) {
+  if (typeof summary !== "string") return null;
+  const match = summary.match(BASELINE_MARKER);
+  if (!match) return null;
+  return {
+    baseSha: match[1].toLowerCase(),
+    prHeadSha: match[2].toLowerCase(),
+    testedSha: match[3].toLowerCase(),
+  };
+}
+
 async function determineIntegrationRequirement({ context, github }) {
   if (context.eventName !== "pull_request") {
     return required(context.eventName + " always runs the cold integration path");
   }
   const pr = context.payload && context.payload.pull_request;
-  if (!pr || !pr.head || !pr.head.sha || !pr.head.ref || !Number.isInteger(pr.number)) {
+  if (!pr || !pr.head || !/^[0-9a-f]{40}$/i.test(pr.head.sha || "") ||
+      !pr.head.ref || !Number.isInteger(pr.number) ||
+      !pr.base || !/^[0-9a-f]{40}$/i.test(pr.base.sha || "")) {
     return required("PR payload is incomplete; fail open to full integration");
   }
   const repository = context.repo || {};
   const owner = repository.owner;
   const repoName = repository.repo;
-  if (!owner || !repoName || !github || !github.rest || !github.rest.actions) {
+  if (!owner || !repoName || !github || !github.rest || !github.rest.actions ||
+      !github.rest.checks || typeof github.rest.checks.get !== "function") {
     return required("GitHub API context is incomplete; fail open to full integration");
   }
 
@@ -64,12 +80,36 @@ async function determineIntegrationRequirement({ context, github }) {
         return required("baseline job-list API response was incomplete; fail open to full integration");
       }
       const integration = jobs.find((job) => job.name === INTEGRATION_JOB_NAME);
-      if (integration && integration.conclusion === "success") {
+      if (!integration || integration.conclusion !== "success") continue;
+
+      const checkRunMatch = typeof integration.check_run_url === "string" &&
+        integration.check_run_url.match(/\/check-runs\/(\d+)(?:\?.*)?$/);
+      if (!checkRunMatch) {
+        return required("baseline integration check-run reference is missing; fail open to full integration");
+      }
+      const checkResponse = await github.rest.checks.get({
+        owner, repo: repoName, check_run_id: Number(checkRunMatch[1]),
+      });
+      const checkRun = checkResponse.data;
+      const metadata = parseIntegrationBaseline(checkRun && checkRun.output && checkRun.output.summary);
+      if (!metadata) {
+        return required("baseline integration did not record complete PR base metadata; fail open to full integration");
+      }
+      if (metadata.prHeadSha !== run.head_sha.toLowerCase()) {
+        return required("baseline PR head metadata does not match its workflow run; fail open to full integration");
+      }
+
+      // A successful integration is reusable only for the exact base snapshot
+      // it tested. A later master update invalidates the baseline until a new
+      // full integration has passed on that base.
+      if (metadata.baseSha === pr.base.sha.toLowerCase()) {
         baseline = run;
         break;
       }
     }
-    if (!baseline) return required("no previous successful full integration exists for this PR");
+    if (!baseline) {
+      return required("no previous successful full integration exists for the current PR base SHA");
+    }
 
     const compareResponse = await github.request(
       "GET /repos/{owner}/{repo}/compare/{base}...{head}",
@@ -94,11 +134,11 @@ async function determineIntegrationRequirement({ context, github }) {
     return {
       required: false,
       reason: "only non-integration files changed since successful integration " +
-        baseline.head_sha.slice(0, 7),
+        baseline.head_sha.slice(0, 7) + " on the current PR base",
     };
   } catch (error) {
     return required("integration-gating API failed; fail open to the full suite: " + error.message);
   }
 }
 
-module.exports = { determineIntegrationRequirement, isIntegrationPath };
+module.exports = { determineIntegrationRequirement, isIntegrationPath, parseIntegrationBaseline };

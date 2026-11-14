@@ -12,6 +12,8 @@ on:
       - "scripts/test-nvim-headless.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
+      - "scripts/ci/**"
+      - "tests/ci/**"
   # Always create PR checks. The integration job below decides from the
   # commits since the last successful integration, avoiding path-filter
   # Pending checks while still skipping redundant docs-only integrations.
@@ -27,6 +29,7 @@ concurrency:
 
 permissions:
   actions: read
+  checks: read
   contents: read
   pull-requests: read
 
@@ -80,6 +83,8 @@ jobs:
     env:
       NEOVIM_VERSION: v0.11.3
       NVIM_BIN: nvim
+      NEOVIM_PR_BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+      NEOVIM_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -197,6 +202,14 @@ jobs:
         run: bash ./scripts/test-nvim-headless.sh startup
         env:
           NVIM_STARTUP_TIMEOUT: 5m
+
+      - name: Record exact PR integration baseline
+        if: success() && github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          printf '<!-- nvim-ci-baseline base=%s pr_head=%s tested=%s -->\n' \
+            "$NEOVIM_PR_BASE_SHA" "$NEOVIM_PR_HEAD_SHA" "$GITHUB_SHA" \
+            >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload headless logs
         if: always()
