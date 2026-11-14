@@ -7,55 +7,61 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Repository:** `brianfiszman/dotfiles`.
 - **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Goal: modernize native LSP ownership and keep language tooling predictable.
 - **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
-- **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5` from PR #87.
-- **Implementation/test snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`. Checkpoint/work-log/backlog updates after this snapshot are documentation-only.
-- **Phase:** implementation committed and PR open; exact-head CI is running.
-- **Merge:** not authorized for PR #88. Brian's authorization for PR #87 applied to that PR only.
+- **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
+- **Implementation/test snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`. Current PR head `f472500d8bd79da0ad6eae559291e4fdc7aed745` is three documentation-only commits ahead; the comparison against `ff5e1e5` confirms only `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and the backlog changed.
+- **Phase:** implementation and exact-head integration validated; QA PASS and Senior Reviewer APPROVE completed as separate simulated roles. Waiting for Product Owner review/merge authorization.
+- **Merge:** not authorized for PR #88. Brian's prior authorization applied to PR #87 only.
 
-## Completed immediately before this task
+## Completed predecessor: PR #87 / Issue #41
 
-- [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implementing [#41](https://github.com/brianfiszman/dotfiles/issues/41) was squash-merged as `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
-- Issue #41 is closed as completed.
-- Exact PR-head integration run [#43604418747](https://github.com/brianfiszman/dotfiles/actions/runs/43604418747) passed on `f2abaeca1e5f9e9adaa08b867461b9c1632bfecc`.
-- Post-merge `push` run [#43604690496](https://github.com/brianfiszman/dotfiles/actions/runs/43604690496) passed on merge commit `a743684`. All phases passed: system prerequisites, Neovim, lockfile, isolated preparation, real locked plugin restore/build hooks, normal startup, and artifact upload.
-- The original JS/TS stale diagnostic was not reproduced locally; removal of duplicate ESLint publishers removed a credible cause but does not prove that exact race is resolved. Keep this residual verification visible.
+- PR #87 was squash-merged as `a74368456f9c829197aa7569d6cf720b1bc7d9d5`; issue #41 is closed as completed.
+- Exact PR-head run [#43604418747](https://github.com/brianfiszman/dotfiles/actions/runs/43604418747) passed; post-merge push run [#43604690496](https://github.com/brianfiszman/dotfiles/actions/runs/43604690496) passed all steps including real locked plugin restore/build and normal startup.
+- The original JS/TS ESLint diagnostic reappearing after edit/undo was not reproduced locally. Removing duplicate ESLint publishers removed a credible source but did not prove the exact race resolved; retain as a separate manual follow-up if it recurs.
 
 ## Current behavior / decisions
 
-- Native LSP ownership from #41 remains: `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig `automatic_enable = false`, native `ts_ls`, one ESLint diagnostic owner, Conform Ctrl+F.
-- **Lazydev:** separate root plugin spec `folke/lazydev.nvim`, `ft = "lua"`; not a dependency of the eagerly loaded LSP plugin.
-- Lazydev opts enable its native LSP and nvim-cmp integrations. The five plugin type libraries previously provided by Neodev are preserved: `neotest`, `nvim-dap-ui`, `nvim-treesitter`, `plenary.nvim`, and `telescope.nvim`.
-- **LuaLS:** explicit `LuaJIT` runtime, strict module resolution (`pathStrict = true`), and `?.lua` / `?/init.lua` paths; preserve `vim` diagnostics global, function-call snippet completion, Neovim runtime library, and config Lua library. Lazydev supplies dynamic plugin workspace libraries.
-- The independent jsonls `.luarc.json` / `.luarc.jsonc` schema remains unchanged.
+- Native LSP from #41 remains: `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig `automatic_enable = false`, native `ts_ls`, one configured ESLint diagnostics owner, Conform Ctrl+F.
+- **Lazydev:** separate root plugin spec `folke/lazydev.nvim` with `ft = "lua"`; not a dependency of the eagerly loaded LSP plugin.
+- Lazydev enables native LSP and nvim-cmp integrations. The five plugin API libraries previously exposed by Neodev remain: `neotest`, `nvim-dap-ui`, `nvim-treesitter`, `plenary.nvim`, and `telescope.nvim`.
+- **LuaLS:** explicit LuaJIT runtime, strict module resolution (`runtime.pathStrict = true`), `?.lua` / `?/init.lua` paths, `vim` diagnostics global, function-call snippet completion, Neovim runtime and config Lua libraries. Workspace library paths are a string list so Lazydev can append plugin paths without mixing map/list shapes.
+- The separate jsonls `.luarc.json` / `.luarc.jsonc` schema remains unchanged.
 - Neodev setup and dependency are removed; `lazy-lock.json` removes `neodev.nvim` and pins Lazydev at `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d`.
-- nvim-cmp includes the Lazydev source at `group_index = 0`.
+- nvim-cmp includes Lazydev source at `group_index = 0`.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
-| PR diff scope and native API compatibility | passed (static review) | 11 changed files, issue #42 scope only |
-| Pinned nvim-cmp supports `get_registered_sources()` | passed (source inspection) | Locked nvim-cmp commit `a1d504892f2bc56c2e79b65c6faded2fd21f3eca` |
-| Lazydev supports filetype loading, native LSP integration, nvim-cmp source, and named plugin libraries | passed (source inspection) | Lazydev commit `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d` |
-| New Lazydev filetype behavior assertions | pending | `tests/nvim/lazydev-lazy-loading.lua` |
-| First PR workflow attempt | cancelled / inconclusive | Run [#43605503484](https://github.com/brianfiszman/dotfiles/actions/runs/43605503484) was superseded during plugin restore; startup and behavior tests were skipped. Not a code failure or pass. |
-| Full isolated integration on current exact PR head | pending | Pull-request workflow [#43605709646](https://github.com/brianfiszman/dotfiles/actions/runs/43605709646), source/test SHA `56e054a` |
-| QA | pending | Await exact-head CI and acceptance check |
-| Senior Reviewer | pending | Separate complete-diff review required |
-| Local Lua config completion/hover and plugin type resolution | unverified | Requires representative interactive macOS check |
+| No active Neodev setup/dependency/lock entry | passed | Current diff; LSP/native plugin specs and lockfile inspected; headless assertions confirm the retired module/spec remain unloaded |
+| Lazydev remains unloaded outside Lua filetypes and loads on Lua | passed | Dedicated `tests/nvim/lazydev-lazy-loading.lua` in exact-head run #43606193476 |
+| `:LazyDev` command registers on Lua filetype | passed | Dedicated Lazydev test, run #43606193476 |
+| Five plugin API libraries retained | passed | Dedicated Lazydev test, run #43606193476 |
+| Native LSP + nvim-cmp integrations | passed | Dedicated Lazydev test, run #43606193476; scheduled cmp registration is explicitly awaited |
+| LuaLS settings and jsonls schema preservation | passed | Headless assertions, run #43606193476 |
+| Full isolated preparation and lockfile validation | passed | Run [#43606193476](https://github.com/brianfiszman/dotfiles/actions/runs/43606193476), pull_request event, exact PR head `f472500d8bd79da0ad6eae559291e4fdc7aed745` |
+| Locked plugin restore/build hooks | passed | Run #43606193476 |
+| Normal Neovim startup | passed | Run #43606193476 |
+| Native LSP, Lazydev, Neotest, Go, and DAP behavior scenarios | passed | Run #43606193476; logs show the expected PASS markers |
+| QA | PASS (simulated) | All issue #42 acceptance criteria checked against complete current diff and exact-head run |
+| Senior Reviewer | APPROVE (simulated) | Separate full-diff review found no blocking correctness, architecture, compatibility, test, or scope findings. Not an independent human review. |
+| Local Lua config completion/hover and actual plugin API resolution | unverified | Requires a representative interactive macOS check |
 | PR #88 merge | not authorized | Requires Brian's explicit approval |
+
+### Earlier CI attempts and correction
+
+- Runs #43605503484, #43605709646, and #43606069295 were cancelled when newer commits superseded their heads. #436055/#436057 were cancelled before full validation; #436060 completed restore but was cancelled before startup.
+- Run [#43605876070](https://github.com/brianfiszman/dotfiles/actions/runs/43605876070) on predecessor source SHA `43fb08c` passed restore and normal startup, then failed on a test-only assumption that lazy.nvim always stores `ft` as an array. The actual valid spec retains `ft = "lua"` as a string. The test was corrected to accept either string or list; the exact current-head run #43606193476 passed.
 
 ## Next concrete actions
 
-1. Inspect run #43605709646 through all steps. The new Lua-only behavior test must pass after plugin restore and normal startup.
-2. Complete QA and Senior Reviewer separately against the exact current PR diff; resolve any findings and rerun affected checks.
-3. Brian verifies Lua config completion/hover and plugin API type resolution locally. Do not mark that manual check passed from headless CI alone.
-4. Merge PR #88 only after explicit authorization.
+1. Brian reviews [PR #88](https://github.com/brianfiszman/dotfiles/pull/88).
+2. On the Mac, open and edit a representative Lua configuration; verify LuaLS completion/hover and plugin API type resolution.
+3. Merge PR #88 only after Brian explicitly authorizes it. Until then, leave it open and unmerged.
 
 ## Scope boundaries
 
 - Current Sprint 2 functional item: #42, estimate S.
-- #44 (Treesitter API/branch migration), #76 (Telescope lazy-loading), #40 (Run with Args), and broad plugin inventory/update remain outside the current PR.
+- #44 (Treesitter API/branch migration), #76 (Telescope lazy-loading), #40 (Run with Args), and broad plugin inventory/update remain outside this PR.
 - No bulk plugin update.
 - PR #83 remains open/unmerged as a historical Sprint 1 planning checkpoint.
 
