@@ -25,7 +25,7 @@ on:
 
 # A new commit supersedes an older run for the same PR/branch.
 concurrency:
-  group: neovim-headless-\${{ github.event.pull_request.number || github.ref }}
+  group: neovim-headless-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -94,19 +94,19 @@ jobs:
           )
           missing_packages=()
 
-          for package in "\${required_packages[@]}"; do
-            status="$(dpkg-query -W -f='\${db:Status-Status}' "$package" 2>/dev/null || true)"
+          for package in "${required_packages[@]}"; do
+            status="$(dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null || true)"
             if [[ "$status" != "installed" ]]; then
               missing_packages+=("$package")
             fi
           done
 
-          if (("\${#missing_packages[@]}" == 0)); then
+          if (("${#missing_packages[@]} == 0)); then
             echo "All supplemental build prerequisites are already installed."
           else
-            printf 'Installing missing prerequisites only: %s\n' "\${missing_packages[*]}"
+            printf 'Installing missing prerequisites only: %s\n' "${missing_packages[*]}"
             sudo apt-get update
-            sudo apt-get install --yes --no-install-recommends "\${missing_packages[@]}"
+            sudo apt-get install --yes --no-install-recommends "${missing_packages[@]}"
           fi
 
           command -v fdfind >/dev/null
@@ -163,6 +163,6 @@ jobs:
         with:
           name: nvim-headless-smoke-logs
           path: |
-            \${{ runner.temp }}/nvim-headless-smoke/*.log
-            \${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log
+            ${{ runner.temp }}/nvim-headless-smoke/*.log
+            ${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log
           if-no-files-found: ignore
