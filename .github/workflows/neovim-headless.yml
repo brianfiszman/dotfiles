@@ -101,7 +101,7 @@ jobs:
             fi
           done
 
-          if (("${#missing_packages[@]} == 0)); then
+          if ((${#missing_packages[@]} == 0)); then
             echo "All supplemental build prerequisites are already installed."
           else
             printf 'Installing missing prerequisites only: %s\n' "${missing_packages[*]}"
