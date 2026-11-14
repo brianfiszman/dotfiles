@@ -270,6 +270,11 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/lazydev-lazy-loading.lua" \
     "+qa!"
 
+  printf '\n[behavior] Verifying real LuaLS completion for Neovim and plugin APIs.\n'
+  run_nvim "lazydev-luals-completion" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lazydev-luals-completion.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
   run_nvim "neotest-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/neotest-lazy-loading.lua" \
