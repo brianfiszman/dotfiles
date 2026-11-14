@@ -14,7 +14,7 @@ end
 
 assert(package.loaded["lsp-zero"] == nil, "lsp-zero was loaded")
 assert(package.loaded["lspconfig"] == nil, "deprecated nvim-lspconfig framework was loaded")
-assert(package.loaded["typescript-tools"] ~= nil, "typescript-tools setup did not run")
+assert(package.loaded["typescript-tools"] == nil, "legacy TypeScript Tools plugin was loaded")
 
 local lua_config = vim.lsp.config.lua_ls
 assert(type(lua_config.before_init) == "function", "Neodev before_init integration is missing")
@@ -40,6 +40,15 @@ assert(eslint_config.workspace_required == true, "ESLint workspace requirement i
 local svelte_config = vim.lsp.config.svelte
 assert(svelte_config.on_attach ~= lua_config.on_attach, "Svelte change notification hook is missing")
 
+local ts_config = vim.lsp.config.ts_ls
+assert(ts_config.workspace_required == true, "TypeScript workspace requirement changed")
+assert(ts_config.settings.typescript.completions.completeFunctionCalls == true,
+  "TypeScript complete-function-calls behavior is missing")
+assert(ts_config.settings.typescript.implementationsCodeLens.enabled == true,
+  "TypeScript implementations CodeLens is missing")
+assert(ts_config.settings.typescript.referencesCodeLens.showOnAllFunctions == true,
+  "TypeScript references CodeLens is missing")
+
 assert(lsp.mason_options.automatic_enable == false, "Mason-LSPConfig must not auto-enable servers")
 assert(#lsp.enabled_servers == #lsp.servers, "Not all configured servers were explicitly enabled")
 
@@ -52,5 +61,5 @@ assert(diagnostic_config.signs.text[vim.diagnostic.severity.WARN] == "▲", "Dia
 print("PASS: native LSP configs exist once for every supported server")
 print("PASS: lsp-zero and the deprecated lspconfig framework remain unloaded")
 print("PASS: Mason installs servers without owning activation")
-print("PASS: TypeScript, ESLint, Svelte, Go, YAML, Docker Compose, and Lua overrides are preserved")
+print("PASS: native TypeScript, ESLint, Svelte, Go, YAML, Docker Compose, and Lua overrides are preserved")
 print("PASS: shared diagnostics and LSP completion setup are configured")
