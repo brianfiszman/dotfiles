@@ -443,3 +443,10 @@ here rather than copying it.
 - Inspected lazy.nvim at pinned commit `6c3bda4aca61a13a9c63f1c1d1b16b9d3be90d7a`: `:Lazy! restore` routes to update, including fetch/status/locked checkout, package refresh, and plugin.build. Generic build hooks are skipped for clean checkouts already at target unless dirty or otherwise marked for build. A cache of full clean plugin directories could therefore bypass build-hook execution. Defer broad plugin caches until a safe design proves hooks still execute on hits and cold runs remain available.
 - Updated PR #92 and issue #91 with the two successful runs, initial syntax failure/correction, APT results, fast-job evidence, and cache deferral decision. PR #92 remains Draft; no merge authorization exists.
 - Next: design commit-delta gating without pending required checks; evaluate whether behavior suites can run concurrently with truly isolated XDG/plugin/Mason state. Do not change PR #90.
+
+
+## 2026-11-14 — PR delta gating: relevant-change proof
+
+- Workflow commit `950160bab425917f6dde3cc8537740a9a6782854` removed workflow-level `pull_request.paths`, added the fail-open integration decision job, and retained independent fast checks.
+- Exact-head run [#43625648592](https://github.com/brianfiszman/dotfiles/actions/runs/43625648592) passed the decision, fast-check, and full integration jobs. The decision compared against last successful integration `3d6dbad`, found `.github/workflows/neovim-headless.yml` changed, and required the full suite. LuaLS, locked restore/build hooks, normal startup, Neotest, Go, and real installation of all five DAP/Mason adapters passed; artifact ID `14126100533`.
+- Next gating test is intentionally docs-only: update only `AGENT_WORKLOG.md`, which is not in the integration-relevant path set. Expected result is an overall green PR workflow where fast checks pass and the expensive headless job is skipped successfully.
