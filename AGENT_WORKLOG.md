@@ -184,3 +184,12 @@ here rather than copying it.
 - **QA PASS** and **Senior Reviewer APPROVE** were recorded against the final PR snapshot. The Scrum roles were performed sequentially by one assistant, not separate people or independent human reviewers. Test Stop and Debug Test were dispatched in headless checks; the other four preserved mappings were statically checked. A representative project test suite and interactive macOS behavior remain unverified.
 - Updated parent [#43](https://github.com/brianfiszman/dotfiles/issues/43) to show #74 and #75 complete and #76 still open. #76 was not part of Sprint 1 and was not automatically pulled into the sprint.
 - The PR #84 checkpoint shipped with pre-merge state, so a documentation-only reconciliation branch `docs/neotest-merge-reconciliation` was created from merge commit `110c365`. Its scope is the canonical backlog, execution checkpoint, and this append-only work log; no Neovim runtime files or workflows change.
+
+
+## 2026-11-13 — PR #85 documentation QA and Senior Reviewer pass
+
+- Reviewed PR [#85](https://github.com/brianfiszman/dotfiles/pull/85) at source head `0208c0bdb26fb1575510f2fb63c4da0c3f864f4c`, based on master merge commit `110c3658085c4c23d847de361a08b5e15e72b605`. The complete diff contains only `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `docs/neovim-modernization-backlog.md`; it is zero commits behind master.
+- **QA PASS:** verified PR #84's merge state and exact-head Actions run, issue #74's `completed` closure, parent #43 remaining open, child #76 remaining open, and PR #83 remaining open/unmerged. Checked the checkpoint, append-only work-log entry, backlog active/completed lists, exact SHA/run references, Markdown fence balance, and absence of stale #74/#84 pre-merge claims in the current checkpoint.
+- Confirmed the Neovim workflow's path filters exclude all three changed documents. No Neovim runtime workflow is expected; no runtime test was run or claimed for this documentation-only PR.
+- **Senior Reviewer APPROVE:** inspected the complete three-file diff for stale handoffs, contradictory states, lost work-log history, incorrect validation claims, and accidental runtime scope. No blocking findings. QA and Reviewer are simulated Scrum role passes performed sequentially by one assistant, not independent human reviews.
+- PR #85 remains open. Its merge requires Brian's separate explicit authorization; PR #84's authorization does not carry over.
