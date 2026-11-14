@@ -243,3 +243,11 @@ here rather than copying it.
 - The PR had advanced to `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b` through documentation-only checkpoint/worklog updates after the code snapshot. The path-filtered runtime workflow did not produce a run for that docs-only head. The implementation code was unchanged.
 - Explicitly re-ran the cancelled workflow job. GitHub accepted the rerun; the run is pending again for the original code SHA. The final review must separately inspect the documentation-only commits at the current PR head.
 - Next: monitor the rerun through plugin restore and all test phases. Do not call the cancelled attempt a failure or a pass.
+
+
+## 2026-11-14 — Fresh PR #87 workflow triggered on latest head
+
+- The rerun of [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was also cancelled at job setup before any test phase. No validation evidence was produced by either attempt.
+- Added a small, relevant CI check to the workflow: parse `.config/nvim/lazy-lock.json` with Python before plugin restore. This both validates the changed lockfile and causes the path-filtered runtime workflow to run on the current PR snapshot.
+- GitHub created new PR workflow [#43552051042](https://github.com/brianfiszman/dotfiles/actions/runs/43552051042) for current head `6c359e4ea597842479badf0f4c827244b9629ca4`, based on master `c587c8854faf2e99770ca6f30a51a529a38140bb`. The run is **pending**; its job has not yet been observed.
+- Next: inspect run #43552051042 through completion. The previous cancelled runs are not failures of the Neovim config and are not passes.
