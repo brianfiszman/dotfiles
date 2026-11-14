@@ -1,22 +1,27 @@
 # Agent execution state
 
-_Last updated: 2026-11-13_
+_Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** in progress — documentation implementation and review
+- **Status:** implementation complete; documentation review and recovery simulation passed; PR preparation
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `docs/agent-session-continuity-pr78`
 - **Base branch:** `master`
 - **Base HEAD:** `b30cf6f87dc1a8adbd573a25c712f540db2e548a`
+- **Last verified branch HEAD before this checkpoint update:** `3964e99c5208a69bc3802a686ebd47cbf89577f2`
 - **Issue:** [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78)
 - **Pull request:** not opened yet
-- **Current phase:** implementing the checkpoint, append-only work log, continuity skill, and top-level instructions
+- **Checkpoint:** `AGENT_STATE.md`
+- **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
+- **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
+- **Current phase:** documentation review passed; ready to open the issue-specific PR
 
-The branch was created from the exact `master` HEAD above. The checkpoint is
-committed on this work branch; resolve the branch ref to obtain the exact SHA
-of the snapshot containing this file (a checkpoint cannot embed the hash of its
-own resulting commit).
+The checkpoint is committed on this work branch. Resolve
+`refs/heads/docs/agent-session-continuity-pr78` to obtain the exact SHA of the
+snapshot containing this file (a checkpoint cannot embed the hash of its own
+resulting commit). The parent HEAD above is the exact source revision used for
+this checkpoint update.
 
 ## Completed and verified
 
@@ -29,9 +34,19 @@ own resulting commit).
 - Exact-head validation: [Actions run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202),
   event `pull_request`, conclusion `success`.
 - The run verified clean isolated preparation, locked plugin restoration,
-  normal startup, Go lazy-loading, Mason's first-use `:DapInstall` trigger,
-  DAP key/command activation, and Neotest's explicit Debug Test mapping.
+  normal startup, Go lazy-loading, Mason's clean-registry first-use
+  `:DapInstall` trigger, DAP key/command activation, and Neotest's explicit
+  Debug Test mapping.
 - The final run's log artifact was 255,173 bytes.
+- The issue #78 documentation diff contains exactly five files:
+  `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`,
+  `.agents/skills/execution-continuity/SKILL.md`, and
+  `docs/neovim-modernization-backlog.md`. No Neovim runtime or workflow files
+  changed.
+- Markdown review found and corrected escaped code delimiters before PR
+  preparation. Fenced code blocks are balanced and no escaped backticks remain.
+- A simulated fresh-session recovery passed using the checkpoint, work log,
+  current branch ref, issue #78, merged PR #77, and its exact-head CI evidence.
 - No interactive macOS session or live TypeScript debug session was performed.
 
 ## Important recovered finding from the interrupted DAP investigation
@@ -51,12 +66,9 @@ The latest exact-head run is #43530295202 above.
 
 ## Pending
 
-- Finish reviewing all documentation and cross-links in this branch.
-- Simulate a fresh-session recovery using only this checkpoint, the work log,
-  and GitHub state; record what the simulation finds.
 - Open the documentation-only PR for #78.
-- Verify the remote branch, current PR head, changed files, and any Actions run
-  triggered by the skill path filter.
+- Verify its title/body, changed files, exact head, remote branch, and any
+  Actions run triggered by the `.agents/skills/**` path filter.
 - Keep #78 open until its acceptance criteria are satisfied and the PR is merged.
 
 ## Validation
@@ -65,16 +77,18 @@ The latest exact-head run is #43530295202 above.
 |---|---|---|
 | Source baseline | passed | Branch created from `master` at `b30cf6f87dc1a8adbd573a25c712f540db2e548a` |
 | PR #77 runtime integration | passed | Run #43530295202 for exact head `73b4bf80f811667a778f2105dfd9516aae3bfce4` |
-| Documentation consistency | pending | Review and simulated recovery still to be completed |
+| Markdown delimiters / escaped code spans | passed | Five changed files fetched and checked |
+| Internal path and cross-reference review | passed | All linked repository paths resolve |
+| Simulated recovery | passed | Checkpoint, worklog, live branch, issue #78 and PR #77 reconciled |
+| Scope review | passed | Five documentation paths only; no runtime/workflow files |
 | Local filesystem / shell checks | unavailable in this GitHub-only execution | No local repository worktree was used |
 | macOS interactive validation | not run | Not part of issue #78 |
 
 ## Blockers
 
-None currently. The #78 PR and its documentation validation are still pending.
+None currently. The documentation PR has not yet been opened.
 
 ## Next concrete action
 
-Review the new continuity skill against `AGENTS.md` and the two state files,
-then simulate recovery as if this conversation had been lost. Fix any ambiguity
-before opening the PR.
+Open PR #78's documentation-only change against `master`, then verify the
+PR's exact head and any resulting workflow run before handing off.
