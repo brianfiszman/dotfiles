@@ -113,40 +113,45 @@ other four preserved mappings were confirmed by static review. No representative
 project suite or interactive macOS session was performed. No lockfile or plugin
 version changes were included. Issue #74 is closed as completed.
 
-## Current handoff — Sprint 2: modernize the LSP foundation
+## Completed — PR #88 merged on 2026-11-14
 
-**Dates:** 2026-11-14 through 2026-11-20  
-**Sprint Goal:** move language tooling to explicit native Neovim ownership while preserving everyday editing and Lua development workflows.
+[PR #88](https://github.com/brianfiszman/dotfiles/pull/88) implements
+[#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
+and was squash-merged into `master` as
+[`9e43312`](https://github.com/brianfiszman/dotfiles/commit/9e43312f2afa523e658ed583b4f48bebffb98568).
+Issue #42 is closed as completed.
 
-- **Current committed issue:** [#42 — Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42) — estimate **S**.
-- **Active PR:** [#88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
-- **Branch/base:** `feat/lazydev-42` to `master` at merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
-- **Implementation/test snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`. Current PR head `f472500d8bd79da0ad6eae559291e4fdc7aed745` is three documentation-only commits ahead; their diff does not change implementation or tests.
-- **Exact-head CI:** pull-request run [#43606193476](https://github.com/brianfiszman/dotfiles/actions/runs/43606193476) passed on current PR head `f472500d`. All steps passed: isolated preparation, locked plugin restore/build hooks, normal startup, native LSP assertions, dedicated Lazydev Lua-filetype test, Neotest/Go/DAP regressions, and artifact upload.
-- **Completed predecessor:** [#41 — Native LSP ownership](https://github.com/brianfiszman/dotfiles/issues/41) was squash-merged in [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) as [`a743684`](https://github.com/brianfiszman/dotfiles/commit/a74368456f9c829197aa7569d6cf720b1bc7d9d5). Exact PR-head run [#43604418747](https://github.com/brianfiszman/dotfiles/actions/runs/43604418747) passed; post-merge push run [#43604690496](https://github.com/brianfiszman/dotfiles/actions/runs/43604690496) also passed all steps. Issue #41 is closed as completed.
-- **Lazydev design:** separate root spec `folke/lazydev.nvim` with `ft = "lua"`; it is not a dependency of the eager native LSP plugin. Its native LSP and nvim-cmp integrations are enabled.
-- **Preserved LuaLS behavior:** LuaJIT runtime, strict resolution (`runtime.pathStrict = true`), `?.lua` / `?/init.lua` paths, `vim` diagnostic global, function-call snippet completion, Neovim runtime/config Lua libraries, and all five prior plugin API libraries (`neotest`, `nvim-dap-ui`, `nvim-treesitter`, `plenary.nvim`, `telescope.nvim`). The existing jsonls schema for `.luarc.json` / `.luarc.jsonc` remains independent and unchanged.
-- **Dependencies:** Neodev spec/setup/lock entry removed; Lazydev pinned at `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d`. No unrelated plugin updates.
-- **Validation:** run #43606193476 printed all expected Lazydev behavior markers and passed the full integration workflow. See PR #88 for earlier cancelled attempts and the test-only correction.
-- **QA / Senior Reviewer:** PASS / APPROVE (simulated, sequential roles by one assistant) against exact current diff and CI evidence.
-- **Manual validation pending:** open and edit a representative Lua config on Brian's Mac; verify LuaLS completion/hover and plugin API type resolution. PR #88 remains open/unmerged pending Product Owner review and explicit merge authorization.
-- **Separate residual from #41:** the exact JS/TS ESLint diagnostic reappearing after edit/undo was not reproduced. Removing duplicate publishers removed a credible cause, but the original race is not proven fixed; identify source/client if it recurs.
+Exact PR head `b08040f52aab1c4dd135ae3a5fd89d7695672ef4` passed pull-request
+workflow [#43619768631](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631).
+The full isolated workflow passed pinned Neovim/LuaLS setup, installer preparation,
+locked plugin restore/build hooks, normal startup, and the native LSP, Lazydev,
+Neotest, Go, and DAP behavior suite. Real LuaLS completion for Telescope and
+Neovim APIs, hover after a valid edit, and zero diagnostics all passed. Artifact
+[`14122899940`](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631/artifacts/14122899940)
+contains the logs. QA and Senior Review were sequential simulated passes by one
+assistant, not independent human reviews. Optional macOS Neovim API completion/
+hover parity remains unverified.
 
-## Agreed modernization sequence after the current LSP issue
+## Current handoff — Sprint 2: reduce Neovim CI feedback time
 
-1. [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) — current Sprint 2 work.
-2. [#44 — Treesitter API/branch migration](https://github.com/brianfiszman/dotfiles/issues/44).
-3. Audit the remaining plugin inventory and update compatible groups deliberately. This is not a one-shot `:Lazy update`; first identify abandoned projects, breaking API migrations, plugin overlaps, and required Neovim versions.
-4. [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76), once the dependency baseline is stable.
+**Sprint Goal:** reduce redundant CI work and surface fast feedback earlier without
+weakening locked-install, normal-startup, LuaLS, or behavioral coverage.
 
-The earlier testing/debugging/search work remains complete where merged:
-- [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75), merged in [PR #77](https://github.com/brianfiszman/dotfiles/pull/77).
-- [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74), merged in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84).
-- [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76) remains open under [parent #43](https://github.com/brianfiszman/dotfiles/issues/43).
+- **Current issue:** [#91 — Reduce Neovim workflow feedback time without weakening coverage](https://github.com/brianfiszman/dotfiles/issues/91), estimate **M**, still open/in progress under Epic #16.
+- **Active branch / PR:** `feat/ci-feedback-91` → [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), now Ready for review, open and unmerged; base `master` at merge commit [`9e43312`](https://github.com/brianfiszman/dotfiles/commit/9e43312f2afa523e658ed583b4f48bebffb98568).
+- **Validated implementation/test head:** `f04ba78b487e1b2e282432bcca78f5e4609d721a`. The later handoff/checkpoint edits are documentation-only; exact latest branch head is authoritative in GitHub.
+- **Implemented first slice:** preinstalled Ubuntu 26.04 toolchains, Go 1.26.11 from the hosted tool cache, dynamic supplemental APT detection, runner preflight, an independent fast shell/lockfile/unit-test job, PR commit-delta gating with fail-open behavior, and cancellation-safe integration gating using `!cancelled()`.
+- **Cold path validated:** manual `workflow_dispatch` run [#43634687957](https://github.com/brianfiszman/dotfiles/actions/runs/43634687957) ran against exact implementation/test head `f04ba78`. All three jobs passed: decision, fast checks, and fresh install/headless integration. Fast checks passed 14/14 Node tests. The integration ran from a fresh isolated workspace without plugin/Mason cache, restored locked plugin revisions with configured build hooks enabled, and started Neovim normally. Artifact [14129361921](https://github.com/brianfiszman/dotfiles/actions/runs/43634687957/artifacts/14129361921).
+- **Behavior coverage preserved:** real Lazydev lazy loading and plugin API setup passed; real pinned LuaLS returned `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`, resolved hover on valid Telescope usage, and reported zero diagnostics. Neotest, Go, DAP lazy-loading/commands, and first-use installation of all five Mason adapters also passed. The existing `tests/nvim/lazydev-lazy-loading.lua` and `tests/nvim/lazydev-luals-completion.lua` were not changed or weakened in this PR.
+- **Runner provisioning improvement:** baseline runs installed 428 packages, downloaded 116 MB, and added about 585 MB; optimized samples installed 9 packages, downloaded 3.64 MB, and added 12.7 MB. Runner-to-artifact observations were ~88.95s and ~82.50s versus old samples ~109.02s and ~135.05s. These are promising but not controlled benchmarks because hosted runner regions/network differed.
+- **PR delta gate:** only a successful prior full integration for this same PR can be used as a baseline. Any missing/wrong baseline, API error/incomplete response, relevant change, rename, divergence, or capped/incomplete comparison fails open to the full suite. Only an explicit successful decision with output exactly `false` skips the heavy job; decision failures still require integration.
+- **Review gates:** QA **PASS** and Senior Reviewer **APPROVE** on the exact implementation/test head, both sequential simulated roles performed by one assistant as required by `.agents/skills/scrum-team/SKILL.md`. These are not independent human reviews. No GitHub reviewer or team is currently requested; no CODEOWNERS file or verified reviewer handle/team slug was found.
+- **Still open:** scheduled cron execution has not yet fired on the default branch. Broad plugin/Mason caching remains deferred because a clean cached checkout may skip lazy.nvim build hooks. Behavior-suite parallelization remains deferred until mutable XDG/plugin/Mason state is isolated. These are not represented as completed.
+- **Paused independent work:** [PR #90](https://github.com/brianfiszman/dotfiles/pull/90) remains Draft/paused by Brian pending the separate indentation-ownership/setup diagnosis for [#89](https://github.com/brianfiszman/dotfiles/issues/89). It is not part of #91 and must remain untouched.
 
-[PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged as a historical Sprint 1 planning checkpoint; it is not the current Sprint 2 implementation branch and carries no merge authorization.
+## Mandatory testing standard
 
-**Working cadence:** one functional PR at a time. Finish implementation, inspect the full diff, validate the exact PR head, obtain QA PASS and Senior Reviewer APPROVE, and merge only with Brian's explicit authorization. Close issues only after the merged behavior satisfies acceptance criteria.
+Testing is included in every functional issue's scope and estimate. Issues must define observable, behavior-first acceptance scenarios and the automated unit/integration/end-to-end checks appropriate to the change. For interactive Neovim behavior, prefer real headless local-like tests that exercise the actual configuration, plugin/LSP/tool trigger, and user-visible result; mocks or startup-only checks are not enough. Required checks run in CI on explicit relevant triggers. Manual validation supplements automation and is required only for behavior that cannot reasonably be automated, with exact steps and rationale documented. A task is not done until its behavior tests and relevant regression suite pass on the exact change.
 
 ## Working agreement
 

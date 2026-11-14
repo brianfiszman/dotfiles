@@ -413,3 +413,185 @@ here rather than copying it.
 - **Senior Reviewer APPROVE (simulated):** separately re-inspected the Lazydev spec, LuaLS settings, cmp registration, lockfile delta, test logic, workflow integration, and scope. No blocking finding. Both roles are sequential passes by one assistant, not independent human reviews.
 - Local macOS Neovim API completion/hover remains optional environment-parity validation; both APIs are covered by the pinned real-LuaLS CI test. Brian previously confirmed Telescope API resolution locally.
 - PR #88 remains open and unmerged; no merge authorization has been given. CI optimization is tracked separately by backlog issue #91 under parent #16.
+
+
+## 2026-11-14 — Merge Lazydev and start CI feedback optimization (#42 → #91)
+
+- Brian explicitly authorized squash-merging PR #88. Re-fetched the PR and exact-head workflow before merge; exact head `b08040f52aab1c4dd135ae3a5fd89d7695672ef4` had successful pull-request run #43619768631.
+- Squash merge succeeded: PR #88 merged into `master` at `9e43312f2afa523e658ed583b4f48bebffb98568`. A compare of that SHA to `master` reported identical (0 ahead / 0 behind).
+- Closed issue #42 as completed after verifying the merged commit contains the Lazydev implementation and tests.
+- Created branch `feat/ci-feedback-91` directly from merged `master` SHA `9e43312f2afa523e658ed583b4f48bebffb98568` for issue #91. Issue #91 is now in progress; no workflow code has been changed yet.
+- Re-read `AGENTS.md`, project-management guidance, the headless workflow, test harness, issue #91, and the active/paused PR state. Current workflow is one serial job: APT prerequisites; pinned Neovim; pinned LuaLS; lockfile validation; isolated installer preparation; locked plugin restore/build hooks; normal startup; sequential behavior processes; logs artifact.
+- The full behavior suite includes a real LuaLS completion/hover/diagnostics test and a DAP/Mason test that installs all five configured adapters. Do not weaken these checks; determine whether only their trigger/cadence can change while retaining an explicit real-install cold/relevant path.
+- Reconfirmed PR #90 remains open as Draft and explicitly paused by Brian pending the indentation-ownership/setup diagnosis. Keep it untouched; #91 is the newly authorized active branch. Do not open another functional PR while the cadence is occupied.
+- Baseline observations remain the single-run measurements from #43617823749 (~113s; apt ~53s; locked restore/build ~26s; startup+suite ~27s; DAP/Mason first-use ~21s). #43619768631 was a second doc-only-triggered full run, but compare its measured steps before treating it as a comparable performance sample.
+- Discovered that documentation-only commits inside a PR with Neovim paths still trigger the workflow because `pull_request.paths` is evaluated against the aggregate PR diff. Track this in #91; any commit-level gating must handle multi-commit pushes safely and preserve required-check semantics.
+- Next: collect per-step timings from at least two comparable runs where possible, inspect runner preinstalled tool versions, validate GitHub's path-filter/event semantics, then write an architecture proposal before making workflow edits.
+
+
+## 2026-11-14 — Validate first CI optimization slice (#91 / Draft PR #92)
+
+- Recovered exact branch state after an interrupted session. Branch `feat/ci-feedback-91` is based on merged master `9e43312f2afa523e658ed583b4f48bebffb98568`; PR #92 is open as Draft and targets master. PR #90 remains separately Draft/paused and was not changed.
+- First runner-provision experiment pins `ubuntu-26.04`, selects Go 1.26.11 from the hosted tool cache via `actions/setup-go@v7` (`check-latest: false`, `cache: false`), validates hosted command versions, and dynamically installs only six supplemental packages when dpkg reports them missing. It retains the real plugin restore/build, normal startup, LuaLS, Neotest, Go, and DAP/Mason behavior suite.
+- Initial run #43623527935 on `96d551d` failed before APT due an unmatched quote in the Bash arithmetic conditional. The runner preflight passed; the APT step and every Neovim integration step were skipped. Fixed the conditional in commit `376649092b37926dc3910d631dfab5ea99fa0b43`.
+- Run [#43623707000](https://github.com/brianfiszman/dotfiles/actions/runs/43623707000) passed the complete integration on head `3766490`, including restore/build hooks, normal startup, four real LuaLS assertions, Neotest, Go, and real installation of all five DAP/Mason adapters. Artifact [14124819434](https://github.com/brianfiszman/dotfiles/actions/runs/43623707000/artifacts/14124819434).
+- Added an independent `fast-checks` job (bash -n installer/harness + lazy-lock JSON parse) in commit `f8d34980e00bab61a28ab10bf2975915fe676899`. It has no dependency on the full integration job.
+- Exact-head run [#43624095518](https://github.com/brianfiszman/dotfiles/actions/runs/43624095518) passed both jobs. Fast checks completed while plugin restoration was still running; full integration then passed all the same quality gates and uploaded artifact [14125860862](https://github.com/brianfiszman/dotfiles/actions/runs/43624095518/artifacts/14125860862).
+- The hosted image preflight confirmed Node 24.22.2/npm 11.19.1, Go 1.26.11, Rust/Cargo 1.99.1, CMake 4.4.5, GCC/G++ 15.2.0, and Python 3.14.4.
+- APT changed from 428 packages / 116 MB / ~585 MB additional disk to 9 packages / 3.643 MB / 12.7 MB. This represents ~97.9% fewer packages, ~96.9% less download, and ~97.8% less additional disk.
+- Runner-to-artifact durations on the two optimized runs were ~88.95s and ~82.50s, compared with earlier baseline runs ~109.02s and ~135.05s. Plugin restore was ~32.5s/~38.3s; DAP/Mason first-use installation ~30s/~20.7s. Runner regions differ; these show promise but are not a controlled benchmark.
+- Inspected lazy.nvim at pinned commit `6c3bda4aca61a13a9c63f1c1d1b16b9d3be90d7a`: `:Lazy! restore` routes to update, including fetch/status/locked checkout, package refresh, and plugin.build. Generic build hooks are skipped for clean checkouts already at target unless dirty or otherwise marked for build. A cache of full clean plugin directories could therefore bypass build-hook execution. Defer broad plugin caches until a safe design proves hooks still execute on hits and cold runs remain available.
+- Updated PR #92 and issue #91 with the two successful runs, initial syntax failure/correction, APT results, fast-job evidence, and cache deferral decision. PR #92 remains Draft; no merge authorization exists.
+- Next: design commit-delta gating without pending required checks; evaluate whether behavior suites can run concurrently with truly isolated XDG/plugin/Mason state. Do not change PR #90.
+
+
+## 2026-11-14 — PR delta gating: relevant-change proof
+
+- Workflow commit `950160bab425917f6dde3cc8537740a9a6782854` removed workflow-level `pull_request.paths`, added the fail-open integration decision job, and retained independent fast checks.
+- Exact-head run [#43625648592](https://github.com/brianfiszman/dotfiles/actions/runs/43625648592) passed the decision, fast-check, and full integration jobs. The decision compared against last successful integration `3d6dbad`, found `.github/workflows/neovim-headless.yml` changed, and required the full suite. LuaLS, locked restore/build hooks, normal startup, Neotest, Go, and real installation of all five DAP/Mason adapters passed; artifact ID `14126100533`.
+- Next gating test is intentionally docs-only: update only `AGENT_WORKLOG.md`, which is not in the integration-relevant path set. Expected result is an overall green PR workflow where fast checks pass and the expensive headless job is skipped successfully.
+
+
+## 2026-11-14 — Harden and test fail-open CI integration gating (#91 / Draft PR #92)
+
+- Recovered the exact live head and confirmed PR #92 remains open/Draft. Before the test-only updates, code head `a237b490891eed059469b7547e60eba4f1b703d2` passed full integration run #43628145328.
+- Re-inspected the standalone decision module, workflow condition, and tests. The helper uses explicit same-PR run association, requires a successful full-integration job, checks old/new paths for renames, and fails open on missing, failed, malformed, diverged, or ambiguous API data. The workflow condition skips only when the decision job succeeds and outputs exactly the string `false`.
+- Added tests for incomplete workflow-run and job-list API responses plus a workflow-contract test that prevents regression to true-only gating.
+- Two test-only attempts exposed a faulty YAML job locator (the integration job is the final job) and then an over-escaped newline anchor. Runs #43629862939 and #43629972943 had successful decision jobs and correctly skipped integration, while the new test failed. No runtime/integration assertion was bypassed. The locator was corrected.
+- Exact head `cf33d3a5d5211a043950c0a8be6d2490a4b8cc6e` passed run #43630070648: decision success; all 14 Node tests passed; shell syntax and lockfile JSON passed; integration was skipped-success because only `tests/ci/neovim-integration-decision.test.cjs` changed since green integration baseline `a237b49`; overall workflow success.
+- Full runtime baseline at `a237b49` passed run #43628145328: supplemental APT packages, isolated prep, locked plugin restore/build hooks, normal startup, four real LuaLS assertions, Neotest, Go, and real install of all five DAP/Mason adapters. Artifact ID `14126599058`.
+- QA PASS (simulated): checked the gate cases against the fail-open contract and exact workflow expression. Senior Reviewer APPROVE (simulated): reviewed the complete PR diff and the added workflow-contract tests; no blocking finding. These are sequential role passes by one assistant, not independent human reviews.
+- PR #92 remains Draft, open, and unmerged. No merge authorization was given. PR #90 remains Draft/paused and untouched.
+- Next: validate a real workflow_dispatch/scheduled cold path; assess safe concurrency only with isolated mutable XDG/plugin/Mason state. Broad caches remain deferred until build hooks can be proven on cache hits and a cold path remains.
+
+
+## 2026-11-14 — Make PR integration gating cancellation-safe (#91 / Draft PR #92)
+
+- Re-inspected the exact workflow, test contract, current PR and branch state after the latest docs-only checkpoint push started another run.
+- Observed run #43630750097 on superseded head `e9aad49`: the decision and fast-check jobs concluded `cancelled`, but `Fresh install and headless startup` still concluded `success`; the overall workflow was cancelled. The old job condition used `always()`, which remains true on workflow cancellation and can keep an obsolete expensive integration job alive.
+- Checked the official GitHub Actions expression/cancellation contract: `always()` returns true on cancellation and may prevent a job from being canceled; GitHub recommends `!cancelled()` where work should run after failures but must stop on workflow cancellation. Sources: GitHub [expression functions](https://docs.github.com/en/actions/reference/workflows-and-actions/expressions) and [workflow cancellation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-cancellation).
+- Replaced the heavy job condition with `!cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false')`. This preserves fail-open behavior for decision failures/missing/unexpected outputs while allowing concurrency-cancelled stale runs to stop.
+- Updated the workflow-contract test to require that exact expression and assert that failures still run the full suite but cancelled workflows do not keep the heavy job alive.
+- Exact head `fe5c6b41cc8f162a0ace39a218a92e624d19fa5d` passed [run #43631136597](https://github.com/brianfiszman/dotfiles/actions/runs/43631136597): decision job success and required full integration because workflow changed; fast checks 14/14 passed; full integration passed every step and artifact upload.
+- Real-LuaLS markers all appeared: Telescope completion, Neovim API completion, hover after valid Telescope usage, and zero diagnostics. DAP/Mason installed all five configured adapters. Locked plugin restore/build hooks completed in 33 seconds; DAP/Mason first-use installation completed in 28 seconds. APT installed 9 supplemental packages and added 12.7 MB.
+- Logs artifact `14127804132` uploaded successfully. No cache or behavioral coverage was removed.
+- QA PASS (simulated): verified the concurrency cancellation edge and fail-open behavior from the exact workflow condition, regression test, and run. Senior Reviewer APPROVE (simulated): re-read the workflow/module/tests and complete PR diff; no blocking issue found. Both are sequential roles by one assistant, not independent human reviews.
+- PR #92 remains open and Draft; no merge authorization was given. PR #90 remains separately Draft/paused and untouched.
+- Remaining: validate a real workflow_dispatch/scheduled cold event if an action is available; evaluate safe state-isolated behavior-test concurrency. Broad plugin/Mason caching remains deferred.
+
+
+## 2026-11-14 — Reconcile PR #92 after cancellation-safe gate (#91)
+
+- Re-fetched GitHub state: PR #92 is open/Draft, base `master`, current head `138f88aa5a3db06edf83f0d33f06543ccdc47a0d`. No formal GitHub reviews or unresolved review threads exist. PR #90 remains independently Draft/paused and untouched.
+- Exact current-head pull-request run [#43631725295](https://github.com/brianfiszman/dotfiles/actions/runs/43631725295) completed success. The decision job and independent fast-check job succeeded; fast checks passed shell syntax, lockfile JSON, and 14/14 Node tests. The heavy integration job was skipped, not failed.
+- The decision log explicitly states: `only non-integration files changed since successful integration fe5c6b4`. Comparing current head `138f88a` with the last full-integration code head `fe5c6b4` shows 1 commit ahead / 0 behind and only `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `docs/neovim-modernization-backlog.md` changed. Therefore the latest green runtime integration remains valid for the unchanged code/test tree.
+- Exact code head `fe5c6b41cc8f162a0ace39a218a92e624d19fa5d` passed full pull-request run [#43631136597](https://github.com/brianfiszman/dotfiles/actions/runs/43631136597): decision success, 14/14 fast tests, every integration step successful, artifact `14127804132`. Logs confirm plugin restore/build hooks, normal startup, the four real-LuaLS completion/hover/diagnostic assertions, and successful install of all five DAP/Mason adapters.
+- Fail-open gate semantics: only a successful decision with output exactly `false` skips the heavy job. API errors/incomplete responses, missing or wrong-PR baselines, relevant file changes, renames, divergent/incomplete/capped comparisons all require full integration. The heavy job additionally uses `!cancelled()` so superseded runs do not continue expensive work after cancellation.
+- Current-head run #436317 confirms a skipped heavy job reports a successful workflow. GitHub documents that skipped jobs report `Success` and do not block a PR, including when required; see [job conditions](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions).
+- **Cold event remains unverified:** unit tests cover `schedule`, `push`, and `workflow_dispatch` always requiring a cold integration, but there is no real schedule/dispatch run yet. GitHub only triggers `workflow_dispatch` when the workflow file exists on the default branch, and scheduled workflows run on the default branch; PR #92 is still unmerged. Sources: [manual workflow runs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow) and [workflow schedule syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax). The connected GitHub integration exposes no dispatch action.
+- No plugin/Mason cache or parallel behavior processes were introduced. They remain deferred because lazy.nvim's locked restore must execute configured build hooks and current behavior processes share mutable XDG/Mason state.
+- No merge authorization has been given for PR #92. QA/Senior Reviewer checks are simulated sequential roles by one assistant, not independent human reviews.
+
+## 2026-11-14 — Cold-path validation and final review handoff (#91 / PR #92)
+
+- Recovered live GitHub state before review: PR #92 is open, Ready for review, mergeable, and unmerged on branch `feat/ci-feedback-91`. Its validated code/test head was `f04ba78b487e1b2e282432bcca78f5e4609d721a`.
+- Brian manually dispatched workflow run [#43634687957](https://github.com/brianfiszman/dotfiles/actions/runs/43634687957) on that exact branch and head. The event was `workflow_dispatch`; the decision log explicitly selected the unconditional cold integration path.
+- All three jobs passed: integration decision, independent fast checks, and fresh install/headless startup. The fast job passed shell syntax, lockfile JSON, and all 14 integration-decision tests (14 passed, 0 failed).
+- The cold integration used an isolated workspace, installed pinned Neovim and checksum-verified LuaLS, restored locked plugin revisions with configured build hooks enabled and no CI-only plugin bypasses, started Neovim normally, ran the behavior suite, and uploaded artifact [14129361921](https://github.com/brianfiszman/dotfiles/actions/runs/43634687957/artifacts/14129361921).
+- Real Lazydev/LuaLS assertions passed: Lazydev stayed unloaded outside Lua filetypes and activated on a Lua buffer; the effective LuaLS workspace included Telescope; real LuaLS completion returned `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`; hover resolved valid Telescope usage; diagnostics for the valid buffer were empty.
+- Neotest, Go, and DAP behavior tests passed. The actual first-use Mason path installed all five configured adapters: `js-debug-adapter`, `codelldb`, `dart-debug-adapter`, `debugpy`, and `delve`.
+- **QA PASS (simulated):** independently checked issue #91 acceptance scope against the exact-head run, job logs, artifact, workflow, and real Lazydev/LuaLS test sources. No existing integration assertion was removed, mocked, made optional, or bypassed by this PR.
+- **Senior Reviewer APPROVE (simulated):** separately re-fetched and inspected the complete nine-file PR diff, current workflow, decision module, unit tests, existing real-LuaLS/Lazydev tests, and issue criteria. The permission model is read-only; incomplete/ambiguous gating state fails open; stale runs stop on cancellation. No blocking finding for this first optimization slice.
+- These QA and Senior Reviewer passes are sequential roles performed by one assistant, not independent human reviews. PR #92 has no GitHub review submissions or review threads; no reviewer/team was requested because the repository has no CODEOWNERS file and no verified reviewer handles/team slug were available. A real external review remains outstanding.
+- The cold `workflow_dispatch` path is now validated. The scheduled cron event has not yet fired on the default branch, so schedule execution itself remains unverified. Broad plugin/Mason caching and behavior-suite parallelization remain deferred: lazy.nvim build-hook behavior on cache hits and isolation of mutable XDG/Mason state have not been proven.
+- PR #92 remains open and unmerged; issue #91 remains open/in progress. No merge authorization has been given. PR #90 remains Draft/paused and untouched.
+
+
+## 2026-11-14 — PR #92 review finding: bind integration baseline to exact base SHA
+
+- Context: [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), issue [#91](https://github.com/brianfiszman/dotfiles/issues/91), branch \`feat/ci-feedback-91\`.
+- Review finding: the delta decision compared PR-head commits since the previous green run but did not persist the base SHA used by that integration. A later update to \`master\` could therefore leave a docs-only PR delta incorrectly eligible to skip the heavy job.
+- Evidence: the current head before correction was \`10c1c62559ecf5b0fd422d25d18b951fe0bc64b3\`; PR workflow run [#43636588347](https://github.com/brianfiszman/dotfiles/actions/runs/43636588347) skipped full integration for a docs-only delta. Source review found that the baseline selector had no recorded-base equality check.
+- Correction: the full integration job records the exact PR base/head/tested SHAs in its GitHub job summary. The decision job reads that immutable check-run summary through the Checks API and may reuse a baseline only when its recorded base SHA equals the current PR event's base SHA and its recorded PR head matches the workflow run head. Missing metadata, mismatches, and API errors fail open.
+- Additional coverage: add regression tests for base advancement, mismatched/missing metadata, and Checks API failure; add \`scripts/ci/**\` and \`tests/ci/**\` to the default-branch push triggers so edits to the gate and its tests run CI.
+- Status at checkpoint: implementation is being committed to the existing PR branch; exact-head Actions validation is pending.
+
+
+## 2026-11-14 — PR #92 base-SHA correction: exact-head validation
+
+- Context: [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), issue [#91](https://github.com/brianfiszman/dotfiles/issues/91), source head \`408d5a46c8b6bdc7532850862c7559328ddf2afb\`.
+- The corrected baseline helper now requires a successful full-integration job whose check-run summary contains the exact PR base SHA, PR head SHA, and tested SHA. It reuses that integration only when the recorded base SHA equals the current event's \`pull_request.base.sha\`; missing/invalid metadata and Checks API failures require full integration.
+- Added regression coverage for changed base SHA, historical head mismatch, missing/incomplete summary, missing check-run reference, Checks API failure, and CI-owned \`tests/ci/**\` paths. The workflow now grants only \`checks: read\` for summary retrieval and records the baseline marker after the real behavior suite succeeds.
+- Added \`scripts/ci/**\` and \`tests/ci/**\` to \`push.paths\` so changes to the gate or its tests trigger validation on the default branch.
+- Exact-head PR run [#43642279636](https://github.com/brianfiszman/dotfiles/actions/runs/43642279636) passed all jobs. The decision job correctly refused to reuse older markerless integrations and selected the full path. Fast checks passed **19/19**; full install preparation, pinned Neovim/LuaLS setup, locked plugin restore/build hooks, normal startup, baseline recording, behavior suite, and artifact upload passed.
+- Remaining end-to-end check: create a docs-only follow-up and verify the decision job can retrieve the new successful integration's check-run summary, match the same base SHA, and skip only the heavy job. This will exercise the Checks API handoff rather than only the mocked unit tests.
+- Format correction for the immediately preceding checkpoint entry: inline code spans were unintentionally backslash-escaped; intended literals are \`feat/ci-feedback-91\`, \`master\`, \`scripts/ci/**\`, and \`tests/ci/**\`. No technical decision changed.
+
+
+## 2026-11-14 — PR #92 baseline metadata transport correction
+
+- Follow-up evidence: docs-only head \`afb04c9a8427ec0f68bb032675c11718dc2e3307\` triggered PR run [#43642655852](https://github.com/brianfiszman/dotfiles/actions/runs/43642655852). The decision job found the prior successful full integration but could not read the marker from the Checks API \`output.summary\`; it failed open and started the full integration. The gate did not incorrectly skip validation.
+- Root cause: GitHub Actions job summaries are not available in the check-run output field in the way the first implementation assumed. The \`checks: read\` approach is removed.
+- Replacement: embed the exact base SHA, PR head SHA, and tested \`github.sha\` in the workflow's resolved \`run-name\`. The Actions workflow-runs API exposes the resolved name as \`display_title\`; the decision helper parses that immutable run metadata and still requires a matching successful full-integration job and explicit same-PR association.
+- The heavy job's check name remains stable; no additional write permission or external status is introduced. Missing/unparseable display-title metadata continues to fail open.
+- Regression tests now cover run-name parsing and assert the workflow publishes the marker while preserving the heavy-job check name and default-branch push paths.
+- References: [workflow run-name syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#run-name) and [workflow runs REST API](https://docs.github.com/en/rest/actions/workflow-runs).
+- Status: replacement is committed to the existing PR branch; exact-head CI plus a docs-only end-to-end reuse check are pending.
+
+
+## 2026-11-14 — Correct missing run-name metadata test fixture
+
+- Exact head \`9d1f7b7ab9c0a6e9bcd8906e08b3340101f3163b\` triggered run [#43643121415](https://github.com/brianfiszman/dotfiles/actions/runs/43643121415). The decision job failed open because prior successful runs had no run-name marker, as expected. The fast job passed 18/19 tests; one new negative-case fixture failed.
+- Cause: the test passed \`undefined\` to a mock option that deliberately treats undefined as “use the valid default display title”. It therefore did not simulate missing metadata.
+- Correction: use \`null\` to represent an actually absent display title. The production parser already returns null for non-string/missing titles; no production logic change is required.
+- The failed fast job means run #43643121415 cannot serve as an integration baseline. The next exact-head run must execute the full integration because previous successful baselines predate the run-name marker.
+
+
+## 2026-11-14 — PR #92 run-name baseline: full integration passed
+
+- Exact code/test head `aeefc20803016cac2f9f41a640b27d782a161a26` passed PR workflow [#43643251108](https://github.com/brianfiszman/dotfiles/actions/runs/43643251108).
+- The run completed with decision success, fast checks success (**19/19**), and full fresh-install/headless integration success. Locked plugin restore/build hooks, normal startup, behavior suite, and artifact upload all succeeded.
+- Actions REST returned the resolved `display_title` containing base `9e43312f2afa523e658ed583b4f48bebffb98568`, PR head `aeefc20803016cac2f9f41a640b27d782a161a26`, and tested merge SHA `880a5bbed70cb8716904b716e3dca7f106bf8e5e`. The base matches the live PR base; the marker head matches the workflow run head.
+- This is the successful full-integration baseline for the next docs-only run. The next workflow must reuse it only while the base SHA is unchanged and the delta contains no integration-relevant files.
+
+
+## 2026-11-14 — Harden integration baseline run-name against PR title input
+
+- Final review of the baseline marker transport found that the workflow interpolated the editable PR title before the marker. A title containing a marker-shaped string could be parsed before the trusted workflow-generated marker.
+- Removed the title interpolation; the run-name now uses the fixed workflow name followed by the exact base/head/tested SHAs. Added a contract test to keep the run-name prefix fixed and reject PR-title interpolation.
+- This does not alter the baseline decision or test paths; it hardens the metadata source against title ambiguity. Exact-head full integration is required because the workflow and CI contract test changed.
+
+
+## 2026-11-14 — Correct run-name contract test after fixed-prefix hardening
+
+- Exact head `c4c81626fe790f3dce724c0ca315a84968cb734c` triggered run [#43643785384](https://github.com/brianfiszman/dotfiles/actions/runs/43643785384). The decision job correctly required full integration because the workflow and CI test changed. The new contract test failed because its regular expression over-escaped the literal GitHub expression prefix `${{ github.workflow }}`; the other 18 tests passed.
+- Correction: assert the expected fixed run-name prefix with a literal `String.includes` check, and keep the negative assertion that PR-title interpolation is absent. No production logic change.
+- The next exact-head workflow run will re-run all fast tests and full integration; the previous run is not accepted as validation because its fast job failed.
+
+
+## 2026-11-14 — PR #92 final fixed-prefix implementation passed full integration
+
+- Exact corrected head `1e0875fe48732548e78c14e162c2118d47c74a66` passed PR run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247).
+- The final contract test now proves the run-name uses the fixed `github.workflow` prefix and does not interpolate the editable PR title. All **19/19** fast tests passed.
+- Full integration passed: pinned toolchain setup, supplemental prerequisites, pinned Neovim and checksum-pinned LuaLS, isolated install preparation, locked plugin restore/build hooks, normal startup, all headless behavior scenarios, real LuaLS completion/hover/diagnostics, and all five Mason DAP adapters. Artifact upload succeeded.
+- The resolved Actions `display_title` is `Neovim headless smoke test [nvim-ci-baseline base=9e43312f2afa523e658ed583b4f48bebffb98568 pr_head=1e0875fe48732548e78c14e162c2118d47c74a66 tested=d1b264b13fec542a549cf5484e65f0534d9ac19f]`.
+- Live PR metadata confirms the recorded base equals `base_sha`, recorded PR head equals workflow run `head_sha`, and recorded tested SHA equals the PR's exact `merge_commit_sha`. This is the full-integration baseline for the final docs-only reuse proof.
+- Senior Reviewer re-pass (simulated) inspected the corrected workflow, metadata parsing, same-PR/successful-job checks, base/head matching, fail-open paths, cancellation condition, path classification and regression tests. **APPROVE**: no blocking findings remain in the corrected diff. This remains an assistant review, not an independent human review.
+
+
+## 2026-11-14 — PR #92 end-to-end docs-only baseline reuse passed
+
+- After the full integration baseline on code/test head `1e0875fe48732548e78c14e162c2118d47c74a66` (run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247)), a follow-up commit changed only `AGENT_STATE.md` and `AGENT_WORKLOG.md`.
+- Exact docs-only head `db8eca9163560c02d58dc85db13e65148fa50390` passed [run #43644267041](https://github.com/brianfiszman/dotfiles/actions/runs/43644267041). The decision log explicitly said: `skipped — only non-integration files changed since successful integration 1e0875f on the current PR base`.
+- Fast shell/lockfile/decision checks passed; the full fresh-install/headless integration job was skipped-success; the overall workflow conclusion was `success`.
+- This validates the real run-name/display_title metadata handoff, exact current-base SHA comparison, same-PR successful-full-integration baseline selection, and docs-only changed-path classification after the final fixed-prefix hardening. A separate earlier docs-only experiment before fixed-prefix hardening also passed (#43643566371); this final run is the authoritative validation for the corrected final workflow.
+- Final state: PR #92 remains open, Ready for review, mergeable, and unmerged. The assistant Senior Reviewer pass returned simulated APPROVE; there is no external human review and no merge authorization.
+
+
+## 2026-11-14 — Final docs-only continuity checkpoint verified
+
+- The branch advanced from docs-only head `db8eca9163560c02d58dc85db13e65148fa50390` to `7dee7fdfde76a44c1a3fa24194086779e35c623a`; both commits modify only `AGENT_STATE.md` and `AGENT_WORKLOG.md`.
+- Exact head `7dee7fd` passed [run #43644394789](https://github.com/brianfiszman/dotfiles/actions/runs/43644394789): decision and fast checks passed; all 19 tests passed; the heavy integration job was skipped-success; overall workflow succeeded.
+- The decision log reused full-integration code/test head `1e0875f` because the only changes since it were non-integration documentation, and the baseline marker still matched the current PR base SHA. The run-name metadata recorded base `9e43312f2afa523e658ed583b4f48bebffb98568`, PR head `7dee7fdfde76a44c1a3fa24194086779e35c623a`, and tested merge SHA `e8fdafbdae4840083c827bab2d740eb280d328d9`.
+- This is a second end-to-end docs-only reuse check after the successful full integration, following #43644267041. Both are green.
+- Final review disposition remains simulated Senior Reviewer **APPROVE**; there is no independent human review, no GitHub review submission, and no merge authorization.
