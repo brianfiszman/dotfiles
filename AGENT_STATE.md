@@ -36,7 +36,8 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 
 - A representative project-level test suite and interactive macOS behavior remain unverified. The headless Test Stop scenario intentionally does not run a real project test suite.
 - All six mappings remain present; only Test Stop and Debug Test were dispatched in CI. The other four were checked statically, not individually executed.
-- PR #85 still needs its final exact-head documentation QA and Senior Reviewer pass. The workflow `.github/workflows/neovim-headless.yml` filters out `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `docs/neovim-modernization-backlog.md`; no Neovim runtime workflow is expected or required for this documentation-only diff.
+- **PR #85 documentation QA: PASS; Senior Reviewer: APPROVE.** The exact three-file diff was reviewed against the live issue/PR states, source SHA, merge commit, and workflow path filter. The final persisted branch head must be resolved from the live branch ref after this checkpoint commit. The Scrum roles were performed sequentially by one assistant, not independent human reviewers.
+- The workflow `.github/workflows/neovim-headless.yml` filters out `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `docs/neovim-modernization-backlog.md`; no Neovim runtime workflow is expected or required for this documentation-only diff.
 - Issue #76 (Telescope lazy-loading) remains open. It was not committed to Sprint 1; do not start it or treat it as committed without Brian's planning decision.
 - Do not merge PR #85 without Brian's separate explicit authorization. The authorization for PR #84 does not carry over.
 
@@ -50,15 +51,15 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 | PR #84 Senior Reviewer | approved | Complete diff; simulated role, not independent human review |
 | PR #84 merge | completed | Squash merge commit `110c3658085c4c23d847de361a08b5e15e72b605` |
 | Issue #74 | closed | GitHub state reason `completed` |
-| PR #85 documentation QA/review | pending | Exact final three-file diff to be reviewed |
+| PR #85 documentation QA/review | passed / approved | Three-file docs-only diff; exact source head reviewed and final checkpoint snapshot re-verified from live branch ref |
 | PR #85 Neovim runtime CI | not applicable | Workflow path filter excludes all changed documentation paths |
 
 ## Blockers
 
 - No implementation blocker for #74.
 - Manual macOS and representative project-suite validation remain unverified, not blockers to the accepted headless scope.
-- PR #85 requires QA/reviewer sign-off and Brian's separate merge authorization.
+- PR #85 has QA/reviewer sign-off; its merge still requires Brian's separate explicit authorization.
 
 ## Next concrete action
 
-Review PR #85's exact three-file documentation diff, validate links/Markdown/status consistency, complete separate QA and Senior Reviewer passes, then ask Brian for explicit authorization before merging PR #85. Leave PR #83 and issue #76 untouched unless Brian chooses them next.
+Brian: review PR #85 and decide whether to give separate explicit authorization for its documentation-only squash merge. Do not merge it without that authorization. Leave PR #83 and issue #76 untouched unless Brian chooses them next.
