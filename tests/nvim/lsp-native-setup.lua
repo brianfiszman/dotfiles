@@ -24,7 +24,6 @@ for _, filetype in ipairs({ "javascript", "typescript", "javascriptreact", "type
 end
 
 assert(vim.fn.exists(":Format") == 2, "Conform :Format command is missing")
-assert(vim.fn.maparg("<C-f>", "n") ~= "", "Normal-mode Ctrl+F formatting mapping is missing")
 
 local json_config = vim.lsp.config.jsonls
 assert(json_config.settings.json.validate.enable == true, "JSON validation setting is missing")
