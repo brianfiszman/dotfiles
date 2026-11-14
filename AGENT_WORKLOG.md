@@ -1,61 +1,106 @@
-# Agent work log
+# Agent execution state
 
-This file is append-only. Add concise entries for meaningful discoveries,
-decisions, failures, mitigations, and handoffs. Keep detailed implementation
-and review discussion in its canonical issue, PR, commit, or CI run; link it
-here rather than copying it.
+_Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
----
+## Current task
 
-## 2026-11-13 — Recover DAP investigation and begin execution continuity (#78)
+- **Status:** implementation complete; documentation review and recovery simulation passed; PR preparation
+- **Repository:** `brianfiszman/dotfiles`
+- **Work branch:** `docs/agent-session-continuity-pr78`
+- **Base branch:** `master`
+- **Base HEAD:** `b30cf6f87dc1a8adbd573a25c712f540db2e548a`
+- **Last verified branch HEAD before this checkpoint update:** `3964e99c5208a69bc3802a686ebd47cbf89577f2`
+- **Issue:** [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78)
+- **Pull request:** not opened yet
+- **Checkpoint:** `AGENT_STATE.md`
+- **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
+- **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
+- **Current phase:** documentation review passed; ready to open the issue-specific PR
 
-### Recovered DAP/Mason finding
+The checkpoint is committed on this work branch. Resolve
+`refs/heads/docs/agent-session-continuity-pr78` to obtain the exact SHA of the
+snapshot containing this file (a checkpoint cannot embed the hash of its own
+resulting commit). The parent HEAD above is the exact source revision used for
+this checkpoint update.
 
-- The interrupted run's scheduler trace showed scheduled callbacks executing
-  and Mason directory creation completing. Callback 60 entered but did not
-  return for more than four minutes; no stack trace identified the blocking
-  function. The exact cause therefore remains unknown.
-- The headless test was polling `Package:is_installed()` while Mason was
-  installing adapters. This caused repeated synchronous scans of the shared
-  installation directory and was not a sound async completion signal.
-- The test was changed to observe package handles and terminal
-  `package:install:success` / `package:install:failed` events. Run
-  [#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228)
-  passed the five adapter installations.
-- A later first-use regression test covered `:DapInstall` with a clean
-  registry. Final validation passed on exact PR head
-  `73b4bf80f811667a778f2105dfd9516aae3bfce4` in
-  [run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202).
-- PR #77 was squash-merged as
-  [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a);
-  issue #75 was then closed. No interactive macOS or live TypeScript session
-  was performed.
+## Completed and verified
 
-### Continuity work started
+- PR [#77](https://github.com/brianfiszman/dotfiles/pull/77) was squash-merged
+  as [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a).
+- Issue [#75](https://github.com/brianfiszman/dotfiles/issues/75) was closed
+  after the merge.
+- Final PR #77 head:
+  `73b4bf80f811667a778f2105dfd9516aae3bfce4`.
+- Exact-head validation: [Actions run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202),
+  event `pull_request`, conclusion `success`.
+- The run verified clean isolated preparation, locked plugin restoration,
+  normal startup, Go lazy-loading, Mason's clean-registry first-use
+  `:DapInstall` trigger, DAP key/command activation, and Neotest's explicit
+  Debug Test mapping.
+- The final run's log artifact was 255,173 bytes.
+- The issue #78 documentation diff contains exactly five files:
+  `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`,
+  `.agents/skills/execution-continuity/SKILL.md`, and
+  `docs/neovim-modernization-backlog.md`. No Neovim runtime or workflow files
+  changed.
+- Markdown review found and corrected escaped code delimiters before PR
+  preparation. Fenced code blocks are balanced and no escaped backticks remain.
+- A simulated fresh-session recovery passed using the checkpoint, work log,
+  current branch ref, issue #78, merged PR #77, and its exact-head CI evidence.
+- No interactive macOS session or live TypeScript debug session was performed.
 
-- Began issue [#78](https://github.com/brianfiszman/dotfiles/issues/78) on
-  branch `docs/agent-session-continuity-pr78`, based on the merged #77
-  commit above.
-- The recovery protocol will treat GitHub's current branch/PR/CI state as
-  authoritative and the checkpoint as a navigation aid that must be verified.
-- The continuity skill will coordinate existing specialist skills rather than
-  duplicate Neovim, project-management, or Actions procedures.
-- Next: review the complete documentation diff, simulate a fresh-session
-  recovery, and open the separate documentation PR.
+## Important recovered finding from the interrupted DAP investigation
+
+A scheduler trace showed that scheduled callbacks did execute and Mason's
+`mkdir` operations completed. The 60th scheduled callback began but did not
+reach its end marker for more than four minutes; its blocking function was not
+captured, so the precise root cause remains unknown.
+
+The test had also been repeatedly calling `Package:is_installed()` during
+active adapter installs. This forced repeated scans of Mason's shared install
+directory. The test was changed to observe package-handle and terminal
+installation events instead. The event-driven test passed in run
+[#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228);
+subsequent fixes added clean-registry first-use coverage for `:DapInstall`.
+The latest exact-head run is #43530295202 above.
+
+## Pending
+
+- Open the documentation-only PR for #78.
+- Verify its title/body, changed files, exact head, remote branch, and any
+  Actions run triggered by the `.agents/skills/**` path filter.
+- Keep #78 open until its acceptance criteria are satisfied and the PR is merged.
+
+## Validation
+
+| Check | Status | Evidence |
+|---|---|---|
+| Source baseline | passed | Branch created from `master` at `b30cf6f87dc1a8adbd573a25c712f540db2e548a` |
+| PR #77 runtime integration | passed | Run #43530295202 for exact head `73b4bf80f811667a778f2105dfd9516aae3bfce4` |
+| Markdown delimiters / escaped code spans | passed | Five changed files fetched and checked |
+| Internal path and cross-reference review | passed | All linked repository paths resolve |
+| Simulated recovery | passed | Checkpoint, worklog, live branch, issue #78 and PR #77 reconciled |
+| Scope review | passed | Five documentation paths only; no runtime/workflow files |
+| Local filesystem / shell checks | unavailable in this GitHub-only execution | No local repository worktree was used |
+| macOS interactive validation | not run | Not part of issue #78 |
+
+## Blockers
+
+None currently. The documentation PR has not yet been opened.
+
+## Next concrete action
+
+Open PR #78's documentation-only change against `master`, then verify the
+PR's exact head and any resulting workflow run before handing off.
 
 
-## 2026-11-13 — Documentation review and simulated recovery passed
+## 2026-11-13 — Documentation PR opened (#79)
 
-- Reviewed the five changed files on `docs/agent-session-continuity-pr78`.
-  Corrected literal escaped Markdown code delimiters and reconciled the stale
-  #75 backlog entry.
-- Verified the branch contains only `AGENTS.md`, `AGENT_STATE.md`,
-  `AGENT_WORKLOG.md`, `.agents/skills/execution-continuity/SKILL.md`,
-  and `docs/neovim-modernization-backlog.md`; no runtime or workflow files.
-- Checked balanced fenced code blocks, absence of escaped backticks, and
-  repository path references.
-- Simulated recovery without conversation history: the instructions led to
-  the checkpoint, work log, live branch, issue #78, merged PR #77, exact
-  validation SHA, and next concrete action. The checkpoint matched the
-  authoritative GitHub state.
-- Next: open the separate documentation PR and inspect its exact-head checks.
+- Opened [PR #79](https://github.com/brianfiszman/dotfiles/pull/79) for issue
+  [#78](https://github.com/brianfiszman/dotfiles/issues/78), targeting
+  `master` from `docs/agent-session-continuity-pr78`.
+- The PR contains five documentation-only paths and does not change Neovim
+  runtime configuration or workflow definitions.
+- PR head at creation: `4994f6dabfd4bd43a56597ce250c3800f020b326`.
+- Next: verify the branch after this checkpoint update, then inspect any
+  workflow run on the exact current PR head.

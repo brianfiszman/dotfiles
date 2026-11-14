@@ -4,24 +4,24 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** implementation complete; documentation review and recovery simulation passed; PR preparation
+- **Status:** implementation and documentation review complete; PR open, final-head validation pending
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `docs/agent-session-continuity-pr78`
 - **Base branch:** `master`
 - **Base HEAD:** `b30cf6f87dc1a8adbd573a25c712f540db2e548a`
-- **Last verified branch HEAD before this checkpoint update:** `3964e99c5208a69bc3802a686ebd47cbf89577f2`
+- **Last verified PR head before this checkpoint update:** `4994f6dabfd4bd43a56597ce250c3800f020b326`
 - **Issue:** [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78)
-- **Pull request:** not opened yet
+- **Pull request:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79) — open
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
 - **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
-- **Current phase:** documentation review passed; ready to open the issue-specific PR
+- **Current phase:** PR opened; verify its exact head and workflow results
 
 The checkpoint is committed on this work branch. Resolve
 `refs/heads/docs/agent-session-continuity-pr78` to obtain the exact SHA of the
 snapshot containing this file (a checkpoint cannot embed the hash of its own
-resulting commit). The parent HEAD above is the exact source revision used for
-this checkpoint update.
+resulting commit). The parent HEAD above is the exact PR head before this
+checkpoint update.
 
 ## Completed and verified
 
@@ -47,6 +47,8 @@ this checkpoint update.
   preparation. Fenced code blocks are balanced and no escaped backticks remain.
 - A simulated fresh-session recovery passed using the checkpoint, work log,
   current branch ref, issue #78, merged PR #77, and its exact-head CI evidence.
+- PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) was opened against
+  `master` with the five documentation-only files.
 - No interactive macOS session or live TypeScript debug session was performed.
 
 ## Important recovered finding from the interrupted DAP investigation
@@ -66,9 +68,11 @@ The latest exact-head run is #43530295202 above.
 
 ## Pending
 
-- Open the documentation-only PR for #78.
-- Verify its title/body, changed files, exact head, remote branch, and any
-  Actions run triggered by the `.agents/skills/**` path filter.
+- Verify the current branch ref and PR #79 head after the checkpoint commit.
+- Inspect the workflow run (if path filters schedule one) and ensure its event
+  and head match the final PR SHA.
+- Review any mergeability or review feedback; do not merge until the PR is
+  reviewed and the required authorization is present.
 - Keep #78 open until its acceptance criteria are satisfied and the PR is merged.
 
 ## Validation
@@ -81,14 +85,15 @@ The latest exact-head run is #43530295202 above.
 | Internal path and cross-reference review | passed | All linked repository paths resolve |
 | Simulated recovery | passed | Checkpoint, worklog, live branch, issue #78 and PR #77 reconciled |
 | Scope review | passed | Five documentation paths only; no runtime/workflow files |
+| PR #79 workflow | pending | Recheck exact head after final checkpoint commit |
 | Local filesystem / shell checks | unavailable in this GitHub-only execution | No local repository worktree was used |
 | macOS interactive validation | not run | Not part of issue #78 |
 
 ## Blockers
 
-None currently. The documentation PR has not yet been opened.
+None identified. Final PR-head validation and review are pending.
 
 ## Next concrete action
 
-Open PR #78's documentation-only change against `master`, then verify the
-PR's exact head and any resulting workflow run before handing off.
+Resolve the remote branch ref, inspect PR #79's latest exact head and checks,
+then update this checkpoint with the observed result.
