@@ -567,3 +567,13 @@ here rather than copying it.
 - Exact head `c4c81626fe790f3dce724c0ca315a84968cb734c` triggered run [#43643785384](https://github.com/brianfiszman/dotfiles/actions/runs/43643785384). The decision job correctly required full integration because the workflow and CI test changed. The new contract test failed because its regular expression over-escaped the literal GitHub expression prefix `${{ github.workflow }}`; the other 18 tests passed.
 - Correction: assert the expected fixed run-name prefix with a literal `String.includes` check, and keep the negative assertion that PR-title interpolation is absent. No production logic change.
 - The next exact-head workflow run will re-run all fast tests and full integration; the previous run is not accepted as validation because its fast job failed.
+
+
+## 2026-11-14 — PR #92 final fixed-prefix implementation passed full integration
+
+- Exact corrected head `1e0875fe48732548e78c14e162c2118d47c74a66` passed PR run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247).
+- The final contract test now proves the run-name uses the fixed `github.workflow` prefix and does not interpolate the editable PR title. All **19/19** fast tests passed.
+- Full integration passed: pinned toolchain setup, supplemental prerequisites, pinned Neovim and checksum-pinned LuaLS, isolated install preparation, locked plugin restore/build hooks, normal startup, all headless behavior scenarios, real LuaLS completion/hover/diagnostics, and all five Mason DAP adapters. Artifact upload succeeded.
+- The resolved Actions `display_title` is `Neovim headless smoke test [nvim-ci-baseline base=9e43312f2afa523e658ed583b4f48bebffb98568 pr_head=1e0875fe48732548e78c14e162c2118d47c74a66 tested=d1b264b13fec542a549cf5484e65f0534d9ac19f]`.
+- Live PR metadata confirms the recorded base equals `base_sha`, recorded PR head equals workflow run `head_sha`, and recorded tested SHA equals the PR's exact `merge_commit_sha`. This is the full-integration baseline for the final docs-only reuse proof.
+- Senior Reviewer re-pass (simulated) inspected the corrected workflow, metadata parsing, same-PR/successful-job checks, base/head matching, fail-open paths, cancellation condition, path classification and regression tests. **APPROVE**: no blocking findings remain in the corrected diff. This remains an assistant review, not an independent human review.
