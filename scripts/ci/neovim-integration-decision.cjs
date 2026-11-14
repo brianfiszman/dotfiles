@@ -1,7 +1,7 @@
 "use strict";
 const INTEGRATION_WORKFLOW_ID = "neovim-headless.yml";
 const INTEGRATION_JOB_NAME = "Fresh install and headless startup";
-const BASELINE_MARKER = /<!-- nvim-ci-baseline base=([0-9a-f]{40}) pr_head=([0-9a-f]{40}) tested=([0-9a-f]{40}) -->/i;
+const BASELINE_MARKER = /\[nvim-ci-baseline base=([0-9a-f]{40}) pr_head=([0-9a-f]{40}) tested=([0-9a-f]{40})\]/i;
 
 function required(reason) {
   return { required: true, reason };
@@ -19,9 +19,9 @@ function isIntegrationPath(path) {
     path === "README.md";
 }
 
-function parseIntegrationBaseline(summary) {
-  if (typeof summary !== "string") return null;
-  const match = summary.match(BASELINE_MARKER);
+function parseIntegrationBaseline(displayTitle) {
+  if (typeof displayTitle !== "string") return null;
+  const match = displayTitle.match(BASELINE_MARKER);
   if (!match) return null;
   return {
     baseSha: match[1].toLowerCase(),
@@ -43,8 +43,7 @@ async function determineIntegrationRequirement({ context, github }) {
   const repository = context.repo || {};
   const owner = repository.owner;
   const repoName = repository.repo;
-  if (!owner || !repoName || !github || !github.rest || !github.rest.actions ||
-      !github.rest.checks || typeof github.rest.checks.get !== "function") {
+  if (!owner || !repoName || !github || !github.rest || !github.rest.actions) {
     return required("GitHub API context is incomplete; fail open to full integration");
   }
 
@@ -82,18 +81,11 @@ async function determineIntegrationRequirement({ context, github }) {
       const integration = jobs.find((job) => job.name === INTEGRATION_JOB_NAME);
       if (!integration || integration.conclusion !== "success") continue;
 
-      const checkRunMatch = typeof integration.check_run_url === "string" &&
-        integration.check_run_url.match(/\/check-runs\/(\d+)(?:\?.*)?$/);
-      if (!checkRunMatch) {
-        return required("baseline integration check-run reference is missing; fail open to full integration");
-      }
-      const checkResponse = await github.rest.checks.get({
-        owner, repo: repoName, check_run_id: Number(checkRunMatch[1]),
-      });
-      const checkRun = checkResponse.data;
-      const metadata = parseIntegrationBaseline(checkRun && checkRun.output && checkRun.output.summary);
+      // The workflow run's resolved run-name is exposed as display_title by the
+      // Actions API. Unlike job summaries, it is present in listWorkflowRuns.
+      const metadata = parseIntegrationBaseline(run.display_title);
       if (!metadata) {
-        return required("baseline integration did not record complete PR base metadata; fail open to full integration");
+        return required("baseline workflow run did not record complete PR base metadata; fail open to full integration");
       }
       if (metadata.prHeadSha !== run.head_sha.toLowerCase()) {
         return required("baseline PR head metadata does not match its workflow run; fail open to full integration");

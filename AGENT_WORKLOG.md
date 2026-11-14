@@ -526,3 +526,14 @@ here rather than copying it.
 - Exact-head PR run [#43642279636](https://github.com/brianfiszman/dotfiles/actions/runs/43642279636) passed all jobs. The decision job correctly refused to reuse older markerless integrations and selected the full path. Fast checks passed **19/19**; full install preparation, pinned Neovim/LuaLS setup, locked plugin restore/build hooks, normal startup, baseline recording, behavior suite, and artifact upload passed.
 - Remaining end-to-end check: create a docs-only follow-up and verify the decision job can retrieve the new successful integration's check-run summary, match the same base SHA, and skip only the heavy job. This will exercise the Checks API handoff rather than only the mocked unit tests.
 - Format correction for the immediately preceding checkpoint entry: inline code spans were unintentionally backslash-escaped; intended literals are \`feat/ci-feedback-91\`, \`master\`, \`scripts/ci/**\`, and \`tests/ci/**\`. No technical decision changed.
+
+
+## 2026-11-14 — PR #92 baseline metadata transport correction
+
+- Follow-up evidence: docs-only head \`afb04c9a8427ec0f68bb032675c11718dc2e3307\` triggered PR run [#43642655852](https://github.com/brianfiszman/dotfiles/actions/runs/43642655852). The decision job found the prior successful full integration but could not read the marker from the Checks API \`output.summary\`; it failed open and started the full integration. The gate did not incorrectly skip validation.
+- Root cause: GitHub Actions job summaries are not available in the check-run output field in the way the first implementation assumed. The \`checks: read\` approach is removed.
+- Replacement: embed the exact base SHA, PR head SHA, and tested \`github.sha\` in the workflow's resolved \`run-name\`. The Actions workflow-runs API exposes the resolved name as \`display_title\`; the decision helper parses that immutable run metadata and still requires a matching successful full-integration job and explicit same-PR association.
+- The heavy job's check name remains stable; no additional write permission or external status is introduced. Missing/unparseable display-title metadata continues to fail open.
+- Regression tests now cover run-name parsing and assert the workflow publishes the marker while preserving the heavy-job check name and default-branch push paths.
+- References: [workflow run-name syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#run-name) and [workflow runs REST API](https://docs.github.com/en/rest/actions/workflow-runs).
+- Status: replacement is committed to the existing PR branch; exact-head CI plus a docs-only end-to-end reuse check are pending.

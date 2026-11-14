@@ -28,70 +28,53 @@ function makeContext(overrides = {}) {
   };
 }
 
+function baselineDisplayTitle({ baseSha = BASE_SHA, prHeadSha = PREVIOUS_HEAD_SHA, testedSha = TESTED_SHA } = {}) {
+  return "PR #92 [nvim-ci-baseline base=" + baseSha +
+    " pr_head=" + prHeadSha + " tested=" + testedSha + "]";
+}
+
 function baseline(overrides = {}) {
   return {
     id: 123,
     head_sha: PREVIOUS_HEAD_SHA,
     head_branch: "feat/ci-feedback-91",
     conclusion: "success",
+    display_title: baselineDisplayTitle(),
     created_at: "2026-11-14T18:00:00Z",
     pull_requests: [{ number: 92 }],
     ...overrides,
   };
 }
 
-function baselineSummary({ baseSha = BASE_SHA, prHeadSha = PREVIOUS_HEAD_SHA, testedSha = TESTED_SHA } = {}) {
-  return "<!-- nvim-ci-baseline base=" + baseSha +
-    " pr_head=" + prHeadSha + " tested=" + testedSha + " -->";
-}
-
 function fakeGithub(options = {}) {
-  const calls = { runs: [], jobs: [], comparisons: [], checkRuns: [] };
-  const runs = options.runs === undefined ? [baseline()] : options.runs;
+  const calls = { runs: [], jobs: [], comparisons: [] };
+  const runs = options.runs === undefined ? [baseline({
+    display_title: options.displayTitle === undefined
+      ? baselineDisplayTitle({
+        baseSha: options.baselineBaseSha || BASE_SHA,
+        prHeadSha: options.baselinePrHeadSha || PREVIOUS_HEAD_SHA,
+      })
+      : options.displayTitle,
+  })] : options.runs;
   const jobsByRun = options.jobsByRun === undefined
-    ? { 123: [{
-      name: "Fresh install and headless startup",
-      conclusion: "success",
-      check_run_url: "https://api.github.com/repos/brianfiszman/dotfiles/check-runs/456",
-    }] }
+    ? { 123: [{ name: "Fresh install and headless startup", conclusion: "success" }] }
     : options.jobsByRun;
   return {
     calls,
-    rest: {
-      actions: {
-        async listWorkflowRuns(args) {
-          calls.runs.push(args);
-          if (options.error === "runs") throw new Error("runs unavailable");
-          if (options.incomplete === "runs") return { data: {} };
-          return { data: { workflow_runs: runs } };
-        },
-        async listJobsForWorkflowRun(args) {
-          calls.jobs.push(args);
-          if (options.error === "jobs") throw new Error("jobs unavailable");
-          if (options.incomplete === "jobs") return { data: {} };
-          return { data: { jobs: jobsByRun[args.run_id] || [] } };
-        },
+    rest: { actions: {
+      async listWorkflowRuns(args) {
+        calls.runs.push(args);
+        if (options.error === "runs") throw new Error("runs unavailable");
+        if (options.incomplete === "runs") return { data: {} };
+        return { data: { workflow_runs: runs } };
       },
-      checks: {
-        async get(args) {
-          calls.checkRuns.push(args);
-          if (options.error === "checks") throw new Error("checks unavailable");
-          if (options.incomplete === "checks") return { data: { output: {} } };
-          return {
-            data: {
-              output: {
-                summary: options.summary === undefined
-                  ? baselineSummary({
-                    baseSha: options.baselineBaseSha || BASE_SHA,
-                    prHeadSha: options.baselinePrHeadSha || PREVIOUS_HEAD_SHA,
-                  })
-                  : options.summary,
-              },
-            },
-          };
-        },
+      async listJobsForWorkflowRun(args) {
+        calls.jobs.push(args);
+        if (options.error === "jobs") throw new Error("jobs unavailable");
+        if (options.incomplete === "jobs") return { data: {} };
+        return { data: { jobs: jobsByRun[args.run_id] || [] } };
       },
-    },
+    } },
     async request(route, args) {
       calls.comparisons.push({ route, args });
       if (options.error === "compare") throw new Error("compare unavailable");
@@ -105,13 +88,13 @@ function fakeGithub(options = {}) {
 }
 
 test("baseline metadata parser requires three complete SHA values", () => {
-  assert.deepEqual(parseIntegrationBaseline(baselineSummary()), {
+  assert.deepEqual(parseIntegrationBaseline(baselineDisplayTitle()), {
     baseSha: BASE_SHA,
     prHeadSha: PREVIOUS_HEAD_SHA,
     testedSha: TESTED_SHA,
   });
   assert.equal(parseIntegrationBaseline("no baseline metadata"), null);
-  assert.equal(parseIntegrationBaseline("<!-- nvim-ci-baseline base=abc pr_head=def tested=ghi -->"), null);
+  assert.equal(parseIntegrationBaseline("PR #92 [nvim-ci-baseline base=abc pr_head=def tested=ghi]"), null);
 });
 
 test("schedule, push and manual events always require the cold path", async () => {
@@ -157,11 +140,7 @@ test("different PRs and missing PR associations cannot provide a baseline", asyn
 test("skipped, failed and cancelled integration runs cannot provide a baseline", async () => {
   for (const conclusion of ["skipped", "failure", "cancelled"]) {
     const github = fakeGithub({
-      jobsByRun: { 123: [{
-        name: "Fresh install and headless startup",
-        conclusion,
-        check_run_url: "https://api.github.com/repos/brianfiszman/dotfiles/check-runs/456",
-      }] },
+      jobsByRun: { 123: [{ name: "Fresh install and headless startup", conclusion }] },
     });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);
@@ -176,7 +155,6 @@ test("documentation-only delta skips integration after a successful baseline on 
   const result = await determineIntegrationRequirement({ context: makeContext(), github });
   assert.equal(result.required, false);
   assert.match(result.reason, /only non-integration files changed/);
-  assert.equal(github.calls.checkRuns.length, 1);
 });
 
 test("a master/base SHA change invalidates the previous successful integration baseline", async () => {
@@ -195,23 +173,14 @@ test("baseline metadata must match the historical PR head", async () => {
   assert.equal(github.calls.comparisons.length, 0);
 });
 
-test("missing or incomplete baseline check-run metadata fails open", async () => {
-  for (const options of [{ summary: "no marker" }, { incomplete: "checks" }]) {
-    const github = fakeGithub(options);
+test("missing or incomplete workflow run name metadata fails open", async () => {
+  for (const displayTitle of ["no marker", undefined]) {
+    const github = fakeGithub({ displayTitle });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);
     assert.match(result.reason, /did not record complete PR base metadata/);
     assert.equal(github.calls.comparisons.length, 0);
   }
-});
-
-test("baseline must have a check-run reference and successful full integration", async () => {
-  const github = fakeGithub({
-    jobsByRun: { 123: [{ name: "Fresh install and headless startup", conclusion: "success" }] },
-  });
-  const result = await determineIntegrationRequirement({ context: makeContext(), github });
-  assert.equal(result.required, true);
-  assert.match(result.reason, /check-run reference is missing/);
 });
 
 test("configuration and test changes require integration", async () => {
@@ -274,7 +243,7 @@ test("diverged, incomplete and API-capped comparisons fail open", async () => {
 });
 
 test("workflow API failures fail open", async () => {
-  for (const error of ["runs", "jobs", "checks", "compare"]) {
+  for (const error of ["runs", "jobs", "compare"]) {
     const result = await determineIntegrationRequirement({
       context: makeContext(),
       github: fakeGithub({ error }),
@@ -308,6 +277,15 @@ test("integration runs on decision failure but does not outlive a cancelled work
     "$" + "{{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}",
     "integration must run when decision fails, output is missing, or output is anything except the exact string false"
   );
+});
+
+test("workflow run name carries the immutable PR baseline and keeps the heavy job check name stable", () => {
+  const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
+  const workflow = readFileSync(workflowPath, "utf8");
+  assert.match(workflow, /^run-name:.*nvim-ci-baseline.*base=.*pr_head=.*tested=/m);
+  assert.match(workflow, /name: Fresh install and headless startup/);
+  assert.match(workflow, /- "scripts\/ci\/\*\*"/);
+  assert.match(workflow, /- "tests\/ci\/\*\*"/);
 });
 
 test("path classifier includes integration inputs but not continuity-only docs", () => {
