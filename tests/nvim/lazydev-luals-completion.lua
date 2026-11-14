@@ -63,14 +63,19 @@ local function request_completion(line, character)
   }
   local response, err = client:request_sync("textDocument/completion", params, 20000, bufnr)
   assert(response, "LuaLS completion request failed: " .. tostring(err))
+  assert(response.err == nil,
+    "LuaLS returned a completion error: " .. vim.inspect(response.err))
 
   local result = response.result
   local items = result and (result.items or result) or {}
-  assert(type(items) == "table", "LuaLS returned an invalid completion result")
+  assert(type(items) == "table", "LuaLS returned an invalid completion result: " .. vim.inspect(response))
 
   local labels = {}
   for _, item in ipairs(items) do
     labels[item.label] = true
+  end
+  if vim.tbl_isempty(labels) then
+    print("DEBUG: raw LuaLS completion response: " .. vim.inspect(response))
   end
   return labels
 end
