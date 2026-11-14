@@ -38,138 +38,18 @@ jobs:
       required: ${{ steps.decide.outputs.required }}
       reason: ${{ steps.decide.outputs.reason }}
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
       - name: Compare changes since the last successful PR integration
         id: decide
         uses: actions/github-script@v9
         with:
           script: |
-            const decide = (required, reason) => {
-              core.setOutput("required", required ? "true" : "false");
-              core.setOutput("reason", reason);
-              core.info(`Full integration: ${required ? "required" : "skipped"} — ${reason}`);
-            };
-
-            // Pushes to master, scheduled cold runs, and manual dispatch always
-            // exercise the full clean-install/restore/build/startup path.
-            if (context.eventName !== "pull_request") {
-              decide(true, `${context.eventName} always runs the cold integration path`);
-              return;
-            }
-
-            const pr = context.payload.pull_request;
-            if (!pr?.head?.sha || !pr.head.ref || !pr.number) {
-              decide(true, "PR payload is incomplete; fail open to full integration");
-              return;
-            }
-
-            const { owner, repo } = context.repo;
-            try {
-              const { data } = await github.rest.actions.listWorkflowRuns({
-                owner,
-                repo,
-                workflow_id: "neovim-headless.yml",
-                branch: pr.head.ref,
-                event: "pull_request",
-                status: "completed",
-                per_page: 100,
-              });
-
-              const candidates = data.workflow_runs
-                .filter((run) => {
-                  if (
-                    run.id === context.runId ||
-                    run.head_sha === pr.head.sha ||
-                    run.conclusion !== "success" ||
-                    run.head_branch !== pr.head.ref
-                  ) {
-                    return false;
-                  }
-
-                  // Prefer an explicit PR association. Older API payloads may
-                  // omit it; branch matching is the safe fallback for this
-                  // repository's topic-branch-per-PR convention.
-                  if (Array.isArray(run.pull_requests) && run.pull_requests.length > 0) {
-                    return run.pull_requests.some((item) => item.number === pr.number);
-                  }
-                  return true;
-                })
-                .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
-
-              let baseline = null;
-              for (const run of candidates.slice(0, 25)) {
-                const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
-                  owner,
-                  repo,
-                  run_id: run.id,
-                  filter: "latest",
-                  per_page: 100,
-                });
-                const integration = jobs.jobs.find(
-                  (job) => job.name === "Fresh install and headless startup"
-                );
-                if (integration?.conclusion === "success") {
-                  baseline = run;
-                  break;
-                }
-              }
-
-              if (!baseline) {
-                decide(true, "no previous successful full integration exists for this PR");
-                return;
-              }
-
-              const comparison = await github.request(
-                "GET /repos/{owner}/{repo}/compare/{base}...{head}",
-                {
-                  owner,
-                  repo,
-                  base: baseline.head_sha,
-                  head: pr.head.sha,
-                  per_page: 100,
-                }
-              );
-
-              const result = comparison.data;
-              if (
-                result.status !== "ahead" ||
-                !Array.isArray(result.files) ||
-                result.files.length === 0 ||
-                result.files.length >= 300 ||
-                (result.total_commits ?? 0) >= 250
-              ) {
-                decide(true, "history diverged or the changed-file comparison may be incomplete");
-                return;
-              }
-
-              const integrationPaths = (path) =>
-                path.startsWith(".config/nvim/") ||
-                path.startsWith("tests/nvim/") ||
-                path.startsWith(".agents/skills/") ||
-                path === "install.sh" ||
-                path === "scripts/test-nvim-headless.sh" ||
-                path === ".github/workflows/neovim-headless.yml" ||
-                path === "README.md";
-
-              const changedPaths = result.files.flatMap((file) =>
-                [file.filename, file.previous_filename].filter(Boolean)
-              );
-              const relevant = changedPaths.filter(integrationPaths);
-
-              if (relevant.length > 0) {
-                decide(
-                  true,
-                  `integration-relevant files changed since ${baseline.head_sha.slice(0, 7)}: ${relevant.join(", ")}`
-                );
-              } else {
-                decide(
-                  false,
-                  `only non-integration files changed since successful integration ${baseline.head_sha.slice(0, 7)}`
-                );
-              }
-            } catch (error) {
-              core.warning(`Could not safely determine the PR delta: ${error.message}`);
-              decide(true, "integration-gating API failed; fail open to the full suite");
-            }
+            const { determineIntegrationRequirement } = require("./scripts/ci/neovim-integration-decision.cjs");
+            const decision = await determineIntegrationRequirement({ context, github });
+            core.setOutput("required", decision.required ? "true" : "false");
+            core.setOutput("reason", decision.reason);
+            core.info("Full integration: " + (decision.required ? "required" : "skipped") + " — " + decision.reason);
 
   fast-checks:
     name: Fast shell and lockfile checks
@@ -188,10 +68,13 @@ jobs:
       - name: Validate lazy.nvim lockfile JSON
         run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
 
+      - name: Test PR integration decision and fail-open behavior
+        run: node --test tests/ci/neovim-integration-decision.test.cjs
+
   headless-startup:
     name: Fresh install and headless startup
     needs: integration-decision
-    if: ${{ always() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required == 'true') }}
+    if: ${{ always() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
