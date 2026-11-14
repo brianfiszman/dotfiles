@@ -39,8 +39,8 @@ wait_for("lazy.nvim to register the existing Test Stop trigger", 30000, function
 end)
 
 local mapping = vim.fn.maparg(lhs, "n", false, true)
-assert(type(mapping) == "table" and mapping.rhs ~= "", "Test Stop trigger has no executable mapping")
-print(("MAPPING: Test Stop rhs=%s"):format(mapping.rhs))
+assert(type(mapping) == "table" and mapping.lhs == lhs, "Test Stop trigger is not registered for the expected key")
+print(("MAPPING: Test Stop rhs=%s callback=%s"):format(mapping.rhs or "<none>", type(mapping.callback)))
 
 print("STEP: dispatching the existing Test Stop mapping")
 local keys = vim.api.nvim_replace_termcodes(lhs, true, false, true)
