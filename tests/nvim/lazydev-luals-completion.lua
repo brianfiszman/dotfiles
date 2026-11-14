@@ -15,7 +15,7 @@ local bufnr = vim.api.nvim_create_buf(true, false)
 vim.api.nvim_buf_set_name(bufnr, filename)
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "builtin.f",
+  "local find_files = builtin.f",
 })
 vim.api.nvim_set_current_buf(bufnr)
 vim.cmd("setfiletype lua")
@@ -81,7 +81,7 @@ local function request_completion(line, character)
 end
 
 -- This mirrors the user's actual completion context after typing "builtin.".
-local telescope_items = request_completion(1, #"builtin.f")
+local telescope_items = request_completion(1, #"local find_files = builtin.f")
 if not telescope_items.find_files then
   print("DEBUG: LuaLS Telescope completion labels: " .. vim.inspect(vim.tbl_keys(telescope_items)))
   print("DEBUG: active LuaLS workspace: " .. vim.inspect(Workspace.find({ buf = bufnr }).settings.Lua.workspace.library))
@@ -94,9 +94,9 @@ print("PASS: real LuaLS completion returns telescope.builtin.find_files")
 -- Also verify the Neovim API type library and the configured global.
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "vim.api.n",
+  "local autocmd = vim.api.n",
 })
-local nvim_items = request_completion(1, #"vim.api.n")
+local nvim_items = request_completion(1, #"local autocmd = vim.api.n")
 assert(nvim_items.nvim_create_autocmd,
   "LuaLS did not complete vim.api.nvim_create_autocmd; Neovim API types are unavailable")
 
@@ -120,7 +120,7 @@ vim.api.nvim_create_autocmd("DiagnosticChanged", {
 
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "return builtin.find_files",
+  "local find_files = builtin.find_files",
 })
 
 assert(vim.wait(15000, function()
