@@ -30,7 +30,7 @@ underlying fix.
 - [#42 Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
 - [#43 Load testing, debugging, and search tools only when used (tracking parent)](https://github.com/brianfiszman/dotfiles/issues/43)
 - [#74 Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
-- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75)
+- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75) — merged via [PR #77](https://github.com/brianfiszman/dotfiles/pull/77); exact-head run [#43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202) passed.
 - [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
@@ -67,21 +67,21 @@ Still open after the merge:
 
 [PR #77](https://github.com/brianfiszman/dotfiles/pull/77) implements
 [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75)
-and was squash-merged into \`master\` as
-[\`b30cf6f\`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a).
+and was squash-merged into `master` as
+[`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a).
 
 The final PR head
-\`73b4bf80f811667a778f2105dfd9516aae3bfce4\` passed the full isolated workflow
+`73b4bf80f811667a778f2105dfd9516aae3bfce4` passed the full isolated workflow
 in [Actions run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202).
-The run was a \`pull_request\` event for that exact head and passed isolated
+The run was a `pull_request` event for that exact head and passed isolated
 preparation, locked plugin restore/build hooks, normal startup, Go lazy-loading,
-the first-use Mason \`:DapInstall\` path, DAP key activation, native DAP command
+the first-use Mason `:DapInstall` path, DAP key activation, native DAP command
 triggers, and Neotest's Debug Test mapping. All five configured Mason adapters
 reached successful or already-installed terminal states. The logs artifact
 was 255,173 bytes.
 
 The DAP test now observes Mason package-handle and terminal install events
-rather than repeatedly polling \`Package:is_installed()\` while installs are in
+rather than repeatedly polling `Package:is_installed()` while installs are in
 progress. An earlier callback trace showed a scheduled callback entering but
 not returning for more than four minutes; the exact blocking function was not
 captured, so the root cause is not claimed as proven. The event-driven test
@@ -89,7 +89,7 @@ passed and removed the repeated filesystem scan from its wait predicate.
 
 Issue #75 is closed as completed. The existing Run with Args defect remains
 separate in [#40](https://github.com/brianfiszman/dotfiles/issues/40). No
-\`lazy-lock.json\` changes were included. Interactive macOS behavior and a live
+`lazy-lock.json` changes were included. Interactive macOS behavior and a live
 TypeScript debugging session were not tested by CI.
 
 ## Current handoff — execution continuity, then next functional issue
@@ -97,15 +97,15 @@ TypeScript debugging session were not tested by CI.
 The current documentation task is
 [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78).
 It is being implemented separately from the DAP PR on branch
-\`docs/agent-session-continuity-pr78\`. Its scope is the root working agreement,
-a continuity skill, \`AGENT_STATE.md\`, and append-only \`AGENT_WORKLOG.md\`;
+`docs/agent-session-continuity-pr78`. Its scope is the root working agreement,
+a continuity skill, `AGENT_STATE.md`, and append-only `AGENT_WORKLOG.md`;
 it must not change Neovim runtime configuration or workflow behavior.
 
 After #78 is reviewed, validated, and merged, resume the functional sequence
 with [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74),
 which can now rely on #75's removal of Neotest's unconditional DAP dependency.
 [Telescope #76](https://github.com/brianfiszman/dotfiles/issues/76) stays separate.
-The old \`feat/dap-on-demand\` branch was not used as the merge source; PR #77
+The old `feat/dap-on-demand` branch was not used as the merge source; PR #77
 used a clean branch based on the post-#71 master and its final head was validated
 before merging.
 
@@ -122,7 +122,7 @@ Documentation/foundation work remains in its own issue and PR.
 - Do not mass-update plugins as part of an unrelated fix.
 - Measure startup before and after; do not claim a speedup without measurements.
 - Separate Linux headless results from macOS interactive validation.
-- Use \`AGENTS.md\` and [the Neovim maintenance skill](../.agents/skills/neovim-maintenance/SKILL.md)
+- Use `AGENTS.md` and [the Neovim maintenance skill](../.agents/skills/neovim-maintenance/SKILL.md)
   as the repository's working agreement.
 - Use the [GitHub Actions validation skill](../.agents/skills/github-actions-validation/SKILL.md)
   to trace workflow runs by exact commit and event.

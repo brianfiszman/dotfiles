@@ -9,7 +9,7 @@ description: Recover and preserve multi-step repository work across interrupted 
 
 Make an interrupted work session recoverable without depending on conversation
 history. The repository and its live GitHub state are the source of truth.
-\`AGENT_STATE.md\` is a compact handoff pointer; \`AGENT_WORKLOG.md\` preserves
+`AGENT_STATE.md` is a compact handoff pointer; `AGENT_WORKLOG.md` preserves
 meaningful discoveries and decisions over time. Neither file replaces issues,
 pull requests, commits, specialist skills, or CI evidence.
 
@@ -20,15 +20,15 @@ procedures.
 
 Follow this sequence before continuing substantial work:
 
-1. Read \`AGENTS.md\` and this skill.
-2. Read \`AGENT_STATE.md\`. Note the repository, branch, base, last recorded
+1. Read `AGENTS.md` and this skill.
+2. Read `AGENT_STATE.md`. Note the repository, branch, base, last recorded
    HEAD, active issue/PR, phase, blockers, and next action.
-3. Read the latest entries at the end of \`AGENT_WORKLOG.md\`. Follow links to
+3. Read the latest entries at the end of `AGENT_WORKLOG.md`. Follow links to
    existing issues, PRs, commits, and CI runs for detailed context; do not
    reconstruct those discussions from memory.
 4. Inspect the actual repository state:
-   - With a local checkout, run \`git status --short --branch\`,
-     \`git rev-parse HEAD\`, and inspect the configured remotes before editing.
+   - With a local checkout, run `git status --short --branch`,
+     `git rev-parse HEAD`, and inspect the configured remotes before editing.
    - With GitHub-only access, resolve the current branch ref and fetch its
      current commit, the linked issue/PR, changed files, review threads, and
      relevant workflow runs.
@@ -68,7 +68,7 @@ commits.
 
 ## Checkpoint maintenance
 
-Keep \`AGENT_STATE.md\` short and current. It should answer, without reading the
+Keep `AGENT_STATE.md` short and current. It should answer, without reading the
 conversation:
 
 - What repository and task are active?
@@ -101,14 +101,14 @@ pending work, and unavailable validation. Include exact SHAs, run IDs, event
 types, and links where applicable. Do not claim tests or mutations succeeded
 until their result is observed.
 
-The commit containing \`AGENT_STATE.md\` cannot embed its own resulting commit
+The commit containing `AGENT_STATE.md` cannot embed its own resulting commit
 SHA. Record the exact source/work HEAD used to build the checkpoint and explain
 that the exact persisted snapshot is obtained by resolving the named remote
 branch ref. On the next recovery, resolve and verify that ref before proceeding.
 
 ## Work-log maintenance
 
-\`AGENT_WORKLOG.md\` is chronological and append-only:
+`AGENT_WORKLOG.md` is chronological and append-only:
 
 - Add entries for durable discoveries, failed approaches, root-cause evidence,
   technical decisions, risk-bearing operations, and handoffs.
@@ -135,8 +135,8 @@ architecture rule, or failure pattern that is not owned by an existing skill.
   coordination; do not duplicate Neovim maintenance, GitHub project
   management, or Actions diagnosis rules.
 - When a new skill is justified, give it a clear name and description, link it
-  from \`AGENTS.md\`, and update any repository skill index if one exists.
-- There is currently no separate skill index in this repository; \`AGENTS.md\`
+  from `AGENTS.md`, and update any repository skill index if one exists.
+- There is currently no separate skill index in this repository; `AGENTS.md`
   is the top-level index of required working agreements. If an index is added
   later, register the skill there.
 - When changing an existing skill, preserve its scope and link the durable
@@ -153,19 +153,19 @@ architecture rule, or failure pattern that is not owned by an existing skill.
 - Avoid unnecessary commits for trivial activity, but do not leave a
   checkpoint only in an unpushed local worktree at the end of a substantial
   task.
-- Follow \`github-project-management\` for issue/PR deduplication, comparisons,
+- Follow `github-project-management` for issue/PR deduplication, comparisons,
   branch protection, merge authorization, and closure rules.
-- Follow \`github-actions-validation\` for exact-SHA/event validation and log
+- Follow `github-actions-validation` for exact-SHA/event validation and log
   inspection.
-- Follow \`neovim-maintenance\` for Neovim configuration and runtime work.
+- Follow `neovim-maintenance` for Neovim configuration and runtime work.
 - Do not merge a PR or close an issue unless its acceptance criteria and the
   repository's authorization rules are satisfied.
 
 ## Suggested formats
 
-Use this structure in \`AGENT_STATE.md\` and adapt it to the task:
+Use this structure in `AGENT_STATE.md` and adapt it to the task:
 
-\`\`\`markdown
+```markdown
 # Agent execution state
 
 _Last updated: YYYY-MM-DD_
@@ -194,18 +194,18 @@ _Last updated: YYYY-MM-DD_
 
 ## Next concrete action
 ...
-\`\`\`
+```
 
 Append work-log entries using dated headings:
 
-\`\`\`markdown
+```markdown
 ## YYYY-MM-DD — concise event title
 
 - Context / issue / branch:
 - What changed or was discovered:
 - Evidence and result:
 - Consequence / next action:
-\`\`\`
+```
 
 The files should remain compact enough to scan quickly. Put detailed
 acceptance criteria in issues, implementation details in code/PRs, and test

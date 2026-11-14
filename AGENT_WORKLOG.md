@@ -15,26 +15,26 @@ here rather than copying it.
   and Mason directory creation completing. Callback 60 entered but did not
   return for more than four minutes; no stack trace identified the blocking
   function. The exact cause therefore remains unknown.
-- The headless test was polling \`Package:is_installed()\` while Mason was
+- The headless test was polling `Package:is_installed()` while Mason was
   installing adapters. This caused repeated synchronous scans of the shared
   installation directory and was not a sound async completion signal.
 - The test was changed to observe package handles and terminal
-  \`package:install:success\` / \`package:install:failed\` events. Run
+  `package:install:success` / `package:install:failed` events. Run
   [#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228)
   passed the five adapter installations.
-- A later first-use regression test covered \`:DapInstall\` with a clean
+- A later first-use regression test covered `:DapInstall` with a clean
   registry. Final validation passed on exact PR head
-  \`73b4bf80f811667a778f2105dfd9516aae3bfce4\` in
+  `73b4bf80f811667a778f2105dfd9516aae3bfce4` in
   [run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202).
 - PR #77 was squash-merged as
-  [\`b30cf6f\`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a);
+  [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a);
   issue #75 was then closed. No interactive macOS or live TypeScript session
   was performed.
 
 ### Continuity work started
 
 - Began issue [#78](https://github.com/brianfiszman/dotfiles/issues/78) on
-  branch \`docs/agent-session-continuity-pr78\`, based on the merged #77
+  branch `docs/agent-session-continuity-pr78`, based on the merged #77
   commit above.
 - The recovery protocol will treat GitHub's current branch/PR/CI state as
   authoritative and the checkpoint as a navigation aid that must be verified.
