@@ -4,7 +4,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Sprint 2 is active. [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implements [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41). PR is open; CI run #43551881373 was queued for head `09d59bf996bdd9e117ae3148c645c9030af2a2bb`. QA and Senior Reviewer have not started.
+- **Status:** Sprint 2 is active. [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implements [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41). PR is open at head `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b`; runtime code snapshot is `09d59bf996bdd9e117ae3148c645c9030af2a2bb`. Run #43551881373's first attempt was cancelled before tests; its rerun is pending for the code snapshot. QA and Senior Reviewer have not started.
 - **Repository:** `brianfiszman/dotfiles`
 - **Base:** `master` after PR #86 merge commit `c587c8854faf2e99770ca6f30a51a529a38140bb`.
 - **Implementation branch:** `feat/lsp-native-setup-41`.
@@ -54,8 +54,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Check | Status | Evidence |
 |---|---|---|
 | Static review of upstream API/version requirements | passed | Selected releases and requirements inspected; see issue #41 and work log |
-| Real plugin restore | pending | Run #43551881373 queued for reviewed head `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; recheck live PR head |
-| Normal real Neovim headless startup | pending | Run #43551881373 queued; exact job not started yet |
+| Real plugin restore | pending | Run #43551881373 rerun pending for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; docs-only commits follow on PR head `70cb577` |
+| Normal real Neovim headless startup | pending | Run #43551881373 rerun pending; first attempt cancelled before Neovim installation |
 | Native LSP behavior assertions | pending | New test file wired into CI; not run yet |
 | QA | pending | Separate QA pass required |
 | Senior Reviewer | pending | Separate full-diff review required |
@@ -69,4 +69,4 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete action
 
-Re-fetch PR #87's live head and confirm the queued Actions run covers that exact SHA. Inspect job steps/logs through completion, resolve any failures, then perform QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
+Monitor run #43551881373 for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb` through completion. The latest PR head is `70cb577` and differs only by docs-only checkpoint/worklog commits; review those separately. Resolve any runtime failures, then perform QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
