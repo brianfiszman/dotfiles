@@ -196,6 +196,32 @@ test("workflow API failures fail open", async () => {
   }
 });
 
+
+test("incomplete workflow-run and job-list API responses fail open", async () => {
+  for (const incomplete of ["runs", "jobs"]) {
+    const result = await determineIntegrationRequirement({
+      context: makeContext(),
+      github: fakeGithub({ incomplete }),
+    });
+    assert.equal(result.required, true);
+    assert.match(result.reason, /response was incomplete; fail open/);
+  }
+});
+
+test("the integration job is skipped only after a successful decision with explicit false", () => {
+  const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
+  const workflow = readFileSync(workflowPath, "utf8");
+  const match = workflow.match(/^  headless-startup:\\n([\\s\\S]*?)(?=^  [a-z0-9_-]+:)/m);
+  assert.ok(match, "headless-startup job must exist");
+  const condition = match[1].match(/^    if: (.+)$/m);
+  assert.ok(condition, "headless-startup must have an explicit fail-open condition");
+  assert.equal(
+    condition[1],
+    "${{ always() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}",
+    "integration must run when decision fails, output is missing, or output is anything except the exact string false"
+  );
+});
+
 test("path classifier includes integration inputs but not continuity-only docs", () => {
   for (const path of [
     ".config/nvim/init.lua",
