@@ -6,7 +6,7 @@ state as user data, not disposable test fixtures.
 ## Source of truth and execution continuity
 
 - Treat the current repository state and GitHub as the source of truth. Conversation
-  history is useful context, but can be stale or incomplete.
+  history is useful context, but it can be stale or incomplete.
 - When resuming work, inspect the current branch and worktree when available, then
   review the relevant issues, open and recently closed PRs, branch heads, and changed
   files before creating or modifying artifacts.
