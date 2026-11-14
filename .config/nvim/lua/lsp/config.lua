@@ -226,6 +226,10 @@ function M.setup()
     lua_ls = {
       settings = {
         Lua = {
+          runtime = {
+            version = "LuaJIT",
+            path = { "?.lua", "?/init.lua" },
+          },
           completion = {
             callSnippet = "Replace",
           },
