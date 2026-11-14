@@ -72,6 +72,7 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
 - In Normal mode, **Ctrl+F** runs the shared `:Format` command through Conform.
   For JavaScript and TypeScript it selects `prettierd` when available, otherwise
   `prettier`, and follows the project's Prettier configuration.
+- LuaLS plugin type libraries are supplied by lazydev, which loads only for Lua buffers.
 - ESLint diagnostics for JavaScript/TypeScript come from the ESLint language
   server. Its `LspEslintFixAll` action still runs before saving an attached buffer.
 - Use `K` for symbol documentation, `<leader>DF` for the diagnostic under the
