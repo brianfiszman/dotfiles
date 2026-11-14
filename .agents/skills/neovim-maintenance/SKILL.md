@@ -116,6 +116,20 @@ or source that disproves it.
 - Tests must redirect HOME and all relevant XDG directories into a temporary
   directory. Never test installation against the maintainer's real home.
 
+## Mandatory behavior-first testing
+
+Testing is part of every issue's scope and estimate. Do not defer it to a later cleanup task or mark an implementation complete before its required tests pass.
+
+When creating or refining an issue:
+1. Define observable scenarios before implementation: the normal user path, relevant failure/edge paths, and behavior that must not regress.
+2. Name the automated proof required. Use unit tests for isolated logic, integration tests for real boundaries, and end-to-end tests when a complete workflow crosses multiple components.
+3. For editor behavior, automate the local usage path with a real headless Neovim process and the actual configuration/plugins/LSP/tools wherever practical. Trigger the same event, mapping, command, completion request, or workflow the maintainer would use, then assert its observable result.
+4. Do not treat syntax checks, mocks, package-loaded flags, command registration, or successful startup as proof that an interactive feature works. These may be useful lower-level checks, not substitutes for behavior coverage.
+5. Include focused tests and the relevant broader regression suite in CI with explicit PR/path triggers. If a test is moved to a scheduled/manual workflow, preserve equivalent coverage and document the trigger.
+6. Isolate HOME/XDG and generated state. Manual Mac verification supplements automation; document exact steps and rationale only where a behavior cannot reasonably be automated.
+
+A task's Definition of Done requires implementation, passing automated behavioral tests on the exact change, passing required CI checks, and an honest report of anything still unverified. Pure documentation-only edits may use Markdown/diff review when they do not change behavior.
+
 ## Select tests by change impact
 
 Use the smallest test set that gives meaningful evidence, then expand it when
