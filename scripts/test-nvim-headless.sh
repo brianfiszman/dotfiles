@@ -267,7 +267,7 @@ startup() {
 
   printf '\n[behavior] Verifying S reindents before replacing lines.\n'
   run_nvim "indented-substitute" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/indented-substitute.lua" \
+    "+lua local ok, err = xpcall(function() dofile('$REPO_ROOT/tests/nvim/indented-substitute.lua') end, debug.traceback); if not ok then vim.api.nvim_err_writeln(err); vim.cmd('cquit') end" \
     "+qa!"
 
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
