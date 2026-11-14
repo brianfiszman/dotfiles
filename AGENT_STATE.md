@@ -8,8 +8,9 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Goal: modernize native LSP ownership and keep language tooling predictable.
 - **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
 - **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
-- **Implementation/test snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`. Current PR head `f472500d8bd79da0ad6eae559291e4fdc7aed745` is three documentation-only commits ahead; the comparison against `ff5e1e5` confirms only `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and the backlog changed.
-- **Phase:** implementation and exact-head integration validated; QA PASS and Senior Reviewer APPROVE completed as separate simulated roles. Waiting for Product Owner review/merge authorization.
+- **Original implementation snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`.
+- **Current branch head:** `c60797241e54b1a2c0f7e1f3c92fad282e56eab8`. Added a pinned LuaLS 3.19.2 end-to-end completion test (`tests/nvim/lazydev-luals-completion.lua`) and made `tests/nvim/**` changes trigger CI. Exact-head run [#43614017547](https://github.com/brianfiszman/dotfiles/actions/runs/43614017547) is pending at this checkpoint.
+- **Phase:** original config tests passed exact-head CI; additional real LuaLS completion coverage is under validation. QA/Senior Reviewer sign-off must be revisited against the expanded diff after the new run completes.
 - **Merge:** not authorized for PR #88. Brian's prior authorization applied to PR #87 only.
 
 ## Completed predecessor: PR #87 / Issue #41
@@ -42,9 +43,11 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Locked plugin restore/build hooks | passed | Run #43606193476 |
 | Normal Neovim startup | passed | Run #43606193476 |
 | Native LSP, Lazydev, Neotest, Go, and DAP behavior scenarios | passed | Run #43606193476; logs show the expected PASS markers |
+| Real LuaLS completions for `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`, plus clean diagnostics for valid use | pending | New `tests/nvim/lazydev-luals-completion.lua`; exact-head run #43614017547 pending; CI pins LuaLS 3.19.2 and verifies SHA-256 |
 | QA | PASS (simulated) | All issue #42 acceptance criteria checked against complete current diff and exact-head run |
 | Senior Reviewer | APPROVE (simulated) | Separate full-diff review found no blocking correctness, architecture, compatibility, test, or scope findings. Not an independent human review. |
-| Local Lua config completion/hover and actual plugin API resolution | unverified | Requires a representative interactive macOS check |
+| Local Telescope API completion/type resolution | partially verified | Brian confirmed `require("telescope.builtin")` and `builtin.find_files` resolve without errors in the interactive Neovim session |
+| Local Neovim API completion and hover | unverified | Still requires a representative interactive check |
 | PR #88 merge | not authorized | Requires Brian's explicit approval |
 
 ### Earlier CI attempts and correction
@@ -54,9 +57,9 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Brian reviews [PR #88](https://github.com/brianfiszman/dotfiles/pull/88).
-2. On the Mac, open and edit a representative Lua configuration; verify LuaLS completion/hover and plugin API type resolution.
-3. Merge PR #88 only after Brian explicitly authorizes it. Until then, leave it open and unmerged.
+1. Complete and inspect exact-head CI run #43614017547 for the new real LuaLS completion scenario; fix any test or implementation failure before calling the expanded PR validated.
+2. On the Mac, check Neovim API completion and hover in addition to Brian's already verified Telescope API symbol completion.
+3. Review [PR #88](https://github.com/brianfiszman/dotfiles/pull/88); merge only after Brian explicitly authorizes it. Until then, leave it open and unmerged.
 
 ## Scope boundaries
 
