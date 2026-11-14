@@ -10,7 +10,7 @@ dein.vim or run a manual plugin-manager command.
 
 ### Requirements
 
-- Neovim 0.11 or newer.
+- Neovim 0.11.3 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
 - A terminal with a Nerd Font is recommended for icons, but the font is not
