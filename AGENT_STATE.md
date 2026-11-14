@@ -4,96 +4,54 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** implementation and documentation review complete; PR open, final-head validation pending
+- **Status:** implementation complete; QA PASS; Senior Reviewer APPROVE; exact-head CI passed; awaiting Product Owner merge decision
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `docs/agent-session-continuity-pr78`
 - **Base branch:** `master`
 - **Base HEAD:** `b30cf6f87dc1a8adbd573a25c712f540db2e548a`
-- **Last verified PR head before this checkpoint update:** `4994f6dabfd4bd43a56597ce250c3800f020b326`
+- **PR source HEAD before this checkpoint update:** `721a07819de395527ffe86fc6b0830f2be54702f`
 - **Issue:** [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78)
 - **Pull request:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79) — open
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
 - **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
-- **Current phase:** PR opened; verify its exact head and workflow results
-
-The checkpoint is committed on this work branch. Resolve
-`refs/heads/docs/agent-session-continuity-pr78` to obtain the exact SHA of the
-snapshot containing this file (a checkpoint cannot embed the hash of its own
-resulting commit). The parent HEAD above is the exact PR head before this
-checkpoint update.
+- **Current phase:** quality gates complete; waiting for explicit merge authorization
 
 ## Completed and verified
 
-- PR [#77](https://github.com/brianfiszman/dotfiles/pull/77) was squash-merged
-  as [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a).
-- Issue [#75](https://github.com/brianfiszman/dotfiles/issues/75) was closed
-  after the merge.
-- Final PR #77 head:
-  `73b4bf80f811667a778f2105dfd9516aae3bfce4`.
-- Exact-head validation: [Actions run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202),
-  event `pull_request`, conclusion `success`.
-- The run verified clean isolated preparation, locked plugin restoration,
-  normal startup, Go lazy-loading, Mason's clean-registry first-use
-  `:DapInstall` trigger, DAP key/command activation, and Neotest's explicit
-  Debug Test mapping.
-- The final run's log artifact was 255,173 bytes.
-- The issue #78 documentation diff contains exactly five files:
-  `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`,
-  `.agents/skills/execution-continuity/SKILL.md`, and
-  `docs/neovim-modernization-backlog.md`. No Neovim runtime or workflow files
-  changed.
-- Markdown review found and corrected escaped code delimiters before PR
-  preparation. Fenced code blocks are balanced and no escaped backticks remain.
-- A simulated fresh-session recovery passed using the checkpoint, work log,
-  current branch ref, issue #78, merged PR #77, and its exact-head CI evidence.
-- PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) was opened against
-  `master` with the five documentation-only files.
-- No interactive macOS session or live TypeScript debug session was performed.
-
-## Important recovered finding from the interrupted DAP investigation
-
-A scheduler trace showed that scheduled callbacks did execute and Mason's
-`mkdir` operations completed. The 60th scheduled callback began but did not
-reach its end marker for more than four minutes; its blocking function was not
-captured, so the precise root cause remains unknown.
-
-The test had also been repeatedly calling `Package:is_installed()` during
-active adapter installs. This forced repeated scans of Mason's shared install
-directory. The test was changed to observe package-handle and terminal
-installation events instead. The event-driven test passed in run
-[#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228);
-subsequent fixes added clean-registry first-use coverage for `:DapInstall`.
-The latest exact-head run is #43530295202 above.
+- PR [#77](https://github.com/brianfiszman/dotfiles/pull/77) was squash-merged as [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a); issue #75 was closed.
+- The final PR #77 code head `73b4bf80f811667a778f2105dfd9516aae3bfce4` passed pull-request run [#43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202).
+- PR #79 implements issue #78 with five documentation paths: `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`, `.agents/skills/execution-continuity/SKILL.md`, and `docs/neovim-modernization-backlog.md`. No Neovim runtime or workflow definitions changed.
+- Exact PR #79 head before this checkpoint update: `721a07819de395527ffe86fc6b0830f2be54702f`. Pull-request run [#43531552732](https://github.com/brianfiszman/dotfiles/actions/runs/43531552732) completed successfully for that exact SHA. The isolated preparation, locked plugin restore/build hooks, and normal headless startup all passed; the DAP/Mason and Neotest behavior checks were part of the parent validation record.
+- Simulated fresh-session recovery passed using the checkpoint, work log, live branch, issue #78, merged PR #77, and exact-head CI evidence.
+- **QA PASS:** recovery instructions, checkpoint requirements, historical work-log content, internal links, Markdown structure, and five-file scope reviewed.
+- **Senior Reviewer APPROVE:** diff is consistent with repository safety, GitHub project-management, and Actions evidence rules.
+- During follow-up review, detected that commit `721a078` had accidentally replaced the append-only work log with checkpoint content. Restored the original work log from commit `4994f6d` and appended a correction entry; prior DAP/Mason and recovery history is preserved.
 
 ## Pending
 
-- Verify the current branch ref and PR #79 head after the checkpoint commit.
-- Inspect the workflow run (if path filters schedule one) and ensure its event
-  and head match the final PR SHA.
-- Review any mergeability or review feedback; do not merge until the PR is
-  reviewed and the required authorization is present.
-- Keep #78 open until its acceptance criteria are satisfied and the PR is merged.
+- Validate the new PR #79 head created by this checkpoint/work-log correction. The previous green run validates only `721a07819de395527ffe86fc6b0830f2be54702f`.
+- Keep issue #78 open until its acceptance criteria are satisfied by the merged change.
+- No merge has been authorized; wait for Brian's explicit decision.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
-| Source baseline | passed | Branch created from `master` at `b30cf6f87dc1a8adbd573a25c712f540db2e548a` |
 | PR #77 runtime integration | passed | Run #43530295202 for exact head `73b4bf80f811667a778f2105dfd9516aae3bfce4` |
-| Markdown delimiters / escaped code spans | passed | Five changed files fetched and checked |
-| Internal path and cross-reference review | passed | All linked repository paths resolve |
-| Simulated recovery | passed | Checkpoint, worklog, live branch, issue #78 and PR #77 reconciled |
-| Scope review | passed | Five documentation paths only; no runtime/workflow files |
-| PR #79 workflow | pending | Recheck exact head after final checkpoint commit |
-| Local filesystem / shell checks | unavailable in this GitHub-only execution | No local repository worktree was used |
-| macOS interactive validation | not run | Not part of issue #78 |
+| PR #79 original exact-head CI | passed | Run #43531552732, `pull_request`, exact SHA `721a07819de395527ffe86fc6b0830f2be54702f` |
+| Continuity/documentation QA | passed | Five intended files and acceptance criteria reviewed |
+| Senior Reviewer | approved | Complete diff reviewed against repository rules |
+| Work-log preservation | passed | Restored from commit `4994f6d`; correction appended |
+| New PR #79 head CI | pending | New head created by this checkpoint/work-log fix |
+| Local macOS interactive validation | not run | Not required for this documentation PR |
 
 ## Blockers
 
-None identified. Final PR-head validation and review are pending.
+None technical. Merge is waiting for Brian's explicit authorization.
 
 ## Next concrete action
 
-Resolve the remote branch ref, inspect PR #79's latest exact head and checks,
-then update this checkpoint with the observed result.
+Inspect the new exact PR #79 head and its pull-request Actions run. If it passes, present both PRs' completed evidence and wait for merge authorization; do not merge automatically.
+
+The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the remote branch ref to obtain and verify the exact persisted snapshot.
