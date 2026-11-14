@@ -260,6 +260,11 @@ startup() {
     "+lua assert(pcall(vim.treesitter.language.add, 'norg_meta'), 'Neorg norg_meta parser could not be loaded')" \
     "+qa!"
 
+  printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
+  run_nvim "neotest-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/neotest-lazy-loading.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying Go tooling loads only for Go-related filetypes.\n'
   run_nvim "go-lazy-loading-go" "$NVIM_STARTUP_TIMEOUT" \
     "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded during an unrelated startup'); vim.cmd('setfiletype text'); assert(vim.bo.filetype == 'text', 'non-Go test buffer was not set to text'); vim.api.nvim_exec_autocmds('CmdlineEnter', { modeline = false }); assert(package.loaded['go'] == nil, 'go.nvim loaded on CmdlineEnter in a non-Go buffer'); print('PASS: CmdlineEnter in a text buffer leaves go.nvim unloaded'); vim.cmd('enew'); vim.cmd('setfiletype go'); assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the Go filetype'); assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing after Go plugin load'); print('PASS: Go filetype loads go.nvim and registers :GoBuild')" \

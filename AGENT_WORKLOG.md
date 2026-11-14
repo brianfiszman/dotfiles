@@ -132,3 +132,46 @@ here rather than copying it.
 - **Senior Reviewer APPROVE:** confirmed the checkpoint no longer presents #81 or its CI as pending, does not misrepresent absent Actions checks as failures, preserves the separate merge-authorization rule for #82, and adds no unrelated implementation scope.
 - The Neovim headless Actions workflow is **not required** for this two-file PR because both changed paths are excluded by its `pull_request.paths` filter. This is not a passing runtime test; no runtime test was run or needed.
 - PR #82 remains open. Its merge requires Brian's separate explicit authorization; authorization for PR #81 does not carry over.
+
+
+## 2026-11-13 — Begin Sprint 1 Neotest lazy-loading implementation (#74)
+
+- Branch: `feat/neotest-lazy-loading`, based on current `master` at `c203afd4256398ac003a28abc211cd4f8c376f19`.
+- Verified #75 is complete in merged PR #77, so the Neotest spec no longer needs to own DAP activation.
+- The existing Neotest module is imported while assembling `plugins.lua`; its setup registers six which-key mappings and eagerly requires the configured adapters. The plugin spec had no lazy trigger.
+- Added `lazy = true` and lazy.nvim key triggers for the six existing mappings without changing their user-facing mapping definitions.
+- Added `tests/nvim/neotest-lazy-loading.lua`. It checks idle startup, dispatches the existing Test Stop action (which does not start a suite), verifies Neotest/vim-test and configured adapter modules load, and checks that ordinary testing leaves DAP unloaded.
+- Added the scenario to `scripts/test-nvim-headless.sh`. No lockfile changes.
+- At this checkpoint the implementation is committed, but no Neovim runtime test has run. The trigger-to-which-key handoff and adapter assertions remain unverified until a real headless run.
+- Next: inspect the exact diff, open the focused #74 PR, and use its exact-head CI as runtime evidence. Keep QA and Senior Review separate; do not merge without Brian's explicit authorization.
+
+
+## 2026-11-13 — Open PR #84 and begin exact-head validation
+
+- Opened [PR #84](https://github.com/brianfiszman/dotfiles/pull/84) from `feat/neotest-lazy-loading` to `master`, linking issue #74.
+- PR head at creation: `156270eaa2c4e439e03050f22183d6e393ecdc8f`; base: `c203afd4256398ac003a28abc211cd4f8c376f19`.
+- The PR contains the Neotest lazy spec, the new headless regression scenario, its runner integration, and checkpoint/work-log updates. It does not change `lazy-lock.json`.
+- Initial lookup of workflow runs for the exact head returned no run. This is **not run / not yet observed**, not a pass or failure. Recheck the PR event before deciding whether the workflow is pending or was not triggered.
+- Next: inspect the exact PR head and workflow event, then run QA and Senior Reviewer only after the relevant behavior check completes.
+
+
+
+## 2026-11-13 — Fix Neotest lazy-trigger headless assertion (#74 / PR #84)
+
+- The pull-request run [#43540903350](https://github.com/brianfiszman/dotfiles/actions/runs/43540903350) failed on source SHA `d06626861f88d61a3ca1d47f7a2ae409c3f51db3` after preparation, locked plugin restore/build hooks, and normal startup had passed.
+- The failing assertion compared `mapping.lhs` byte-for-byte with the requested leader sequence. The subsequent successful trace established why that was invalid: the lookup key is `" ts"`, while Neovim reports the normalized `mapping.lhs` as `"<Space>ts"`; the mapping had a Lua callback and no string rhs.
+- Commit [`4ca54c5`](https://github.com/brianfiszman/dotfiles/commit/4ca54c598b55f9129f15130eabe37c5e804ea691) corrected the test to accept callback-backed or rhs-backed mapping metadata, log the normalized lhs, and still dispatch the actual key before asserting Neotest and vim-test setup.
+- Pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634) passed for exact source SHA `4ca54c598b55f9129f15130eabe37c5e804ea691`: isolated prepare, locked restore/build hooks, normal startup, Neotest lazy loading, Go lazy-loading regressions, Mason/DAP lazy-loading, and the Debug Test mapping all passed.
+- Next: validate the branch after this checkpoint/work-log update, then complete QA PASS and a separate Senior Reviewer APPROVE. Interactive macOS behavior and a representative project test suite remain unverified.
+
+
+
+## 2026-11-13 — Final PR #84 validation and review gates (#74)
+
+- Final reviewed source snapshot: `8c1f99a07ddf17cfa839c954817d23f87e6705be` on `feat/neotest-lazy-loading`, base `master` at `c203afd4256398ac003a28abc211cd4f8c376f19`.
+- Exact-head pull-request run [#43541878359](https://github.com/brianfiszman/dotfiles/actions/runs/43541878359) completed successfully. Preparation, installer safety, locked plugin restore/build hooks, normal headless startup, Neotest lazy-loading, Go lazy-loading, Mason/DAP lazy-loading, and Debug Test behavior all passed. The log shows `<Space>ts` as a callback-backed lazy mapping; dispatching it loads Neotest, vim-test and all configured adapters while leaving DAP unloaded.
+- **QA PASS:** verified all #74 acceptance criteria. The six original key triggers and their which-key mappings remain; idle startup is clean; the first test action loads the testing integration; ordinary tests do not load DAP; Debug Test does; discovery remains disabled; no lockfile or plugin version changes. The headless test deliberately uses Test Stop so it can exercise first-use loading without starting a real project suite.
+- **Senior Reviewer APPROVE:** separate complete-diff review found no blocking correctness, scope, architecture, compatibility or test-quality issue. No lockfile or unrelated plugin changes.
+- The Scrum role passes are simulated by one assistant, not genuinely independent human reviewers. A representative project-level test run and interactive use on Brian's Mac remain unverified.
+- PR [#84](https://github.com/brianfiszman/dotfiles/pull/84) remains open and unmerged; issue [#74](https://github.com/brianfiszman/dotfiles/issues/74) remains open pending Product Owner acceptance and merge. No merge was authorized.
+- Next: Brian reviews the PR and gives or withholds explicit merge authorization.

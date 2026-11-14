@@ -1,5 +1,14 @@
 local M = {
   "nvim-neotest/neotest",
+  lazy = true,
+  keys = {
+    { "<leader>tt", desc = "Test Nearest" },
+    { "<leader>tw", desc = "Test Watch" },
+    { "<leader>tf", desc = "Test File" },
+    { "<leader>td", desc = "Debug Test" },
+    { "<leader>ts", desc = "Test Stop" },
+    { "<leader>ta", desc = "Attach Test" },
+  },
   dependencies = {
     "nvim-treesitter/nvim-treesitter",
     "nvim-neotest/nvim-nio",
