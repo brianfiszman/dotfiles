@@ -515,3 +515,14 @@ here rather than copying it.
 - Correction: the full integration job records the exact PR base/head/tested SHAs in its GitHub job summary. The decision job reads that immutable check-run summary through the Checks API and may reuse a baseline only when its recorded base SHA equals the current PR event's base SHA and its recorded PR head matches the workflow run head. Missing metadata, mismatches, and API errors fail open.
 - Additional coverage: add regression tests for base advancement, mismatched/missing metadata, and Checks API failure; add \`scripts/ci/**\` and \`tests/ci/**\` to the default-branch push triggers so edits to the gate and its tests run CI.
 - Status at checkpoint: implementation is being committed to the existing PR branch; exact-head Actions validation is pending.
+
+
+## 2026-11-14 — PR #92 base-SHA correction: exact-head validation
+
+- Context: [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), issue [#91](https://github.com/brianfiszman/dotfiles/issues/91), source head \`408d5a46c8b6bdc7532850862c7559328ddf2afb\`.
+- The corrected baseline helper now requires a successful full-integration job whose check-run summary contains the exact PR base SHA, PR head SHA, and tested SHA. It reuses that integration only when the recorded base SHA equals the current event's \`pull_request.base.sha\`; missing/invalid metadata and Checks API failures require full integration.
+- Added regression coverage for changed base SHA, historical head mismatch, missing/incomplete summary, missing check-run reference, Checks API failure, and CI-owned \`tests/ci/**\` paths. The workflow now grants only \`checks: read\` for summary retrieval and records the baseline marker after the real behavior suite succeeds.
+- Added \`scripts/ci/**\` and \`tests/ci/**\` to \`push.paths\` so changes to the gate or its tests trigger validation on the default branch.
+- Exact-head PR run [#43642279636](https://github.com/brianfiszman/dotfiles/actions/runs/43642279636) passed all jobs. The decision job correctly refused to reuse older markerless integrations and selected the full path. Fast checks passed **19/19**; full install preparation, pinned Neovim/LuaLS setup, locked plugin restore/build hooks, normal startup, baseline recording, behavior suite, and artifact upload passed.
+- Remaining end-to-end check: create a docs-only follow-up and verify the decision job can retrieve the new successful integration's check-run summary, match the same base SHA, and skip only the heavy job. This will exercise the Checks API handoff rather than only the mocked unit tests.
+- Format correction for the immediately preceding checkpoint entry: inline code spans were unintentionally backslash-escaped; intended literals are \`feat/ci-feedback-91\`, \`master\`, \`scripts/ci/**\`, and \`tests/ci/**\`. No technical decision changed.
