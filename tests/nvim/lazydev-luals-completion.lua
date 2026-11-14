@@ -119,20 +119,22 @@ end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd; labels: "
 print("PASS: real LuaLS completion returns vim.api.nvim_create_autocmd")
 
 -- Replace the intentionally incomplete completion context with valid Lua and
--- wait for LuaLS to publish the resulting diagnostics before asserting clean.
+-- observe the actual LSP publication. DiagnosticChanged is not guaranteed to
+-- fire when LuaLS publishes an empty diagnostics list.
 local diagnostics_published = false
-local group = vim.api.nvim_create_augroup("LazydevLuaLsCompletionTest", { clear = true })
-vim.api.nvim_create_autocmd("DiagnosticChanged", {
-  group = group,
-  buffer = bufnr,
-  callback = function()
-    -- Ignore the diagnostic from the intentionally incomplete completion
-    -- context; pass only after LuaLS clears diagnostics for valid code.
-    if #vim.diagnostic.get(bufnr) == 0 then
-      diagnostics_published = true
-    end
-  end,
-})
+client.handlers = vim.tbl_extend("force", {}, client.handlers or {})
+local publish_diagnostics = client.handlers["textDocument/publishDiagnostics"]
+  or vim.lsp.handlers["textDocument/publishDiagnostics"]
+assert(type(publish_diagnostics) == "function",
+  "Neovim's publishDiagnostics handler is unavailable")
+
+client.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, config)
+  local handled = publish_diagnostics(err, result, ctx, config)
+  if result and result.uri == vim.uri_from_bufnr(bufnr) then
+    diagnostics_published = true
+  end
+  return handled
+end
 
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
