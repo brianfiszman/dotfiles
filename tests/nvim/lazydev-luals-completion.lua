@@ -118,32 +118,32 @@ end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd; labels: "
 
 print("PASS: real LuaLS completion returns vim.api.nvim_create_autocmd")
 
--- Replace the intentionally incomplete completion context with valid Lua and
--- observe the actual LSP publication. DiagnosticChanged is not guaranteed to
--- fire when LuaLS publishes an empty diagnostics list.
-local diagnostics_published = false
-client.handlers = vim.tbl_extend("force", {}, client.handlers or {})
-local publish_diagnostics = client.handlers["textDocument/publishDiagnostics"]
-  or vim.lsp.handlers["textDocument/publishDiagnostics"]
-assert(type(publish_diagnostics) == "function",
-  "Neovim's publishDiagnostics handler is unavailable")
-
-client.handlers["textDocument/publishDiagnostics"] = function(err, result, ctx, config)
-  local handled = publish_diagnostics(err, result, ctx, config)
-  if result and result.uri == vim.uri_from_bufnr(bufnr) then
-    diagnostics_published = true
-  end
-  return handled
-end
-
+-- Replace the intentionally incomplete completion context with valid Lua and ask
+-- LuaLS to resolve a symbol from that now-valid expression.
+local valid_line = "local find_files = builtin.find_files"
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "local find_files = builtin.find_files",
+  valid_line,
 })
 
-assert(vim.wait(15000, function()
-  return diagnostics_published
-end, 100), "LuaLS did not publish diagnostics after the valid Telescope API usage was written")
+local hover_params = {
+  textDocument = { uri = vim.uri_from_bufnr(bufnr) },
+  position = {
+    line = 1,
+    character = #"local find_files = builtin." + 2,
+  },
+}
+local hover_response, hover_err = client:request_sync("textDocument/hover", hover_params, 10000, bufnr)
+assert(hover_response, "LuaLS hover request failed after valid Telescope usage: " .. tostring(hover_err))
+assert(hover_response.err == nil, "LuaLS hover returned an error: " .. vim.inspect(hover_response.err))
+assert(hover_response.result and hover_response.result.contents,
+  "LuaLS could not resolve documentation for builtin.find_files after the valid edit")
+
+-- The hover response is a server round-trip after didChange. Allow the
+-- diagnostics debounce to settle, then assert that valid code is clean.
+vim.wait(2000, function()
+  return false
+end, 100)
 
 local diagnostics = vim.diagnostic.get(bufnr)
 if #diagnostics > 0 then
@@ -154,4 +154,5 @@ if #diagnostics > 0 then
   error("LuaLS reported diagnostics for valid Telescope API usage: " .. table.concat(messages, " | "))
 end
 
+print("PASS: LuaLS resolves hover for valid Telescope API usage")
 print("PASS: valid Telescope API usage produces no LuaLS diagnostics")
