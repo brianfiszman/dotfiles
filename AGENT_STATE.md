@@ -45,8 +45,8 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Pending
 
-- PR #82 exact-head pull-request CI must complete successfully for its final source SHA.
-- Complete QA and a separate Senior Reviewer pass for the two-file documentation diff.
+- Complete QA and a separate Senior Reviewer pass for the final two-file documentation diff.
+- No Neovim headless Actions run is expected for PR #82: its changed paths (`AGENT_STATE.md` and `AGENT_WORKLOG.md`) are excluded by the workflow's `pull_request.paths` filter. Treat this as not required, not pending or failed.
 - Merge PR #82 only after Brian explicitly authorizes it. Authorization to merge #81 does not authorize #82.
 
 ## Validation
@@ -56,8 +56,9 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 | PR #79 exact-head CI | passed | Run #43534899400, `pull_request`, source SHA `aac9cad...` |
 | PR #81 exact-head CI | passed | Run #43536799096, `pull_request`, source SHA `62718319fa8e2ad121a9b2b48276c8218ef508e3` |
 | PR #81 QA / Senior Reviewer | passed | Final master-based four-file diff; QA PASS, Reviewer APPROVE |
-| PR #82 scope | pending final review | Intended diff: this checkpoint plus append-only work-log entry |
-| PR #82 exact-head CI | pending | Must inspect run for current final branch SHA |
+| PR #82 two-file scope | passed | Compare against master: only `AGENT_STATE.md` and `AGENT_WORKLOG.md` |
+| PR #82 Neovim headless Actions | not required | Workflow path filter excludes both changed paths; no runtime/config files changed |
+| PR #82 QA / Senior Reviewer | pending | Separate documentation review still required |
 | Neovim runtime validation | not required | Documentation-only reconciliation; no runtime/workflow files changed |
 
 ## Blockers
@@ -66,6 +67,6 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete action
 
-Resolve the remote ref for `docs/post-scrum-merge-state-82`, inspect the final two-file diff, and verify the PR-triggered Actions run for that exact SHA. Record any result accurately. Then request explicit merge authorization for PR #82.
+Resolve the remote ref for `docs/post-scrum-merge-state-82`, inspect the final two-file diff, complete QA and a separate Senior Reviewer pass, and then request explicit merge authorization for PR #82. Do not wait for or invent a Neovim run that the workflow's path filters will not trigger.
 
 The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the named remote branch ref to verify the persisted snapshot.
