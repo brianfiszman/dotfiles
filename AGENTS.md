@@ -6,7 +6,7 @@ state as user data, not disposable test fixtures.
 ## Source of truth and execution continuity
 
 - Treat the current repository state and GitHub as the source of truth. Conversation
-  history is useful context, but it can be stale or incomplete.
+  history is useful context, but can be stale or incomplete.
 - When resuming work, inspect the current branch and worktree when available, then
   review the relevant issues, open and recently closed PRs, branch heads, and changed
   files before creating or modifying artifacts.
@@ -47,6 +47,8 @@ state as user data, not disposable test fixtures.
   updating, comparing, or closing GitHub issues and pull requests.
 - Follow `.agents/skills/github-actions-validation/SKILL.md` when inspecting,
   diagnosing, or reporting GitHub Actions workflows and check results.
+- Follow `.agents/skills/scrum-team/SKILL.md` when planning or executing sprint
+  work, running ceremonies, or applying QA/reviewer quality gates.
 
 ## Preserving work across branches and PRs
 
