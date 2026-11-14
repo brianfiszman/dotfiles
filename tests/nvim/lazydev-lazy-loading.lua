@@ -7,6 +7,9 @@ assert(vim.fn.exists(":LazyDev") == 0, ":LazyDev should not exist before a Lua b
 local lua_config = vim.lsp.config.lua_ls
 assert(type(lua_config) == "table", "native lua_ls config is missing")
 assert(lua_config.settings.Lua.diagnostics.globals[1] == "vim", "LuaLS vim global setting is missing")
+assert(lua_config.settings.Lua.runtime.version == "LuaJIT", "LuaLS runtime version must remain LuaJIT")
+assert(vim.deep_equal(lua_config.settings.Lua.runtime.path, { "?.lua", "?/init.lua" }),
+  "LuaLS runtime module paths changed")
 assert(lua_config.settings.Lua.completion.callSnippet == "Replace", "LuaLS function-call snippets setting changed")
 assert(lua_config.settings.Lua.workspace.library[vim.fn.expand("$VIMRUNTIME/lua")] == true,
   "LuaLS Neovim runtime library path is missing")
