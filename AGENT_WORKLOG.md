@@ -104,3 +104,31 @@ here rather than copying it.
 - Rechecked the diff: only `.agents/skills/scrum-team/SKILL.md`, `AGENTS.md`, `AGENT_STATE.md`, and `AGENT_WORKLOG.md` are changed. The parent continuity skill and backlog are not duplicated.
 - QA PASS and Senior Reviewer APPROVE on the final master-based four-file diff. Exact-head CI remains pending: run #43535300671 validates the superseded pre-retarget head only; no run has yet registered for `1e38e71dbc07a4f6202322c5cc8afbdc61e9d863`.
 - PR #81 remains open. No merge has been authorized.
+
+
+---
+
+## 2026-11-13 — Scrum operating model merged; reconcile post-merge checkpoint
+
+- Brian explicitly authorized merging PR [#81](https://github.com/brianfiszman/dotfiles/pull/81). GitHub confirmed a squash merge as [`e43ce86`](https://github.com/brianfiszman/dotfiles/commit/e43ce86e98344094021421cbe789df5e956b8982); `master` now points to that commit.
+- The exact source head `62718319fa8e2ad121a9b2b48276c8218ef508e3` passed pull-request run [#43536799096](https://github.com/brianfiszman/dotfiles/actions/runs/43536799096). All job steps passed: checkout, system tools, pinned Neovim, isolated workspace, installer safety, locked plugin restore/build hooks, normal headless startup, and log upload.
+- Final review before merge was QA PASS and Senior Reviewer APPROVE. The merged PR contained exactly four documentation paths: `.agents/skills/scrum-team/SKILL.md`, `AGENTS.md`, `AGENT_STATE.md`, and `AGENT_WORKLOG.md`. It changed no Neovim runtime configuration or workflow definitions.
+- Issue [#80](https://github.com/brianfiszman/dotfiles/issues/80) was explicitly closed as completed after the merge. Parent PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) is also merged as `a006c8a`; issue #78 is closed.
+- Post-merge recovery audit found that the checkpoint shipped by PR #81 still described that PR as open and its exact-head CI as pending. This is stale operational state, not a code defect. Reconcile `AGENT_STATE.md` and this append-only log in a follow-up docs-only branch/PR based on the new master; do not edit master directly.
+- Next: validate the final checkpoint-reconciliation PR on its exact head, then request Brian's explicit merge authorization. No additional merge is authorized by the #81 approval.
+
+
+## 2026-11-13 — Classify CI applicability for checkpoint-only PR #82
+
+- Inspected the live `.github/workflows/neovim-headless.yml` trigger configuration. Its `pull_request.paths` filter includes Neovim config, skill files, installer/test scripts, the workflow itself, and README, but excludes `AGENT_STATE.md` and `AGENT_WORKLOG.md`.
+- PR #82 changes only those two excluded documentation files. Therefore no Neovim headless run is expected or required for this PR; zero check runs is not a failure and must not be described as pending CI.
+- Validation for #82 is the exact two-file diff review, Markdown/link consistency, QA, and a separate Senior Reviewer pass. The successful #81 run remains evidence for #81's different source SHA, not for #82.
+
+
+## 2026-11-13 — PR #82 documentation QA and Senior Reviewer pass
+
+- Reviewed the PR #82 diff against current `master` at source head `0010f29d6e1afdf59e7bab66195b262c3dbae4ab`. The scope is exactly `AGENT_STATE.md` and `AGENT_WORKLOG.md`; no runtime, plugin, installer, or workflow files are changed.
+- **QA PASS:** verified the live merge state for PRs #79/#81 and issues #78/#80, the exact successful #81 run and SHA, checkpoint next steps, internal links/evidence, workflow path-filter applicability, and preservation of the original work-log history. The work log is append-only; this result is a new entry.
+- **Senior Reviewer APPROVE:** confirmed the checkpoint no longer presents #81 or its CI as pending, does not misrepresent absent Actions checks as failures, preserves the separate merge-authorization rule for #82, and adds no unrelated implementation scope.
+- The Neovim headless Actions workflow is **not required** for this two-file PR because both changed paths are excluded by its `pull_request.paths` filter. This is not a passing runtime test; no runtime test was run or needed.
+- PR #82 remains open. Its merge requires Brian's separate explicit authorization; authorization for PR #81 does not carry over.
