@@ -251,3 +251,17 @@ here rather than copying it.
 - Added a small, relevant CI check to the workflow: parse `.config/nvim/lazy-lock.json` with Python before plugin restore. This both validates the changed lockfile and causes the path-filtered runtime workflow to run on the current PR snapshot.
 - GitHub created new PR workflow [#43552051042](https://github.com/brianfiszman/dotfiles/actions/runs/43552051042) for current head `6c359e4ea597842479badf0f4c827244b9629ca4`, based on master `c587c8854faf2e99770ca6f30a51a529a38140bb`. The run is **pending**; its job has not yet been observed.
 - Next: inspect run #43552051042 through completion. The previous cancelled runs are not failures of the Neovim config and are not passes.
+
+
+## 2026-11-14 — Final LSP compatibility refinements before CI
+
+- Updated the Neovim version guard in `.config/nvim/init.lua` and the README requirement to **0.11.3+**, matching the selected nvim-lspconfig v2.12.0 minimum. The CI baseline is also v0.11.3.
+- Preserved the actual diagnostics behavior from the old cmp config: virtual text remains disabled; signs, severity sorting, and rounded diagnostic floats remain configured.
+- Preserved Neodev's `.luarc.json` / `.luarc.jsonc` JSON schema behavior directly in native `jsonls` settings while retaining Neodev's `before_init` integration for lua_ls. Neodev remains a transitional dependency until #42.
+- Separated the Mason-managed server list from the enabled server list: the previous Svelte install policy is unchanged (Svelte remains explicitly enabled but is not added to Mason's install list); native `ts_ls` is added to Mason installs.
+- Replaced the TypeScript root markers with a native `root_dir(bufnr, on_dir)` callback because nvim-lspconfig's built-in `ts_ls` config already defines a `root_dir`; `root_markers` alone would not override it. This preserves the old yarn.lock/package-lock.json workspace policy.
+- Added native CodeLens refresh on TypeScript buffer enter/hold/insert-leave. The TypeScript language server's documented settings support function-call completions and references/implementations CodeLens. Its documented API has no direct equivalent for TypeScript Tools' member-specific CodeLens toggle; that limitation is called out in the PR. Proprietary `:TSTools*` commands are also not mapped in this repository and are called out as a possible manual-use loss.
+- Final exact code/README head before this checkpoint update: `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`. PR [#87](https://github.com/brianfiszman/dotfiles/pull/87) is open.
+- Current workflow [#43552641966](https://github.com/brianfiszman/dotfiles/actions/runs/43552641966) is **in progress** on that head. The system-tools installation step is running; Neovim installation, lockfile validation, plugin restore/build hooks, startup, and LSP assertions have not run yet.
+- Earlier workflow attempts were cancelled as code commits superseded their heads; none produced runtime validation. Do not count them as failures of the LSP config or as passes.
+- Next: monitor #43552641966 through completion, then run separate QA and Senior Reviewer passes against the exact PR diff. Merge still requires Brian's explicit authorization.
