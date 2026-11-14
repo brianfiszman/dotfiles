@@ -271,6 +271,17 @@ and a passing CI run.
   or keys for search/debug/test workflows, and insert mode for typing assistants.
 - Avoid overlapping providers for scrolling, formatting, linting, highlighting,
   and LSP server setup.
+- Assign one diagnostic producer per tool/filetype. In JavaScript/TypeScript,
+  do not run the same ESLint configuration concurrently through both the ESLint
+  language server and nvim-lint (eslint / eslint_d): asynchronous results from
+  competing publishers can leave duplicate or stale-looking diagnostics. Keep
+  the ESLint LSP as the diagnostic owner when it is already attached and retain
+  its save-time fix action.
+- Keep one canonical formatting path per filetype. When Conform owns the
+  user-facing :Format command, avoid attaching competing vim.lsp.buf.format()
+  mappings that silently use a different formatter. Be precise about formatter
+  semantics: Prettier follows Prettier configuration; it does not automatically
+  mean that ESLint --fix rules were run.
 - Preserve `lazy-lock.json` unless a ticket explicitly includes a plugin version
   change.
 - Pin or document APIs when upstream plugins make breaking branch migrations.
