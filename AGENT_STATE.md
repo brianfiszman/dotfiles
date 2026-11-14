@@ -8,11 +8,12 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Current focus: reduce Neovim CI feedback time without weakening clean-install or behavioral coverage.
 - **Issue:** [#91 — Reduce Neovim workflow feedback time without weakening coverage](https://github.com/brianfiszman/dotfiles/issues/91), open and in progress under Epic #16.
 - **Branch / base:** `feat/ci-feedback-91` → `master`, created from merge commit `9e43312f2afa523e658ed583b4f48bebffb98568` (PR #88).
-- **Phase:** branch created; workflow and harness investigation / benchmark design in progress. No workflow implementation changes have been made yet; no PR is open for #91.
+- **Phase:** first optimization slice implemented in Draft [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), latest code head `f8d34980e00bab61a28ab10bf2975915fe676899`. Two exact-head/full-path integration runs passed (#43623707000 and #43624095518); second run also passed the independent fast-check job in parallel. The current branch head may include later documentation-only checkpoint commits; verify fresh run evidence before claiming validation for a newer SHA.
 - **Initial baseline:** PR #88 run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749), head `71cd0c6`, approximately 113 seconds total: apt install ~53s, locked plugin restore/build ~26s, normal startup plus behavior suite ~27s; DAP/Mason first-use adapters ~21s within that behavior phase. Single-run observations, not a stable performance estimate.
 - **Additional path-filter finding:** PR #88's documentation-only checkpoint commits still triggered the full workflow because `pull_request.paths` considers the aggregate PR diff. Run [#43619768631](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631) validated the doc-only head; investigate a safe way to avoid redundant heavy reruns without breaking required checks.
+- **First optimization slice:** the workflow now uses hosted Ubuntu 26.04 toolchains with Go 1.26.11 from the tool cache, dynamically installs only supplemental missing packages, and has an independent fast shell/lockfile job. Draft PR #92 validated the full suite twice: #43623707000 (`3766490`) and #43624095518 (`f8d3498`). APT dropped from 428 packages / 116 MB / ~585 MB to 9 packages / 3.64 MB / 12.7 MB. Runner-to-artifact times: 88.95s and 82.50s versus old baseline runs at 109.02s and 135.05s; promising but not controlled due runner/region variance.
 - **Prior functional PR:** PR #90 remains open, Draft, and explicitly paused by Brian pending a separate indentation-ownership/setup diagnosis after PR #88. Do not resume or modify PR #90 as part of #91. #91 is the currently authorized active branch; preserve the one-functional-PR cadence and do not open a second functional PR.
-- **Next action:** inspect repeatable timing/costs across available runs, runner preinstalled-tool availability, exact `pull_request` path-filter semantics, and cache safety; propose a workflow design before changing CI.
+- **Next action:** investigate safe commit-delta gating for PR updates and branch-protection check semantics; evaluate isolated parallelism for behavior scenarios. Keep broad plugin/Mason caching deferred until build-hook execution can be proven on cache hits and cold runs.
 
 ## Completed predecessor: PR #88 / Issue #42
 
@@ -74,7 +75,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Scope boundaries
 
-- Current Sprint 2 functional item: #91, estimate M; implementation is at investigation/design stage on `feat/ci-feedback-91`.
+- Current Sprint 2 functional item: #91, estimate M; initial runner-provision/fast-check experiment is implemented and validated in Draft PR #92 on `feat/ci-feedback-91`. Path gating, broader cache and safe behavior parallelization remain investigation.
 - #44 (Treesitter API/branch migration), #76 (Telescope lazy-loading), #40 (Run with Args), and broad plugin inventory/update remain outside this PR.
 - No bulk plugin update.
 - PR #83 remains open/unmerged as a historical Sprint 1 planning checkpoint.
