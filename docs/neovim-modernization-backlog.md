@@ -29,8 +29,6 @@ underlying fix.
 - [#41 Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41)
 - [#42 Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
 - [#43 Load testing, debugging, and search tools only when used (tracking parent)](https://github.com/brianfiszman/dotfiles/issues/43)
-- [#74 Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
-- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75) — merged via [PR #77](https://github.com/brianfiszman/dotfiles/pull/77); exact-head run [#43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202) passed.
 - [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
@@ -92,27 +90,42 @@ separate in [#40](https://github.com/brianfiszman/dotfiles/issues/40). No
 `lazy-lock.json` changes were included. Interactive macOS behavior and a live
 TypeScript debugging session were not tested by CI.
 
-## Current handoff — execution continuity, then next functional issue
+## Completed — PR #84 merged on 2026-11-13
 
-The current documentation task is
-[#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78).
-It is being implemented separately from the DAP PR on branch
-`docs/agent-session-continuity-pr78`. Its scope is the root working agreement,
-a continuity skill, `AGENT_STATE.md`, and append-only `AGENT_WORKLOG.md`;
-it must not change Neovim runtime configuration or workflow behavior.
+[PR #84](https://github.com/brianfiszman/dotfiles/pull/84) implements
+[#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74)
+and was squash-merged into `master` as
+[`110c365`](https://github.com/brianfiszman/dotfiles/commit/110c3658085c4c23d847de361a08b5e15e72b605).
 
-After #78 is reviewed, validated, and merged, resume the functional sequence
-with [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74),
-which can now rely on #75's removal of Neotest's unconditional DAP dependency.
-[Telescope #76](https://github.com/brianfiszman/dotfiles/issues/76) stays separate.
-The old `feat/dap-on-demand` branch was not used as the merge source; PR #77
-used a clean branch based on the post-#71 master and its final head was validated
-before merging.
+The final PR head
+`f4b9f2744e65a23cbf8a6600abfefcc4ca75bf12` passed pull-request run
+[#43542407243](https://github.com/brianfiszman/dotfiles/actions/runs/43542407243).
+The run passed isolated preparation, locked plugin restore/build hooks, normal
+Neovim startup, Neotest lazy-loading, Go regressions, Mason/DAP lazy-loading,
+and the Debug Test trigger. Logs confirm the callback-backed `<Space>ts`
+trigger loads Neotest, vim-test, and configured adapters while ordinary test
+actions leave DAP unloaded.
+
+**QA PASS** and **Senior Reviewer APPROVE** were recorded before merge. The
+Scrum roles were performed sequentially by one assistant, not independent human
+reviewers. Test Stop and Debug Test were dispatched in headless tests; the
+other four preserved mappings were confirmed by static review. No representative
+project suite or interactive macOS session was performed. No lockfile or plugin
+version changes were included. Issue #74 is closed as completed.
+
+## Current handoff — remaining work under parent #43
+
+- [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75) is complete in [PR #77](https://github.com/brianfiszman/dotfiles/pull/77).
+- [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74) is complete in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84).
+- [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76) remains open and is the remaining child of [parent #43](https://github.com/brianfiszman/dotfiles/issues/43). It was not committed to Sprint 1; select/refine it separately with Brian before implementation.
+- [PR #83](https://github.com/brianfiszman/dotfiles/pull/83), the Sprint 1 planning checkpoint, remains open and unmerged. It was not included in the authorization for PR #84.
+- Keep [#40 — Run with Args](https://github.com/brianfiszman/dotfiles/issues/40) separate from this parent work.
 
 **Working cadence:** one functional PR at a time. Finish implementation, inspect
-the full diff, validate the exact PR head, merge it, close only completed
-issues, reconcile this backlog, and only then start the next functional PR.
-Documentation/foundation work remains in its own issue and PR.
+the full diff, validate the exact PR head, merge only with Brian's explicit
+authorization, close only completed issues, reconcile this backlog, and only
+then start the next functional PR. Documentation/foundation work remains in its
+own issue and PR.
 
 ## Working agreement
 
