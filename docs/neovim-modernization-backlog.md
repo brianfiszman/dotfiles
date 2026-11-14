@@ -120,13 +120,13 @@ version changes were included. Issue #74 is closed as completed.
 
 - **Committed issue:** [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41) — estimate **M**.
 - **Active branch:** `feat/lsp-native-setup-41`, based on the post-PR-86 master state.
-- **Current status:** implementation is in [PR #87](https://github.com/brianfiszman/dotfiles/pull/87), currently open. Exact head at this checkpoint: `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; base: `c587c8854faf2e99770ca6f30a51a529a38140bb`. CI run [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) is queued for that head; QA and Senior Reviewer are pending.
+- **Current status:** implementation is in [PR #87](https://github.com/brianfiszman/dotfiles/pull/87), currently open. Current PR head: `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b`; base: `c587c8854faf2e99770ca6f30a51a529a38140bb`. The runtime code snapshot is `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; the commits after it are documentation-only checkpoint/worklog updates. CI run [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was cancelled during setup after the later commits, then its job was explicitly re-run for the same code SHA and is pending again; QA and Senior Reviewer are pending.
 - The LSP migration uses native `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig with `automatic_enable = false`, and one configuration table/activation loop.
 - Targeted compatibility updates only: nvim-lspconfig v2.12.0, Mason-LSPConfig v2.3.0, Mason v2.3.1; CI baseline is Neovim v0.11.3, the minimum required by the selected nvim-lspconfig release.
 - lsp-zero v3.x is being removed as an architectural simplification. Correction to the earlier audit: upstream's README mentions a v4 branch; it was inaccurate to describe the whole project as officially dead.
 - TypeScript Tools is being replaced by native `ts_ls` because the exact locked TypeScript Tools revision still calls the deprecated `require("lspconfig")` setup framework. Its function-call completions and references/implementations CodeLens are being carried over to native TypeScript language-server settings.
 - Neodev remains temporarily for the separate [#42 lazydev migration](https://github.com/brianfiszman/dotfiles/issues/42). Its compatibility helper still imports `lspconfig.util`; this is a known transitional dependency, not a direct server setup path in the new LSP configuration.
-- **Validation pending:** CI run #43551881373 has been created but its job is still queued. No runtime test has passed yet; QA and Senior Reviewer have not started.
+- **Validation pending:** CI run #43551881373's first attempt was cancelled before tests started; a rerun for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb` is pending. No runtime test has passed yet; QA and Senior Reviewer have not started.
 - **Not included in Sprint 2 commitment:** #42 (lazydev), #44 (Treesitter API migration), #76 (Telescope lazy-loading), or a repository-wide plugin update.
 
 ## Agreed modernization sequence after the current LSP issue
