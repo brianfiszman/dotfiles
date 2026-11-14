@@ -15,7 +15,10 @@ vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
 
 local function press_and_wait_for_insert(keys, description)
   vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx", false)
-  assert(vim.fn.mode():sub(1, 1) == "i", description .. " must enter Insert mode")
+  local entered_insert = vim.wait(1000, function()
+    return vim.fn.mode():sub(1, 1) == "i"
+  end, 10)
+  assert(entered_insert, description .. " must enter Insert mode")
 end
 
 local function leave_insert()
