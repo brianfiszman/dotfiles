@@ -154,6 +154,10 @@ weakening locked-install, normal-startup, LuaLS, or behavioral coverage.
 4. Audit remaining plugin inventory deliberately; no mass `:Lazy update`.
 5. [#76 — Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76).
 
+## Mandatory testing standard
+
+Testing is included in every functional issue's scope and estimate. Issues must define observable, behavior-first acceptance scenarios and the automated unit/integration/end-to-end checks appropriate to the change. For interactive Neovim behavior, prefer real headless local-like tests that exercise the actual configuration, plugin/LSP/tool trigger, and user-visible result; mocks or startup-only checks are not enough. Required checks run in CI on explicit relevant triggers. Manual validation supplements automation and is required only for behavior that cannot reasonably be automated, with exact steps and rationale documented. A task is not done until its behavior tests and relevant regression suite pass on the exact change.
+
 ## Working agreement
 
 - Each ticket describes a visible problem, desired behavior, scope, and acceptance
