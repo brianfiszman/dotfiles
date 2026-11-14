@@ -265,6 +265,11 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/lsp-native-setup.lua" \
     "+qa!"
 
+  printf '\n[behavior] Verifying lazydev loads only for Lua buffers.\n'
+  run_nvim "lazydev-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lazydev-lazy-loading.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
   run_nvim "neotest-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/neotest-lazy-loading.lua" \
