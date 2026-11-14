@@ -12,9 +12,9 @@ assert(lua_config.settings.Lua.runtime.pathStrict == true, "LuaLS strict module 
 assert(vim.deep_equal(lua_config.settings.Lua.runtime.path, { "?.lua", "?/init.lua" }),
   "LuaLS runtime module paths changed")
 assert(lua_config.settings.Lua.completion.callSnippet == "Replace", "LuaLS function-call snippets setting changed")
-assert(lua_config.settings.Lua.workspace.library[vim.fn.expand("$VIMRUNTIME/lua")] == true,
+assert(vim.tbl_contains(lua_config.settings.Lua.workspace.library, vim.fn.expand("$VIMRUNTIME/lua")),
   "LuaLS Neovim runtime library path is missing")
-assert(lua_config.settings.Lua.workspace.library[vim.fn.stdpath("config") .. "/lua"] == true,
+assert(vim.tbl_contains(lua_config.settings.Lua.workspace.library, vim.fn.stdpath("config") .. "/lua"),
   "LuaLS config library path is missing")
 assert(lua_config.before_init == nil, "Deprecated LuaLS before_init hook remains configured")
 
