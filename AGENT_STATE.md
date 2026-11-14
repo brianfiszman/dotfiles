@@ -9,7 +9,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Issue:** [#91 — Reduce Neovim workflow feedback time without weakening coverage](https://github.com/brianfiszman/dotfiles/issues/91), open and in progress under Epic #16.
 - **Branch / base:** `feat/ci-feedback-91` → `master`, created from merge commit `9e43312f2afa523e658ed583b4f48bebffb98568` (PR #88).
 - **Implemented:** first optimization slice is in [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), now Ready for review, open and unmerged. It includes runner-provisioning optimization, independent fast checks, fail-open PR delta gating, and cancellation-safe integration gating. Issue #91 remains open/in progress.
-- **Latest validated implementation/test head:** Code/test head `1e0875fe48732548e78c14e162c2118d47c74a66` passed full PR run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247): 19/19 fast tests and full isolated install, locked plugin restore/build hooks, normal startup, behavior suite, and artifact upload. The follow-up docs-only head `db8eca9163560c02d58dc85db13e65148fa50390` passed [run #43644267041](https://github.com/brianfiszman/dotfiles/actions/runs/43644267041): fast checks and decision success; heavy integration skipped only because no integration-relevant files changed since `1e0875f` on the same base SHA; overall workflow success.
+- **Latest validated implementation/test head:** Code/test head `1e0875fe48732548e78c14e162c2118d47c74a66` passed full PR run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247): 19/19 fast tests; full isolated install, locked plugin restore/build hooks, normal startup, complete behavior suite, and artifact upload passed. The base marker matched the live PR base, run head matched the marker head, and tested merge SHA matched the PR merge SHA. Two docs-only follow-ups (`db8eca9`, `7dee7fd`) passed [#43644267041](https://github.com/brianfiszman/dotfiles/actions/runs/43644267041) and [#43644394789](https://github.com/brianfiszman/dotfiles/actions/runs/43644394789): 19/19 fast tests each, decision success, full integration skipped-success only for docs-only deltas on the unchanged base.
 - **Manual cold-path details:** run #43634687957 used event `workflow_dispatch` and explicitly logged `workflow_dispatch always runs the cold integration path`. The fresh integration ran without plugin/Mason cache; all three jobs succeeded. Subsequent checkpoint edits are documentation-only and the live branch head in GitHub is authoritative.
 - **Initial baseline:** PR #88 run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749), head `71cd0c6`, approximately 113 seconds total: apt install ~53s, locked plugin restore/build ~26s, normal startup plus behavior suite ~27s; DAP/Mason first-use adapters ~21s within that behavior phase. Single-run observations, not a stable performance estimate.
 - **Path-filter finding and resolution:** PR #88's documentation-only checkpoint commits still triggered full integration because `pull_request.paths` evaluates the aggregate PR diff. PR #92 removes the workflow-level PR path filter and uses a fail-open commit-delta gate instead; the later docs-only run #43636243359 confirms fast checks pass and the heavy job is skipped successfully after a prior green integration.
@@ -72,12 +72,10 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Await Brian's explicit merge authorization. PR #92 remains open and unmerged; the broader #91 work is not complete because caching and behavior-suite parallelization remain deliberately deferred.
-2. Re-run Senior Reviewer against the final complete diff and report the simulated role result honestly.
-2. Re-run the Senior Reviewer pass against the corrected complete diff; keep the assistant's review explicitly labeled as simulated, not an independent human review.
-3. Keep PR #92 open and unmerged until Brian explicitly authorizes the merge.
-3. Keep the cold prepare → locked restore/build hooks → normal startup contract. Schedule execution remains to be observed on `master`; defer plugin/Mason cache and behavior-suite parallelism until build hooks and mutable XDG/Mason isolation are proven.
-4. Keep PR #90 Draft/paused until its separate indentation-ownership/setup diagnosis is completed; do not mix it into #91.
+1. Await Brian's explicit merge authorization. PR #92 is open, Ready for review, mergeable, and unmerged; no merge is authorized.
+2. After merge, verify the new `push.paths` triggers on `master` (including `scripts/ci/**` and `tests/ci/**`) and observe the scheduled cold run on the default branch.
+3. Keep plugin/Mason caching and behavior-suite parallelization deferred until configured build hooks on cache hits and mutable XDG/Mason isolation are proven.
+4. Keep PR #90 Draft/paused for its separate indentation-ownership/setup diagnosis; do not mix it into #91.
 
 ## Scope boundaries
 
