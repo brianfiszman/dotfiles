@@ -67,6 +67,16 @@ Use `:Lazy` inside Neovim to inspect plugin status.
 If lazy.nvim cannot be downloaded, Neovim displays an actionable error. Check
 that Git is installed and that the network can reach GitHub, then restart Neovim.
 
+### Editing
+
+- In Normal mode, **Ctrl+F** runs the shared `:Format` command through Conform.
+  For JavaScript and TypeScript it selects `prettierd` when available, otherwise
+  `prettier`, and follows the project's Prettier configuration.
+- ESLint diagnostics for JavaScript/TypeScript come from the ESLint language
+  server. Its `EslintFixAll` action still runs before saving an attached buffer.
+- Use `K` for symbol documentation, `<leader>DF` for the diagnostic under the
+  cursor, and `[d` / `]d` to move between diagnostics.
+
 ### Optional: Python provider
 
 Most editing features do not require Neovim's Python provider. A few plugins
