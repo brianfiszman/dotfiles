@@ -9,8 +9,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
 - **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
 - **Original implementation snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`.
-- **Current branch head:** `65349aeebb791c6236f49d1bb4b49ffb8b2d4bb5`. Added a pinned LuaLS 3.19.2 end-to-end test for real completions, hover, and clean diagnostics (`tests/nvim/lazydev-luals-completion.lua`); the workflow path filters include `tests/nvim/**`. Exact-head run [#43616653276](https://github.com/brianfiszman/dotfiles/actions/runs/43616653276) is in progress at this checkpoint.
-- **Phase:** original config tests passed exact-head CI. The extended test has already demonstrated real Telescope and Neovim API completion in an earlier run, but that run failed on a brittle diagnostics-event expectation. The test now uses a hover response as a synchronization barrier before checking diagnostics. Do not call the expanded validation complete until run #43616653276 passes. QA/Senior Reviewer sign-off must be revisited against the expanded diff.
+- **Current branch head:** `e480ace30bffbb74a093db333f0759181abee224`. Added pinned LuaLS 3.19.2 end-to-end coverage for real Telescope and Neovim API completions, hover after a valid edit, and clean diagnostics (`tests/nvim/lazydev-luals-completion.lua`). Exact-head pull-request workflow [#43617284555](https://github.com/brianfiszman/dotfiles/actions/runs/43617284555) passed all steps on this SHA.
+- **Phase:** Lazydev implementation and real LuaLS integration are validated at the exact current PR head. The full workflow passed isolated install, pinned LuaLS verification, locked plugin restore/build hooks, normal startup, and all native LSP/Lazydev/Neotest/Go/DAP behavior scenarios. QA PASS and Senior Reviewer APPROVE were re-run against the expanded diff as separate simulated roles by one assistant, not independent human reviews.
 - **Merge:** not authorized for PR #88. Brian's prior authorization applied to PR #87 only.
 
 ## Completed predecessor: PR #87 / Issue #41
@@ -43,12 +43,14 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Locked plugin restore/build hooks | passed | Run #43606193476 |
 | Normal Neovim startup | passed | Run #43606193476 |
 | Native LSP, Lazydev, Neotest, Go, and DAP behavior scenarios | passed | Run #43606193476; logs show the expected PASS markers |
-| Real LuaLS completion for `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd` | passed (behavioral assertions) | Both PASS markers in run [#43616339970](https://github.com/brianfiszman/dotfiles/actions/runs/43616339970); the run failed only at the old `DiagnosticChanged` wait assertion |
-| Hover on valid Telescope API usage and clean LuaLS diagnostics | pending | Updated test uses a hover round-trip after the valid edit, then checks diagnostics; exact-head run #43616653276 is in progress; CI pins LuaLS 3.19.2 and verifies SHA-256 |
-| QA | pending re-review | Expanded LSP completion/hover test and exact-head run still need final review |
-| Senior Reviewer | pending re-review | Expanded test and its final exact-head evidence need review; previous sign-off covered the earlier PR diff only |
+| Real LuaLS completion for `telescope.builtin.find_files` | passed | Exact-head run [#43617284555](https://github.com/brianfiszman/dotfiles/actions/runs/43617284555); log prints the expected completion PASS marker |
+| Real LuaLS completion for `vim.api.nvim_create_autocmd` | passed | Exact-head run #43617284555; request uses a narrow typed prefix and LuaLS returns the method signature |
+| Hover after valid edit and clean LuaLS diagnostics | passed | Exact-head run #43617284555; hover resolves `builtin.find_files`, then the final valid buffer has zero diagnostics |
+| Full isolated preparation, pinned LuaLS install, lockfile validation, plugin restore/build, normal startup, and behavior suite | passed | Run #43617284555, pull_request event, exact PR head `e480ace30bffbb74a093db333f0759181abee224`; every job step succeeded and logs artifact uploaded |
 | Local Telescope API completion/type resolution | partially verified | Brian confirmed `require("telescope.builtin")` and `builtin.find_files` resolve without errors in the interactive Neovim session |
-| Local Neovim API completion and hover | unverified | Still requires a representative interactive check |
+| QA | PASS (simulated) | Rechecked issue #42 acceptance criteria, full PR diff, new real-LuaLS tests, and exact-head CI evidence |
+| Senior Reviewer | APPROVE (simulated) | Re-reviewed implementation, workflow, runner wiring, test, lockfile, README, skill, and checkpoint updates; no blocking finding. Not an independent human review. |
+| Local Neovim API completion and hover on macOS | unverified locally | Both APIs and hover are now exercised in exact-head CI; a local Mac session remains an optional environment-parity check |
 | PR #88 merge | not authorized | Requires Brian's explicit approval |
 
 ### Earlier CI attempts and correction
@@ -58,9 +60,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Complete and inspect exact-head CI run #43616653276, including LuaLS hover and diagnostics assertions.
-2. On the Mac, optionally confirm Neovim API completion/hover; Telescope module completion and no-error use are already manually confirmed.
-3. Re-review [PR #88](https://github.com/brianfiszman/dotfiles/pull/88); merge only after Brian explicitly authorizes it. Until then, leave it open and unmerged.
+1. Optionally confirm Neovim API completion/hover in a local macOS Neovim session for environment parity; CI now covers both APIs and hover with the pinned real server.
+2. Review the resulting PR #88 discussion and decide whether to authorize merge. Until Brian explicitly authorizes it, leave PR #88 open and unmerged.
 
 ## Scope boundaries
 
