@@ -363,10 +363,6 @@
     "branch": "main",
     "commit": "85bedb7eb7fa331a2ccbecb9202d8abba64d37b3"
   },
-  "typescript-tools.nvim": {
-    "branch": "master",
-    "commit": "35e397ce467bedbbbb5bfcd0aa79727b59a08d4a"
-  },
   "vim-test": {
     "branch": "master",
     "commit": "0f50a546aef59efe5f1301de8fa9819ecb9fd482"
