@@ -31,8 +31,8 @@ assert(vim.fn.maparg("<C-f>", "n") ~= "", "Normal-mode Ctrl+F formatting mapping
 
 local json_config = vim.lsp.config.jsonls
 assert(json_config.settings.json.validate.enable == true, "JSON validation setting is missing")
-assert(json_config.settings.json.schemas[1].name == "LuaLS Settings", "Neodev LuaLS JSON schema is missing")
-assert(json_config.settings.json.schemas[1].fileMatch[1] == ".luarc.json", "Neodev JSON schema file match is missing")
+assert(json_config.settings.json.schemas[1].name == "LuaLS Settings", "LuaLS Settings JSON schema is missing")
+assert(json_config.settings.json.schemas[1].fileMatch[1] == ".luarc.json", "LuaLS JSON schema file match is missing")
 
 local lua_config = vim.lsp.config.lua_ls
 assert(lua_config.before_init == nil, "Deprecated LuaLS before_init hook remains configured")
