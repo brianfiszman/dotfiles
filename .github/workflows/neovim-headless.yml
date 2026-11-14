@@ -25,7 +25,7 @@ on:
 
 # A new commit supersedes an older run for the same PR/branch.
 concurrency:
-  group: neovim-headless-${{ github.event.pull_request.number || github.ref }}
+  group: neovim-headless-\${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -34,7 +34,7 @@ permissions:
 jobs:
   headless-startup:
     name: Fresh install and headless startup
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     env:
       NEOVIM_VERSION: v0.11.3
@@ -43,27 +43,77 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install system tools used by plugin builds
+      # This exact version exists in the ubuntu-26.04 hosted tool cache. Keep
+      # Go explicit: the real Mason DAP test installs Delve from source.
+      - name: Set up pinned Go from the hosted tool cache
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.26.11"
+          check-latest: false
+          cache: false
+
+      # Do not apt-install toolchains already present on the image. The old
+      # nodejs/npm apt packages downgraded the image's Node 24/npm 11 and pulled
+      # in hundreds of packages. Keep this probe visible in the Actions log.
+      - name: Verify hosted runner toolchain
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes \
-            build-essential \
-            cmake \
-            coreutils \
-            curl \
-            fd-find \
-            git \
-            golang-go \
-            make \
-            libreadline-dev \
-            liblua5.1-0-dev \
-            lua5.1 \
-            nodejs \
-            npm \
-            python3 \
-            python3-pynvim \
-            ripgrep \
-            unzip
+          set -Eeuo pipefail
+
+          for tool in git curl cmake gcc g++ make node npm python3 rustc cargo go \
+            sha256sum timeout find grep tee tar unzip; do
+            command -v "$tool" >/dev/null || {
+              printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
+              exit 1
+            }
+          done
+
+          printf 'Runner image: %s\n' "$ImageOS / $ImageVersion"
+          printf 'Node: '; node --version
+          printf 'npm: '; npm --version
+          printf 'Go: '; go version
+          printf 'Rust: '; rustc --version
+          printf 'Cargo: '; cargo --version
+          printf 'CMake: '; cmake --version | sed -n '1p'
+          printf 'GCC: '; gcc --version | sed -n '1p'
+          printf 'G++: '; g++ --version | sed -n '1p'
+          printf 'Python: '; python3 --version
+
+      - name: Install only missing Neovim build prerequisites
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          required_packages=(
+            fd-find
+            libreadline-dev
+            liblua5.1-0-dev
+            lua5.1
+            python3-pynvim
+            ripgrep
+          )
+          missing_packages=()
+
+          for package in "\${required_packages[@]}"; do
+            status="$(dpkg-query -W -f='\${db:Status-Status}' "$package" 2>/dev/null || true)"
+            if [[ "$status" != "installed" ]]; then
+              missing_packages+=("$package")
+            fi
+          done
+
+          if (("\${#missing_packages[@]}" == 0)); then
+            echo "All supplemental build prerequisites are already installed."
+          else
+            printf 'Installing missing prerequisites only: %s\n' "\${missing_packages[*]}"
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends "\${missing_packages[@]}"
+          fi
+
+          command -v fdfind >/dev/null
+          command -v rg >/dev/null
+          python3 -c 'import pynvim; print("pynvim:", pynvim.__version__)'
+          test -f /usr/include/readline/readline.h
+          test -f /usr/include/lua5.1/lua.h
 
       - name: Install pinned Neovim
         run: |
@@ -113,6 +163,6 @@ jobs:
         with:
           name: nvim-headless-smoke-logs
           path: |
-            ${{ runner.temp }}/nvim-headless-smoke/*.log
-            ${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log
+            \${{ runner.temp }}/nvim-headless-smoke/*.log
+            \${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log
           if-no-files-found: ignore
