@@ -8,7 +8,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Goal: modernize native LSP ownership and keep language tooling predictable.
 - **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
 - **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5` from PR #87.
-- **Implementation/test snapshot:** `360ed9b5df6d1d61a723a2287c6a4024917b6141`. Checkpoint/work-log/backlog updates after this snapshot are documentation-only.
+- **Implementation/test snapshot:** `56e054a93086b116a031fb829eed8e7b2699f592`. Checkpoint/work-log/backlog updates after this snapshot are documentation-only.
 - **Phase:** implementation committed and PR open; exact-head CI is running.
 - **Merge:** not authorized for PR #88. Brian's authorization for PR #87 applied to that PR only.
 
@@ -25,7 +25,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - Native LSP ownership from #41 remains: `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig `automatic_enable = false`, native `ts_ls`, one ESLint diagnostic owner, Conform Ctrl+F.
 - **Lazydev:** separate root plugin spec `folke/lazydev.nvim`, `ft = "lua"`; not a dependency of the eagerly loaded LSP plugin.
 - Lazydev opts enable its native LSP and nvim-cmp integrations. The five plugin type libraries previously provided by Neodev are preserved: `neotest`, `nvim-dap-ui`, `nvim-treesitter`, `plenary.nvim`, and `telescope.nvim`.
-- **LuaLS:** explicit `LuaJIT` runtime and `?.lua` / `?/init.lua` paths; preserve `vim` diagnostics global, function-call snippet completion, Neovim runtime library, and config Lua library. Lazydev supplies dynamic plugin workspace libraries.
+- **LuaLS:** explicit `LuaJIT` runtime, strict module resolution (`pathStrict = true`), and `?.lua` / `?/init.lua` paths; preserve `vim` diagnostics global, function-call snippet completion, Neovim runtime library, and config Lua library. Lazydev supplies dynamic plugin workspace libraries.
 - The independent jsonls `.luarc.json` / `.luarc.jsonc` schema remains unchanged.
 - Neodev setup and dependency are removed; `lazy-lock.json` removes `neodev.nvim` and pins Lazydev at `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d`.
 - nvim-cmp includes the Lazydev source at `group_index = 0`.
@@ -38,7 +38,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Pinned nvim-cmp supports `get_registered_sources()` | passed (source inspection) | Locked nvim-cmp commit `a1d504892f2bc56c2e79b65c6faded2fd21f3eca` |
 | Lazydev supports filetype loading, native LSP integration, nvim-cmp source, and named plugin libraries | passed (source inspection) | Lazydev commit `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d` |
 | New Lazydev filetype behavior assertions | pending | `tests/nvim/lazydev-lazy-loading.lua` |
-| Full isolated integration on exact PR head | pending | Pull-request workflow [#43605503484](https://github.com/brianfiszman/dotfiles/actions/runs/43605503484), source/test SHA `360ed9b` |
+| First PR workflow attempt | cancelled / inconclusive | Run [#43605503484](https://github.com/brianfiszman/dotfiles/actions/runs/43605503484) was superseded during plugin restore; startup and behavior tests were skipped. Not a code failure or pass. |
+| Full isolated integration on current exact PR head | pending | Pull-request workflow [#43605709646](https://github.com/brianfiszman/dotfiles/actions/runs/43605709646), source/test SHA `56e054a` |
 | QA | pending | Await exact-head CI and acceptance check |
 | Senior Reviewer | pending | Separate complete-diff review required |
 | Local Lua config completion/hover and plugin type resolution | unverified | Requires representative interactive macOS check |
@@ -46,7 +47,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Inspect run #43605503484 through all steps. The new Lua-only behavior test must pass after plugin restore and normal startup.
+1. Inspect run #43605709646 through all steps. The new Lua-only behavior test must pass after plugin restore and normal startup.
 2. Complete QA and Senior Reviewer separately against the exact current PR diff; resolve any findings and rerun affected checks.
 3. Brian verifies Lua config completion/hover and plugin API type resolution locally. Do not mark that manual check passed from headless CI alone.
 4. Merge PR #88 only after explicit authorization.
