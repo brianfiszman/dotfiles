@@ -138,20 +138,6 @@ function M.setup()
   }
   require("mason-lspconfig").setup(M.mason_options)
 
-  -- Keep Neodev for now; its migration to lazydev is tracked independently in #42.
-  -- Integrate through before_init instead of its deprecated lspconfig hook.
-  require("neodev").setup({
-    library = {
-      enabled = true,
-      runtime = true,
-      plugins = { "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.nvim", "telescope.nvim" },
-      types = true,
-    },
-    setup_jsonls = false,
-    lspconfig = false,
-    pathStrict = true,
-  })
-
   require("luasnip.loaders.from_vscode").lazy_load()
   require("snippets.nvim_cmp")()
 
@@ -238,7 +224,6 @@ function M.setup()
       },
     },
     lua_ls = {
-      before_init = require("neodev.lsp").before_init,
       settings = {
         Lua = {
           completion = {
