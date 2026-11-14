@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - ".config/nvim/**"
+      - "tests/nvim/**"
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
