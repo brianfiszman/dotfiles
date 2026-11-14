@@ -110,6 +110,19 @@ local function svelte_on_attach(client, bufnr)
   })
 end
 
+local function ts_ls_on_attach(client, bufnr)
+  on_attach(client, bufnr)
+
+  vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "InsertLeave" }, {
+    buffer = bufnr,
+    callback = function()
+      vim.lsp.codelens.refresh({ bufnr = bufnr })
+    end,
+    desc = "Refresh TypeScript language server CodeLens",
+  })
+  vim.lsp.codelens.refresh({ bufnr = bufnr })
+end
+
 local function configure_server(name, overrides)
   local config = vim.tbl_deep_extend("force", {
     capabilities = M.capabilities,
@@ -242,6 +255,7 @@ function M.setup()
       },
     },
     ts_ls = {
+      on_attach = ts_ls_on_attach,
       root_markers = { "yarn.lock", "package-lock.json" },
       workspace_required = true,
       settings = {
