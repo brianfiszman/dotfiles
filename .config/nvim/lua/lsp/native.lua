@@ -22,7 +22,6 @@ return {
     },
     "hrsh7th/nvim-cmp",
     "hrsh7th/cmp-nvim-lsp",
-    "folke/neodev.nvim",
     "nvimdev/lspsaga.nvim",
     "onsails/lspkind.nvim",
     "ray-x/lsp_signature.nvim",
