@@ -8,38 +8,20 @@ local function wait_for(description, timeout_ms, predicate)
 end
 
 local package_names = { "delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter" }
-local requested_packages = {}
 local install_results = {}
-local package_output_chunks = {}
 local registry = require("mason-registry")
 
 for _, name in ipairs(package_names) do
   if registry.is_installed(name) then
-    requested_packages[name] = true
     install_results[name] = { status = "success", existing = true }
   end
 end
 
-registry:on("package:handle", function(pkg, handle)
-  if not vim.tbl_contains(package_names, pkg.name) then
-    return
-  end
-  requested_packages[pkg.name] = true
-  handle:on("stdout", function(chunk)
-    package_output_chunks[pkg.name] = package_output_chunks[pkg.name] or 0
-    package_output_chunks[pkg.name] = package_output_chunks[pkg.name] + 1
-    if package_output_chunks[pkg.name] <= 4 then
-      print(("PACKAGE %s stdout: %s"):format(pkg.name, chunk:gsub("%s+$", ""):sub(1, 200)))
-    end
-  end)
-  handle:on("stderr", function(chunk)
-    package_output_chunks[pkg.name] = package_output_chunks[pkg.name] or 0
-    package_output_chunks[pkg.name] = package_output_chunks[pkg.name] + 1
-    if package_output_chunks[pkg.name] <= 4 then
-      print(("PACKAGE %s stderr: %s"):format(pkg.name, chunk:gsub("%s+$", ""):sub(1, 200)))
-    end
-  end)
-end)
+-- Mason 2.x emits install results on the registry. Its install:handle event
+-- belongs to each Package instance, not the registry, so observing a made-up
+-- registry-level package:handle event would time out even after successful
+-- installs. The success/failure events below prove that the command requested
+-- each configured adapter and let the test assert the actual outcome.
 registry:on("package:install:success", function(pkg, handle)
   if vim.tbl_contains(package_names, pkg.name) then
     install_results[pkg.name] = { status = "success", handle = handle }
@@ -79,17 +61,7 @@ wait_for("Mason DAP command to load the complete stack and register its API", 30
     and vim.fn.exists(":DapContinue") == 2
     and vim.fn.exists(":DapUninstall") == 2
 end)
-print("PASS: :DapInstall lazy-loads the full DAP stack and registers Mason commands")
-
-local function all_packages_requested()
-  for _, name in ipairs(package_names) do
-    if not requested_packages[name] then
-      return false
-    end
-  end
-  return true
-end
-wait_for("Mason to request all five adapters from a clean registry", 30000, all_packages_requested)
+print("PASS: :DapInstall lazy-loads the full stack and registers Mason commands")
 
 local function all_installs_finished()
   for _, name in ipairs(package_names) do
@@ -99,7 +71,7 @@ local function all_installs_finished()
   end
   return true
 end
-print("WAIT: waiting for Mason adapter installations after the first DapInstall action")
+print("WAIT: waiting for Mason to install all five configured adapters after the first DapInstall action")
 local finished = vim.wait(240000, all_installs_finished, 100)
 assert(finished, "Timed out waiting for Mason adapters after :DapInstall")
 local failures = {}
