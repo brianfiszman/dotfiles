@@ -34,10 +34,19 @@ for _, plugin in ipairs({ "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.
 end
 
 local cmp = require("cmp")
-local source_names = vim.tbl_map(function(source)
-  return source.name
-end, cmp.get_registered_sources())
-assert(vim.tbl_contains(source_names, "lazydev"), "lazydev nvim-cmp source was not registered")
+local function lazydev_cmp_registered()
+  local source_names = vim.tbl_map(function(source)
+    return source.name
+  end, cmp.get_registered_sources())
+  return vim.tbl_contains(source_names, "lazydev")
+end
+assert(vim.wait(5000, lazydev_cmp_registered, 10),
+  "lazydev nvim-cmp source was not registered after its scheduled setup")
+
+local integrations = require("lazydev.integrations")
+assert(integrations.loaded.cmp == true, "lazydev nvim-cmp integration did not initialize")
+assert(integrations.loaded.lspconfig == true, "lazydev native LSP integration did not initialize")
+assert(vim.lsp.is_enabled("lua_ls"), "native LuaLS server is not enabled")
 
 local lazy = require("lazy.core.config")
 local retired_spec = retired_lua_dev .. ".nvim"
