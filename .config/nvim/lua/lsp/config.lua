@@ -251,8 +251,6 @@ function M.setup()
           },
           implementationsCodeLens = {
             enabled = true,
-            showOnAllClassMethods = true,
-            showOnInterfaceMethods = true,
           },
           referencesCodeLens = {
             enabled = true,
@@ -262,6 +260,9 @@ function M.setup()
         javascript = {
           completions = {
             completeFunctionCalls = true,
+          },
+          implementationsCodeLens = {
+            enabled = true,
           },
           referencesCodeLens = {
             enabled = true,
