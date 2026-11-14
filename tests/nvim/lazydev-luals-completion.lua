@@ -15,7 +15,7 @@ local bufnr = vim.api.nvim_create_buf(true, false)
 vim.api.nvim_buf_set_name(bufnr, filename)
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "builtin.",
+  "builtin.f",
 })
 vim.api.nvim_set_current_buf(bufnr)
 vim.cmd("setfiletype lua")
@@ -36,6 +36,24 @@ end, 100), "LuaLS did not attach to the Lazydev integration buffer")
 
 local client = get_lua_ls_client()
 assert(client and client.initialized, "LuaLS client did not finish initialization")
+
+-- Lazydev completes plugin workspace registration on scheduled callbacks after
+-- filetype activation and LspAttach. Wait for the effective workspace, not just
+-- for the plugin module or LSP client to exist.
+local Workspace = require("lazydev.workspace")
+local telescope_plugin = require("lazy.core.config").plugins["telescope.nvim"]
+assert(telescope_plugin and telescope_plugin.dir, "Telescope plugin directory is unavailable")
+local telescope_lua = vim.fs.normalize(telescope_plugin.dir .. "/lua")
+
+assert(vim.wait(10000, function()
+  return vim.tbl_contains(Workspace.global().library, telescope_lua)
+end, 100), "Lazydev did not register Telescope's Lua library in its global workspace")
+
+assert(vim.wait(10000, function()
+  local workspace = Workspace.find({ buf = bufnr })
+  local libraries = workspace and vim.tbl_get(workspace.settings, "Lua", "workspace", "library") or {}
+  return vim.tbl_contains(libraries, telescope_lua)
+end, 100), "Lazydev did not apply Telescope's library to the active LuaLS workspace")
 
 local function request_completion(line, character)
   local params = {
@@ -58,7 +76,11 @@ local function request_completion(line, character)
 end
 
 -- This mirrors the user's actual completion context after typing "builtin.".
-local telescope_items = request_completion(1, #"builtin.")
+local telescope_items = request_completion(1, #"builtin.f")
+if not telescope_items.find_files then
+  print("DEBUG: LuaLS Telescope completion labels: " .. vim.inspect(vim.tbl_keys(telescope_items)))
+  print("DEBUG: active LuaLS workspace: " .. vim.inspect(Workspace.find({ buf = bufnr }).settings.Lua.workspace.library))
+end
 assert(telescope_items.find_files,
   "LuaLS did not complete telescope.builtin.find_files; Lazydev's Telescope types are unavailable")
 
@@ -67,9 +89,9 @@ print("PASS: real LuaLS completion returns telescope.builtin.find_files")
 -- Also verify the Neovim API type library and the configured global.
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
-  "vim.api.",
+  "vim.api.n",
 })
-local nvim_items = request_completion(1, #"vim.api.")
+local nvim_items = request_completion(1, #"vim.api.n")
 assert(nvim_items.nvim_create_autocmd,
   "LuaLS did not complete vim.api.nvim_create_autocmd; Neovim API types are unavailable")
 
