@@ -14,19 +14,13 @@ vim.bo.autoindent = true
 vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
 
 local function press_and_wait_for_insert(keys, description)
-  vim.api.nvim_input(keys)
-  local entered_insert = vim.wait(1000, function()
-    return vim.fn.mode():sub(1, 1) == "i"
-  end, 10)
-  assert(entered_insert, description .. " must enter Insert mode")
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx", false)
+  assert(vim.fn.mode():sub(1, 1) == "i", description .. " must enter Insert mode")
 end
 
 local function leave_insert()
-  vim.api.nvim_input("\27")
-  local returned_to_normal = vim.wait(1000, function()
-    return vim.fn.mode():sub(1, 1) == "n"
-  end, 10)
-  assert(returned_to_normal, "Escape must return to Normal mode")
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
+  assert(vim.fn.mode():sub(1, 1) == "n", "Escape must return to Normal mode")
 end
 
 local function assert_current_line_indent(expected, description)
