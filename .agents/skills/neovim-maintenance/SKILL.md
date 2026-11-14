@@ -356,30 +356,35 @@ for the validated snapshot, not by assumption for all future revisions.
 
 ## Mason package-install regression tests
 
-For Mason-managed adapters, observe lifecycle events instead of polling
-`Package:is_installed()` inside a `vim.wait()` predicate:
+For Mason-managed adapters, observe terminal install lifecycle events instead of
+polling `Package:is_installed()` inside a `vim.wait()` predicate:
 
-- Subscribe to `registry:on("package:handle", ...)` to record which configured
-  packages were requested.
-- Subscribe to `package:install:success` and `package:install:failed` and keep
-  terminal results in an in-memory table.
-- Wait on that table. Avoid repeated `Package:is_installed()` calls during
-  active installs: the current Mason implementation scans the shared install
-  root synchronously, so polling is expensive and is not a reliable async
-  completion signal.
-- Assert that every expected package was requested and that every terminal
-  result is successful. Preserve stderr for failed handles in the test output.
+- Subscribe to the registry-level `package:install:success` and
+  `package:install:failed` events and keep terminal results in an in-memory
+  table.
+- Do not subscribe to a registry-level `package:handle` event: the install
+  handle is exposed by each `Package` instance, not emitted as a registry
+  lifecycle event. A registry listener for `package:handle` never fires.
+- Wait on the terminal-result table. Avoid repeated `Package:is_installed()`
+  calls during active installs: the current Mason implementation scans the
+  shared install root synchronously, so polling is expensive and is not a
+  reliable async completion signal.
+- For an adapter that is already installed before the action, seed its result
+  as existing/successful. In a clean isolated CI workspace, the remaining
+  adapters must produce the registry success events after the actual command
+  is invoked. If the test needs to prove that the command requested adapters,
+  also assert the expected package request/installation path rather than
+  treating a pre-existing installed package as evidence of a new request.
+- Preserve stderr for failed handles in the test output and assert every
+  expected adapter reaches a successful terminal state.
 
-Incident 2026-11-13: a headless test that polled the registry while five DAP
-adapters were installing timed out without terminal results. Replacing the
-polling loop with Mason lifecycle events passed all five adapter installations
-in 20 seconds on exact PR head
-`605010ffc6825500bdab6b07bb1192e79791e3cc`, run
-[43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
-This validates the event-driven signal; it does not establish that every Mason
-install stall has the same root cause.
-
-
+Incident 2026-11-13: a headless test listened for a nonexistent registry-level
+`package:handle` event and timed out even though Mason completed installs.
+Replacing that listener with `package:install:success` /
+`package:install:failed` observers passed the five adapter installations in
+[run #43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
+This validates the registry terminal-event signal; it does not establish that
+every Mason install stall has the same root cause.
 
 ## Lazy entry points for Mason DAP commands
 
