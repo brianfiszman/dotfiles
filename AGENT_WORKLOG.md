@@ -104,3 +104,16 @@ PR's exact head and any resulting workflow run before handing off.
 - PR head at creation: `4994f6dabfd4bd43a56597ce250c3800f020b326`.
 - Next: verify the branch after this checkpoint update, then inspect any
   workflow run on the exact current PR head.
+
+---
+
+## 2026-11-13 — Adopt Scrum operating model (#80)
+
+- Brian selected one-week sprints, T-shirt sizing, manual Daily Scrum, and strict separate QA and Senior Reviewer gates.
+- Created issue [#80](https://github.com/brianfiszman/dotfiles/issues/80) to track the repository-native operating agreement.
+- Started branch `docs/scrum-operating-model-pr80` from the exact #79 branch head `721a07819de395527ffe86fc6b0830f2be54702f`; this is intentionally stacked on the still-open parent PR [#79](https://github.com/brianfiszman/dotfiles/pull/79).
+- Added `.agents/skills/scrum-team/SKILL.md` and linked it from `AGENTS.md`. The skill defines role authority, ceremonies, T-shirt anchors, DoR/DoD, blockers/carryover, manual chat commands, and separate QA/Reviewer evidence requirements.
+- The role model is transparent: one assistant simulates distinct responsibilities; this is not multiple autonomous agents or genuinely independent human review.
+- No daily automation or reminder was created. No runtime configuration or CI workflow was intentionally changed.
+- The parent PR #79 has a successful `pull_request` run #43531552732 for its own exact head `721a078...`; this evidence does not validate the new stacked branch.
+- Next: complete documentation QA and Senior Review on the new branch, open a stacked PR targeting the #79 branch, then validate the exact child PR head. Do not merge the parent or child without Brian's explicit approval.
