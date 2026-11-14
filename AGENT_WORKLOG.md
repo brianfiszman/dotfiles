@@ -463,3 +463,18 @@ here rather than copying it.
 - QA PASS (simulated): checked the gate cases against the fail-open contract and exact workflow expression. Senior Reviewer APPROVE (simulated): reviewed the complete PR diff and the added workflow-contract tests; no blocking finding. These are sequential role passes by one assistant, not independent human reviews.
 - PR #92 remains Draft, open, and unmerged. No merge authorization was given. PR #90 remains Draft/paused and untouched.
 - Next: validate a real workflow_dispatch/scheduled cold path; assess safe concurrency only with isolated mutable XDG/plugin/Mason state. Broad caches remain deferred until build hooks can be proven on cache hits and a cold path remains.
+
+
+## 2026-11-14 — Make PR integration gating cancellation-safe (#91 / Draft PR #92)
+
+- Re-inspected the exact workflow, test contract, current PR and branch state after the latest docs-only checkpoint push started another run.
+- Observed run #43630750097 on superseded head `e9aad49`: the decision and fast-check jobs concluded `cancelled`, but `Fresh install and headless startup` still concluded `success`; the overall workflow was cancelled. The old job condition used `always()`, which remains true on workflow cancellation and can keep an obsolete expensive integration job alive.
+- Checked the official GitHub Actions expression/cancellation contract: `always()` returns true on cancellation and may prevent a job from being canceled; GitHub recommends `!cancelled()` where work should run after failures but must stop on workflow cancellation. Sources: GitHub [expression functions](https://docs.github.com/en/actions/reference/workflows-and-actions/expressions) and [workflow cancellation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-cancellation).
+- Replaced the heavy job condition with `!cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false')`. This preserves fail-open behavior for decision failures/missing/unexpected outputs while allowing concurrency-cancelled stale runs to stop.
+- Updated the workflow-contract test to require that exact expression and assert that failures still run the full suite but cancelled workflows do not keep the heavy job alive.
+- Exact head `fe5c6b41cc8f162a0ace39a218a92e624d19fa5d` passed [run #43631136597](https://github.com/brianfiszman/dotfiles/actions/runs/43631136597): decision job success and required full integration because workflow changed; fast checks 14/14 passed; full integration passed every step and artifact upload.
+- Real-LuaLS markers all appeared: Telescope completion, Neovim API completion, hover after valid Telescope usage, and zero diagnostics. DAP/Mason installed all five configured adapters. Locked plugin restore/build hooks completed in 33 seconds; DAP/Mason first-use installation completed in 28 seconds. APT installed 9 supplemental packages and added 12.7 MB.
+- Logs artifact `14127804132` uploaded successfully. No cache or behavioral coverage was removed.
+- QA PASS (simulated): verified the concurrency cancellation edge and fail-open behavior from the exact workflow condition, regression test, and run. Senior Reviewer APPROVE (simulated): re-read the workflow/module/tests and complete PR diff; no blocking issue found. Both are sequential roles by one assistant, not independent human reviews.
+- PR #92 remains open and Draft; no merge authorization was given. PR #90 remains separately Draft/paused and untouched.
+- Remaining: validate a real workflow_dispatch/scheduled cold event if an action is available; evaluate safe state-isolated behavior-test concurrency. Broad plugin/Mason caching remains deferred.
