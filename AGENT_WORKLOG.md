@@ -545,3 +545,11 @@ here rather than copying it.
 - Cause: the test passed \`undefined\` to a mock option that deliberately treats undefined as “use the valid default display title”. It therefore did not simulate missing metadata.
 - Correction: use \`null\` to represent an actually absent display title. The production parser already returns null for non-string/missing titles; no production logic change is required.
 - The failed fast job means run #43643121415 cannot serve as an integration baseline. The next exact-head run must execute the full integration because previous successful baselines predate the run-name marker.
+
+
+## 2026-11-14 — PR #92 run-name baseline: full integration passed
+
+- Exact code/test head `aeefc20803016cac2f9f41a640b27d782a161a26` passed PR workflow [#43643251108](https://github.com/brianfiszman/dotfiles/actions/runs/43643251108).
+- The run completed with decision success, fast checks success (**19/19**), and full fresh-install/headless integration success. Locked plugin restore/build hooks, normal startup, behavior suite, and artifact upload all succeeded.
+- Actions REST returned the resolved `display_title` containing base `9e43312f2afa523e658ed583b4f48bebffb98568`, PR head `aeefc20803016cac2f9f41a640b27d782a161a26`, and tested merge SHA `880a5bbed70cb8716904b716e3dca7f106bf8e5e`. The base matches the live PR base; the marker head matches the workflow run head.
+- This is the successful full-integration baseline for the next docs-only run. The next workflow must reuse it only while the base SHA is unchanged and the delta contains no integration-relevant files.
