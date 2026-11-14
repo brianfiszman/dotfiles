@@ -117,3 +117,14 @@ PR's exact head and any resulting workflow run before handing off.
 - No daily automation or reminder was created. No runtime configuration or CI workflow was intentionally changed.
 - The parent PR #79 has a successful `pull_request` run #43531552732 for its own exact head `721a078...`; this evidence does not validate the new stacked branch.
 - Next: complete documentation QA and Senior Review on the new branch, open a stacked PR targeting the #79 branch, then validate the exact child PR head. Do not merge the parent or child without Brian's explicit approval.
+
+
+---
+
+## 2026-11-13 — Open stacked Scrum operating-model PR (#81)
+
+- Opened [PR #81](https://github.com/brianfiszman/dotfiles/pull/81) for [issue #80](https://github.com/brianfiszman/dotfiles/issues/80), based on parent PR #79's branch `docs/agent-session-continuity-pr78`.
+- PR #81 is intentionally stacked; it must not be merged before #79. Once #79 merges, retarget #81 to `master`, refresh the diff, and validate again.
+- PR source head at opening: `440372f9d4b53cf0aa262239f4b45800de1c9874`. Workflow run [#43533418098](https://github.com/brianfiszman/dotfiles/actions/runs/43533418098) was in progress at the time of this entry; its visible job step was installing system tools. The run is not a pass and will not validate any later head.
+- QA returned PASS and the separate Senior Reviewer pass returned APPROVE for the four-file documentation diff.
+- Next: resolve the branch after this checkpoint/work-log commit and validate the exact new PR head and its own Actions run.
