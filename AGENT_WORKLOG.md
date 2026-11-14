@@ -63,22 +63,32 @@ here rather than copying it.
 
 ---
 
-## 2026-11-14 — Restore append-only history and adopt Scrum model (#80)
+## 2026-11-14 — Restore append-only work log and reconcile PR #79
 
-- Recovered the original chronological work log from commit `4994f6d` and restored it after the accidental replacement in parent commit `721a078`; the DAP/Mason and documentation-recovery entries remain intact.
-- Brian selected one-week sprints, T-shirt sizing, manual Daily Scrum, and strict separate QA and Senior Reviewer gates.
-- Created [issue #80](https://github.com/brianfiszman/dotfiles/issues/80), added `.agents/skills/scrum-team/SKILL.md`, and linked it from `AGENTS.md`.
-- The roles are simulated by one assistant, not separate autonomous agents or independent humans. No daily automation or reminder was created.
-- Opened [PR #81](https://github.com/brianfiszman/dotfiles/pull/81) for #80, stacked on [parent PR #79](https://github.com/brianfiszman/dotfiles/pull/79).
-- Previous child head `fe6dd047c11ed1ca1fb4b5c479dd879df81769de` passed pull-request run [#43533765889](https://github.com/brianfiszman/dotfiles/actions/runs/43533765889). Parent PR #79 subsequently advanced to `0d006c2af97137adc8f9a189d6aa2280a59dcdd2`; its correction is included in this child synchronization.
-- The next child head requires its own QA, Senior Review, and Actions validation. Never merge the child before the parent or without Brian's explicit approval.
+- Recovery inspection found that commit `721a078` accidentally replaced `AGENT_WORKLOG.md` with a copy of the checkpoint, despite the file's append-only contract.
+- Restored the original chronological work log from commit `4994f6d`, preserving the DAP/Mason investigation and the documentation-review/recovery-simulation entry.
+- This correction is appended after the restored history; it does not silently erase or rewrite the earlier entries.
+- PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) remained open on exact head `721a07819de395527ffe86fc6b0830f2be54702f`; pull-request run [#43531552732](https://github.com/brianfiszman/dotfiles/actions/runs/43531552732) completed successfully for that exact SHA, including preparation, locked plugin restore/build hooks, and normal headless startup.
+- The five-file PR scope was reviewed against issue #78. QA passed for recovery sequence, exact evidence, linked paths, Markdown structure, and documentation-only scope. Senior Reviewer approved consistency with the repository safety and project-management rules.
+- No local macOS interactive session was performed. Issue #78 remains open until the PR is merged; merge authorization remains with Brian.
 
 
 ---
 
-## 2026-11-14 — Synchronize Scrum PR with validated parent head
+## 2026-11-14 — PR #79 restored-worklog head validation passed
 
-- Parent PR #79 advanced to `aac9cad33373beffdfd78faa1f55589fe7142780` and passed pull-request run [#43534899400](https://github.com/brianfiszman/dotfiles/actions/runs/43534899400). All job steps passed, including locked plugin restore/build and normal startup.
-- Child PR #81's prior head `e2ade24b924424a814db666172fd955cec71190d` passed run [#43534697665](https://github.com/brianfiszman/dotfiles/actions/runs/43534697665), but was based on the preceding parent head `0d006c2...`.
-- Synchronized `docs/scrum-operating-model-pr80` with the latest parent using a two-parent merge commit, preserving the child Scrum changes and incorporating parent checkpoint/work-log state.
-- New child head requires fresh QA/Reviewer inspection and its own Actions validation. Do not merge child before parent or without Brian's explicit authorization.
+- Pull-request run [#43534384968](https://github.com/brianfiszman/dotfiles/actions/runs/43534384968) completed successfully for exact PR #79 head `0d006c2af97137adc8f9a189d6aa2280a59dcdd2`.
+- All job steps passed: prerequisites, pinned Neovim, isolated workspace, installer safety, locked plugin restore/build, normal startup, and log upload.
+- This run includes the append-only work-log restoration and checkpoint/work-log reconciliation.
+- The following checkpoint commit advances the branch again; inspect the workflow run associated with that resulting exact head before treating the PR as fully validated.
+
+
+---
+
+## 2026-11-14 — Complete Scrum PR after continuity parent merge
+
+- Brian authorized merging parent PR #79. It was squash-merged into `master` as [`a006c8a`](https://github.com/brianfiszman/dotfiles/commit/a006c8afb84518098009e4bd8da4436c8e926aa4); issue #78 is closed.
+- Retargeted child PR [#81](https://github.com/brianfiszman/dotfiles/pull/81) to `master`. Its prior head `fb5dd83c1a066a191980be4eb53af375592dd866` had passed [run #43535300671](https://github.com/brianfiszman/dotfiles/actions/runs/43535300671), but retargeting initially displayed the squash-merged parent's changes again because the child history did not contain the squash commit.
+- Preserved the child tree and added the exact current master commit as a second parent so GitHub's merge base advances to master. This changes ancestry, not the intended Scrum content.
+- The next exact-head run is required. Verify the PR diff is only the four Scrum documentation files, then QA and Senior Review.
+- No merge of PR #81 is authorized yet; Brian's explicit approval is still required.
