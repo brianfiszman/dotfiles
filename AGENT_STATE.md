@@ -4,12 +4,13 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Sprint 1 implementation in progress; code and a focused headless regression scenario have been committed to the topic branch. No PR exists yet.
+- **Status:** PR #84 open; implementation committed; exact-head CI not yet observed.
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `feat/neotest-lazy-loading`
 - **Base:** `master` at `c203afd4256398ac003a28abc211cd4f8c376f19`
-- **Last implementation HEAD before this checkpoint:** `54a2a4fa24442518e6e7f24ac8a8715977e95b1f`
+- **Current PR HEAD:** `156270eaa2c4e439e03050f22183d6e393ecdc8f`
 - **Issue:** [#74 — Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
+- **PR:** [#84 — Lazy-load Neotest on existing test actions](https://github.com/brianfiszman/dotfiles/pull/84)
 - **Sprint:** Sprint 1, 2026-11-13 through 2026-11-19; estimate M.
 - **Planning checkpoint:** [PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged. Its approval is not merge authorization.
 
@@ -30,7 +31,7 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 ## Pending
 
 - Review the complete branch diff and validate that the lazy key trigger and which-key mapping handoff behave as expected.
-- Open a focused PR for #74 to trigger the repository's real isolated Neovim workflow.
+- PR #84 is open. Inspect its pull-request Actions run for exact head `156270eaa2c4e439e03050f22183d6e393ecdc8f`.
 - Inspect exact-head CI, run the separate QA and Senior Reviewer gates, and address any findings.
 - Interactive macOS testing and a representative project test run remain separate from deterministic headless checks.
 
@@ -41,7 +42,7 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 | Branch/base verification | passed | `master...feat/neotest-lazy-loading` comparison; base SHA `c203afd...` |
 | Static diff review | pending | Complete diff review not yet performed |
 | Lua/headless behavior | pending | New regression test committed; not yet run |
-| Full isolated install/restore/startup | pending | Requires PR workflow |
+| Full isolated install/restore/startup | pending | PR #84 opened; no exact-head run observed yet |
 | QA | not run | After exact-head validation |
 | Senior Reviewer | not run | Separate pass after QA |
 
@@ -52,4 +53,4 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 
 ## Next concrete action
 
-Review the current exact branch diff and refine the trigger/test implementation if needed. Then open the issue #74 PR and inspect the exact-head Actions run. Do not merge any PR or close issue #74 without Brian's explicit authorization and acceptance.
+Inspect the exact-head Actions run for PR #84. Diagnose any test failure before changing code. Do not merge any PR or close issue #74 without Brian's explicit authorization and acceptance.
