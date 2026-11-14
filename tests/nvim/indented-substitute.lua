@@ -36,7 +36,7 @@ for key, description in pairs({
   O = "Reindent and open line above",
 }) do
   local mapping = vim.fn.maparg(key, "n", false, true)
-  assert(mapping and mapping.expr ~= 1, key .. " must use a callback mapping, not an expression mapping")
+  assert(mapping and mapping.expr == 1, key .. " must return the native edit sequence after reindent")
   assert(mapping.desc == description, key .. " mapping description changed")
 end
 
