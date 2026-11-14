@@ -116,17 +116,20 @@ version changes were included. Issue #74 is closed as completed.
 ## Current handoff — Sprint 2: modernize the LSP foundation
 
 **Dates:** 2026-11-14 through 2026-11-20  
-**Sprint Goal:** replace the layered/legacy LSP setup with one explicit native Neovim LSP configuration path per server, while preserving current language support, keymaps, completion, diagnostics, formatting, and TypeScript/ESLint behavior.
+**Sprint Goal:** replace the layered/legacy LSP setup with one explicit native Neovim LSP configuration path per server, while preserving current language support and consistent editor behavior.
 
 - **Committed issue:** [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41) — estimate **M**.
-- **Active branch:** `feat/lsp-native-setup-41`, based on the post-PR-86 master state.
-- **Current status:** implementation is in [PR #87](https://github.com/brianfiszman/dotfiles/pull/87), currently open. Current PR code head at this checkpoint: `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`; base: `c587c8854faf2e99770ca6f30a51a529a38140bb`. Run [#43552641966](https://github.com/brianfiszman/dotfiles/actions/runs/43552641966) is in progress on that head; the system-tools installation step is still running. Older runs were cancelled before Neovim startup/tests. QA and Senior Reviewer are pending.
+- **Active PR:** [#87](https://github.com/brianfiszman/dotfiles/pull/87), open and unmerged.
+- **Branch/base:** `feat/lsp-native-setup-41` to `master` at `c587c8854faf2e99770ca6f30a51a529a38140bb`.
+- **Latest implementation/test snapshot:** `3334b4b9cdf0b22de0990e4def6ff298f4a40bd0`. The latest PR head is `6f3c07398e05660c92265802cfe1c5f6bc51f758`, which also contains checkpoint/worklog/skill updates.
+- **Current exact-head CI:** [run #43602548427](https://github.com/brianfiszman/dotfiles/actions/runs/43602548427) is queued/pending on latest PR head `6f3c07398e05660c92265802cfe1c5f6bc51f758`. Earlier run [#43602089534](https://github.com/brianfiszman/dotfiles/actions/runs/43602089534) failed in a test assertion that used `maparg()` before WhichKey's queued registration was available; the primary Ctrl+F map is now registered directly with `vim.keymap.set()`, and the assertion remains.
 - The LSP migration uses native `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig with `automatic_enable = false`, and one configuration table/activation loop.
-- Targeted compatibility updates only: nvim-lspconfig v2.12.0, Mason-LSPConfig v2.3.0, Mason v2.3.1; CI baseline is Neovim v0.11.3, the minimum required by the selected nvim-lspconfig release.
-- lsp-zero v3.x is being removed as an architectural simplification. Correction to the earlier audit: upstream's README mentions a v4 branch; it was inaccurate to describe the whole project as officially dead.
-- TypeScript Tools is being replaced by native `ts_ls` because the exact locked TypeScript Tools revision still calls the deprecated `require("lspconfig")` setup framework. Its function-call completions and references/implementations CodeLens are being carried over to native TypeScript language-server settings.
-- Neodev remains temporarily for the separate [#42 lazydev migration](https://github.com/brianfiszman/dotfiles/issues/42). Its compatibility helper still imports `lspconfig.util`; this is a known transitional dependency, not a direct server setup path in the new LSP configuration.
-- **Validation pending:** CI run #43552641966 is in progress on the current code head. It validates lockfile JSON before restore; system-tools installation is still in progress and no runtime test has passed yet. QA/Reviewer have not started.
+- Targeted compatibility updates only: nvim-lspconfig v2.12.0, Mason-LSPConfig v2.3.0, Mason v2.3.1; CI baseline is Neovim v0.11.3.
+- TypeScript Tools is replaced by native `ts_ls`; function-call completion and references/implementations CodeLens are retained. Neodev remains temporarily for the separate [#42 lazydev migration](https://github.com/brianfiszman/dotfiles/issues/42), including its known transitional `lspconfig.util` import.
+- **Formatting:** Normal-mode Ctrl+F directly invokes Conform's `:Format`. JavaScript/TypeScript use `prettierd` when available, otherwise `prettier`, following the project's Prettier configuration. Competing F3 / Ctrl+Shift+F LSP formatter mappings are removed. ESLint's separate `EslintFixAll` save action remains.
+- **Diagnostics:** ESLint LSP owns JS/TS ESLint diagnostics; nvim-lint no longer launches `eslint` or `eslint_d` for JavaScript, TypeScript, JSX, or TSX. Other nvim-lint filetypes remain configured. This removes a credible source of overlapping asynchronous diagnostics; the exact prior stale message still needs Brian's local recheck.
+- **Manual checks:** completion and `K` hover were confirmed by Brian. He prefers Ctrl+F formatting and reported it appeared to produce the expected output. Restart Neovim after the update and verify Ctrl+F plus whether the old ESLint diagnostic reappears after undo.
+- **QA / Senior Reviewer:** pending against the current complete diff. Prior passes were on predecessor implementation snapshots and do not satisfy final review.
 - **Not included in Sprint 2 commitment:** #42 (lazydev), #44 (Treesitter API migration), #76 (Telescope lazy-loading), or a repository-wide plugin update.
 
 ## Agreed modernization sequence after the current LSP issue
