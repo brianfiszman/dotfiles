@@ -1,22 +1,22 @@
 # Agent execution state
 
-_Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
+_Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** PR #79 merged; PR #81 retargeted to master; final four-file QA and Senior Review passed; exact-head CI dispatch/validation pending
+- **Status:** PR #79 and PR #81 merged; their issues #78 and #80 are closed. Post-merge checkpoint reconciliation is in PR #82.
 - **Repository:** `brianfiszman/dotfiles`
-- **Work branch:** `docs/scrum-operating-model-pr80`
-- **Base branch:** `master`
-- **Base HEAD:** `a006c8afb84518098009e4bd8da4436c8e926aa4`
-- **Issue:** [#80 — Formalize a lightweight Scrum operating model](https://github.com/brianfiszman/dotfiles/issues/80)
-- **Pull request:** [#81 — Scrum team operating model](https://github.com/brianfiszman/dotfiles/pull/81) — open
-- **PR source HEAD before this base-sync checkpoint:** `fb5dd83c1a066a191980be4eb53af375592dd866`
-- **Completed parent:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79), squash-merged as [`a006c8a`](https://github.com/brianfiszman/dotfiles/commit/a006c8afb84518098009e4bd8da4436c8e926aa4)
+- **Work branch:** `docs/post-scrum-merge-state-82`
+- **Base branch / HEAD:** `master` / `e43ce86e98344094021421cbe789df5e956b8982`
+- **Current PR:** [#82 — Reconcile execution checkpoint after Scrum merge](https://github.com/brianfiszman/dotfiles/pull/82)
+- **Source HEAD before this checkpoint update:** `bbdd526a2c14af99a21af7fa5e6a9b3bb018c52a`
+- **Completed continuity PR:** [#79](https://github.com/brianfiszman/dotfiles/pull/79), squash-merged as [`a006c8a`](https://github.com/brianfiszman/dotfiles/commit/a006c8afb84518098009e4bd8da4436c8e926aa4); issue #78 closed.
+- **Completed Scrum PR:** [#81](https://github.com/brianfiszman/dotfiles/pull/81), squash-merged as [`e43ce86`](https://github.com/brianfiszman/dotfiles/commit/e43ce86e98344094021421cbe789df5e956b8982); issue #80 closed.
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
+- **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
 - **Scrum skill:** [`scrum-team`](.agents/skills/scrum-team/SKILL.md)
-- **Current phase:** final diff and exact-head Actions validation after ancestry synchronization
+- **Current phase:** validate the final two-file checkpoint reconciliation PR #82.
 
 ## Scrum configuration
 
@@ -29,44 +29,43 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Current cycle
 
-- **Sprint 0 — foundation/setup:** continuity and Scrum operating agreement are now in master.
+- **Sprint 0 — foundation/setup:** continuity protocol and Scrum operating agreement are merged into `master`.
 - **Sprint 1 candidate:** issue [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74), to be considered at Planning. It is not committed yet.
-- Preserve the one-functional-PR-at-a-time rule.
+- Preserve the one-functional-PR-at-a-time rule. Do not begin the next functional issue until it is selected at Planning.
 
 ## Completed and verified
 
-- Parent PR #79 was squash-merged into `master` as `a006c8afb84518098009e4bd8da4436c8e926aa4`; issue #78 is closed.
-- Parent exact-head run [#43534899400](https://github.com/brianfiszman/dotfiles/actions/runs/43534899400) passed on `aac9cad33373beffdfd78faa1f55589fe7142780`, including isolated prep, locked plugin restore/build, normal startup, and log upload.
-- Parent PR's work-log history was restored after the accidental overwrite; original DAP/Mason and documentation recovery history is preserved in `AGENT_WORKLOG.md`.
-- PR #81's prior source head `fb5dd83c1a066a191980be4eb53af375592dd866` passed run [#43535300671](https://github.com/brianfiszman/dotfiles/actions/runs/43535300671), but the base retarget and ancestry synchronization require a fresh run.
-- Retargeted PR #81 from the former parent branch to `master`. Because #79 was squash-merged, its original commits were not ancestors of the child branch; the PR diff initially reintroduced the parent's five files. This commit adds the current `master` commit as a second parent while preserving the child tree, so the merge base is now the actual master commit.
-- `AGENTS.md` links the Scrum skill; the Scrum skill remains present. The intended PR scope is four documentation paths only: `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `.agents/skills/scrum-team/SKILL.md`.
-- No Neovim runtime configuration or workflow definitions changed. No Daily Scrum automation was created.
+- PR #79 merged into `master` as `a006c8afb84518098009e4bd8da4436c8e926aa4`; issue #78 is closed. Its exact-head pull-request run [#43534899400](https://github.com/brianfiszman/dotfiles/actions/runs/43534899400) passed on source SHA `aac9cad33373beffdfd78faa1f55589fe7142780`.
+- PR #79 restored the original append-only work-log history after an accidental overwrite. The earlier DAP/Mason and documentation-recovery findings remain preserved in `AGENT_WORKLOG.md`.
+- PR #81 merged into `master` as `e43ce86e98344094021421cbe789df5e956b8982`; issue #80 is closed as completed.
+- PR #81 exact source SHA `62718319fa8e2ad121a9b2b48276c8218ef508e3` passed pull-request run [#43536799096](https://github.com/brianfiszman/dotfiles/actions/runs/43536799096). Every job step passed: checkout, system tools, pinned Neovim, isolated workspace, installer safety, locked plugin restore/build hooks, normal headless startup, and log upload.
+- QA PASS and Senior Reviewer APPROVE were completed for PR #81's final four-file diff: `.agents/skills/scrum-team/SKILL.md`, `AGENTS.md`, `AGENT_STATE.md`, and `AGENT_WORKLOG.md`.
+- PR #81 changed no Neovim runtime configuration or workflow definitions. No Daily Scrum automation was created.
+- Post-merge audit found the checkpoint from PR #81 still described #81 as open and CI as pending. PR #82 corrects that stale handoff and appends the observed merge outcome without rewriting prior work-log entries.
 
 ## Pending
 
-- Trigger/observe a pull-request Actions run for the new master-based head; no run is registered for the current SHA yet.
-- Verify that run completes successfully for the exact current SHA.
-- Do not merge #81 without Brian's explicit authorization.
-- Do not merge #81 without Brian's explicit authorization.
+- PR #82 exact-head pull-request CI must complete successfully for its final source SHA.
+- Complete QA and a separate Senior Reviewer pass for the two-file documentation diff.
+- Merge PR #82 only after Brian explicitly authorizes it. Authorization to merge #81 does not authorize #82.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
-| PR #79 parent exact-head CI | passed | Run #43534899400, `pull_request`, SHA `aac9cad...` |
-| PR #81 prior exact-head CI | passed | Run #43535300671, `pull_request`, SHA `fb5dd83c1a066a191980be4eb53af375592dd866`; pre-retarget/pre-sync |
-| Current four-file scope | passed | Compare master...PR head: exactly four Scrum files; merge base is `a006c8a` |
-| QA / Senior Reviewer | passed | Final master-based patch inspected; no parent/backlog duplication |
-| Current PR #81 exact-head CI | pending | No run registered yet for source SHA `1e38e71...` |
-| Neovim runtime validation | not required | Documentation-only change |
+| PR #79 exact-head CI | passed | Run #43534899400, `pull_request`, source SHA `aac9cad...` |
+| PR #81 exact-head CI | passed | Run #43536799096, `pull_request`, source SHA `62718319fa8e2ad121a9b2b48276c8218ef508e3` |
+| PR #81 QA / Senior Reviewer | passed | Final master-based four-file diff; QA PASS, Reviewer APPROVE |
+| PR #82 scope | pending final review | Intended diff: this checkpoint plus append-only work-log entry |
+| PR #82 exact-head CI | pending | Must inspect run for current final branch SHA |
+| Neovim runtime validation | not required | Documentation-only reconciliation; no runtime/workflow files changed |
 
 ## Blockers
 
-None known after the parent merge. Final diff review and current-head CI remain pending.
+- Only PR #82's exact-head validation/review and Brian's separate merge authorization remain.
 
 ## Next concrete action
 
-Obtain an exact-head pull-request Actions run for the current master-based branch and inspect it through completion. Do not treat run #43535300671 for the previous head as validation for this snapshot.
+Resolve the remote ref for `docs/post-scrum-merge-state-82`, inspect the final two-file diff, and verify the PR-triggered Actions run for that exact SHA. Record any result accurately. Then request explicit merge authorization for PR #82.
 
-The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the remote branch ref to verify the persisted snapshot.
+The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the named remote branch ref to verify the persisted snapshot.
