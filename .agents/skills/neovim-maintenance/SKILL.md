@@ -287,6 +287,12 @@ and a passing CI run.
   WhichKey register(). WhichKey v3 processes those queued specs during setup;
   an early headless maparg() assertion can therefore be a false negative before
   the deferred registration has completed.
+
+- Keep Lua development tooling filetype-lazy: declare lazydev as a separate
+  root plugin spec with `ft = "lua"`, not as a dependency of an eagerly loaded
+  LSP plugin. Enable its native LSP and nvim-cmp integrations deliberately.
+  Translate Neodev's explicit plugin type list into lazydev's `library` entries
+  when those APIs must remain available even before a module is required.
 - Preserve `lazy-lock.json` unless a ticket explicitly includes a plugin version
   change.
 - Pin or document APIs when upstream plugins make breaking branch migrations.
