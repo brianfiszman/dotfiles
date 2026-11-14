@@ -83,7 +83,11 @@ vim.api.nvim_create_autocmd("DiagnosticChanged", {
   group = group,
   buffer = bufnr,
   callback = function()
-    diagnostics_published = true
+    -- Ignore the diagnostic from the intentionally incomplete completion
+    -- context; pass only after LuaLS clears diagnostics for valid code.
+    if #vim.diagnostic.get(bufnr) == 0 then
+      diagnostics_published = true
+    end
   end,
 })
 
