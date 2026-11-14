@@ -112,7 +112,7 @@ local function reindent_current_line(count)
 end
 
 local function feed_builtin_normal(keys)
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "ni", false)
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "nx", false)
 end
 
 vim.keymap.set("n", "S", function()
