@@ -176,6 +176,35 @@ executes before describing its coverage. A successful plugin download does not
 prove plugin configuration works; a successful startup does not prove every
 lazy-loaded plugin or user workflow works.
 
+## Real LuaLS and Lazydev integration tests
+
+Configuration inspection is necessary but does not prove that LuaLS can resolve a
+plugin's type definitions or return useful completions. For changes to Lazydev,
+LuaLS workspace libraries, or Lua completion:
+
+1. Install a pinned LuaLS release in CI and verify its published SHA-256 before
+   execution. Do not silently depend on whatever server version happens to be
+   available on the runner.
+2. Launch the actual Neovim configuration in a fresh headless process, open a
+   named Lua buffer under a temporary workspace root, and wait for the real
+   `lua_ls` client to attach.
+3. Send `textDocument/completion` requests through that client at representative
+   plugin and Neovim API expressions. Assert concrete expected labels such as
+   `telescope.builtin.find_files` and `vim.api.nvim_create_autocmd`; checking
+   only `package.loaded`, Lazydev's library table, or nvim-cmp source
+   registration is not enough.
+4. Replace the deliberately incomplete completion prefix with valid Lua and
+   assert LuaLS clears diagnostics for that buffer. Keep the error/diagnostic
+   check separate from the expected temporary parser error used to trigger
+   completion.
+5. Ensure workflow path filters include `tests/nvim/**`, so edits to behavioral
+   tests actually run CI.
+
+A LuaLS CLI `--check` run can be useful for diagnosing a workspace, but it is
+not a substitute for this integration test: it does not prove that Neovim
+loaded Lazydev, updated the active LSP workspace, or returned the expected
+completion response.
+
 ## Lazy-loading behavior tests
 
 A plugin spec can have multiple triggers. Every trigger is an independent way to
