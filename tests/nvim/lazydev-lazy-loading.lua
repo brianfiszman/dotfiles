@@ -53,7 +53,8 @@ assert(vim.lsp.is_enabled("lua_ls"), "native LuaLS server is not enabled")
 
 local lazy = require("lazy.core.config")
 assert(lazy.plugins["lazydev.nvim"] ~= nil, "lazydev plugin spec is missing")
-assert(vim.tbl_contains(lazy.plugins["lazydev.nvim"].ft or {}, "lua"),
+local lazydev_ft = lazy.plugins["lazydev.nvim"].ft
+assert(lazydev_ft == "lua" or (type(lazydev_ft) == "table" and vim.tbl_contains(lazydev_ft, "lua")),
   "lazydev must use a Lua filetype trigger")
 assert(lazy.plugins["neodev.nvim"] == nil, "replaced Lua development plugin remains in lazy specs")
 
