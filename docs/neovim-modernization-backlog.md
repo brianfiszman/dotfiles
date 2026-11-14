@@ -13,6 +13,8 @@ underlying fix.
 
 ## P1 — Make everyday editing predictable
 
+- [#89 Make `S` reindent the current scope before replacing lines](https://github.com/brianfiszman/dotfiles/issues/89) — expression mapping and deterministic headless regression test implemented; exact-head CI and interactive Lua/TypeScript validation pending.
+
 - [#32 Stop automatically unlinking snippets when the cursor is idle](https://github.com/brianfiszman/dotfiles/issues/32)
 - [#33 Avoid running checktime every time a buffer window is entered](https://github.com/brianfiszman/dotfiles/issues/33)
 - [#34 Remove full helptags generation from every Neovim startup](https://github.com/brianfiszman/dotfiles/issues/34)
