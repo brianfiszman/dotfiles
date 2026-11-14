@@ -75,6 +75,9 @@ jobs:
       - name: Configure isolated test workspace
         run: echo "NVIM_TEST_DIR=$RUNNER_TEMP/nvim-headless-smoke" >> "$GITHUB_ENV"
 
+      - name: Validate lazy.nvim lockfile JSON
+        run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
+
       - name: Prepare isolated install and verify installer safety
         run: bash ./scripts/test-nvim-headless.sh prepare
 
