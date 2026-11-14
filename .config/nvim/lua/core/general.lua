@@ -104,3 +104,14 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
+-- Reindent before replacing a line so S starts at the indentation computed for
+-- the current syntax scope (Treesitter/indentexpr when available). Preserve
+-- Vim's counted S behavior by applying the same count to both operations.
+vim.keymap.set("n", "S", function()
+  local count = vim.v.count1
+  return ("%d==%dcc"):format(count, count)
+end, {
+  desc = "Reindent and replace line(s)",
+  expr = true,
+})
+
