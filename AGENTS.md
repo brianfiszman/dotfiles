@@ -47,6 +47,8 @@ state as user data, not disposable test fixtures.
   updating, comparing, or closing GitHub issues and pull requests.
 - Follow `.agents/skills/github-actions-validation/SKILL.md` when inspecting,
   diagnosing, or reporting GitHub Actions workflows and check results.
+- Follow `.agents/skills/scrum-team/SKILL.md` when planning or executing sprint
+  work, running ceremonies, or applying QA/reviewer quality gates.
 
 ## Preserving work across branches and PRs
 

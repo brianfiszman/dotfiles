@@ -63,11 +63,12 @@ here rather than copying it.
 
 ---
 
-## 2026-11-14 — Restore append-only work log and reconcile PR #79
+## 2026-11-14 — Restore append-only history and adopt Scrum model (#80)
 
-- Recovery inspection found that commit `721a078` accidentally replaced `AGENT_WORKLOG.md` with a copy of the checkpoint, despite the file's append-only contract.
-- Restored the original chronological work log from commit `4994f6d`, preserving the DAP/Mason investigation and the documentation-review/recovery-simulation entry.
-- This correction is appended after the restored history; it does not silently erase or rewrite the earlier entries.
-- PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) remained open on exact head `721a07819de395527ffe86fc6b0830f2be54702f`; pull-request run [#43531552732](https://github.com/brianfiszman/dotfiles/actions/runs/43531552732) completed successfully for that exact SHA, including preparation, locked plugin restore/build hooks, and normal headless startup.
-- The five-file PR scope was reviewed against issue #78. QA passed for recovery sequence, exact evidence, linked paths, Markdown structure, and documentation-only scope. Senior Reviewer approved consistency with the repository safety and project-management rules.
-- No local macOS interactive session was performed. Issue #78 remains open until the PR is merged; merge authorization remains with Brian.
+- Recovered the original chronological work log from commit `4994f6d` and restored it after the accidental replacement in parent commit `721a078`; the DAP/Mason and documentation-recovery entries remain intact.
+- Brian selected one-week sprints, T-shirt sizing, manual Daily Scrum, and strict separate QA and Senior Reviewer gates.
+- Created [issue #80](https://github.com/brianfiszman/dotfiles/issues/80), added `.agents/skills/scrum-team/SKILL.md`, and linked it from `AGENTS.md`.
+- The roles are simulated by one assistant, not separate autonomous agents or independent humans. No daily automation or reminder was created.
+- Opened [PR #81](https://github.com/brianfiszman/dotfiles/pull/81) for #80, stacked on [parent PR #79](https://github.com/brianfiszman/dotfiles/pull/79).
+- Previous child head `fe6dd047c11ed1ca1fb4b5c479dd879df81769de` passed pull-request run [#43533765889](https://github.com/brianfiszman/dotfiles/actions/runs/43533765889). Parent PR #79 subsequently advanced to `0d006c2af97137adc8f9a189d6aa2280a59dcdd2`; its correction is included in this child synchronization.
+- The next child head requires its own QA, Senior Review, and Actions validation. Never merge the child before the parent or without Brian's explicit approval.
