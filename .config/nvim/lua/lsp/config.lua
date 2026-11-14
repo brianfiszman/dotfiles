@@ -1,286 +1,303 @@
--- lsp-config.lua
+local M = {}
 
--- Learn the keybindings, see :help lsp-zero-keybindings
--- Learn to configure LSP servers, see :help lsp-zero-api-showcase
-return function(lsp_zero, servers)
-  local lspconfig = require("lspconfig")
+M.mason_servers = {
+  "lua_ls",
+  "arduino_language_server",
+  "bashls",
+  "clangd",
+  "cssls",
+  "diagnosticls",
+  "docker_compose_language_service",
+  "eslint",
+  "dotls",
+  "graphql",
+  "html",
+  "helm_ls",
+  "jsonls",
+  "marksman",
+  "spectral",
+  "dockerls",
+  "tailwindcss",
+  "yamlls",
+  "gopls",
+  "ts_ls",
+}
+
+M.servers = vim.list_extend(vim.deepcopy(M.mason_servers), { "svelte" })
+
+local function set_lsp_keymap(mode, lhs, rhs, description, bufnr)
+  vim.keymap.set(mode, lhs, rhs, {
+    buffer = bufnr,
+    desc = description,
+    noremap = true,
+    silent = true,
+  })
+end
+
+local function on_attach(client, bufnr)
+  set_lsp_keymap("n", "gR", "<cmd>Telescope lsp_references<CR>", "Show LSP references", bufnr)
+  set_lsp_keymap("n", "gD", vim.lsp.buf.declaration, "Go to declaration", bufnr)
+  set_lsp_keymap("n", "gd", "<cmd>Telescope lsp_definitions<CR>", "Show LSP definitions", bufnr)
+  set_lsp_keymap("n", "gi", "<cmd>Telescope lsp_implementations<CR>", "Show LSP implementations", bufnr)
+  set_lsp_keymap("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", "Show LSP type definitions", bufnr)
+  set_lsp_keymap({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, "See available code actions", bufnr)
+  set_lsp_keymap("n", "<F2>", vim.lsp.buf.rename, "Smart rename", bufnr)
+  set_lsp_keymap("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", "Show buffer diagnostics", bufnr)
+  set_lsp_keymap("n", "<leader>DF", vim.diagnostic.open_float, "Show line diagnostics", bufnr)
+  set_lsp_keymap("n", "[d", function()
+    vim.diagnostic.jump({
+      count = -1,
+      on_jump = function(_, target_bufnr)
+        vim.diagnostic.open_float({ bufnr = target_bufnr, scope = "cursor", focus = false })
+      end,
+    })
+  end, "Go to previous diagnostic", bufnr)
+  set_lsp_keymap("n", "]d", function()
+    vim.diagnostic.jump({
+      count = 1,
+      on_jump = function(_, target_bufnr)
+        vim.diagnostic.open_float({ bufnr = target_bufnr, scope = "cursor", focus = false })
+      end,
+    })
+  end, "Go to next diagnostic", bufnr)
+  set_lsp_keymap("n", "K", vim.lsp.buf.hover, "Show documentation", bufnr)
+  set_lsp_keymap("n", "<leader>rs", "<cmd>LspRestart<CR>", "Restart LSP", bufnr)
+
+  -- Preserve lsp-zero's default mappings that are not replaced above.
+  set_lsp_keymap("n", "go", vim.lsp.buf.type_definition, "Go to type definition", bufnr)
+  set_lsp_keymap("n", "gr", vim.lsp.buf.references, "Go to references", bufnr)
+  set_lsp_keymap("n", "<F3>", function()
+    vim.lsp.buf.format({ async = true })
+  end, "Format buffer", bufnr)
+  set_lsp_keymap("x", "<F3>", function()
+    vim.lsp.buf.format({ async = true })
+  end, "Format selection", bufnr)
+  set_lsp_keymap("n", "<F4>", vim.lsp.buf.code_action, "Execute code action", bufnr)
+
+  set_lsp_keymap({ "n", "x" }, "<C-S-f>", function()
+    vim.lsp.buf.format({ async = false, timeout_ms = 10000 })
+  end, "Format synchronously", bufnr)
+end
+
+local function eslint_on_attach(client, bufnr)
+  on_attach(client, bufnr)
+  vim.api.nvim_create_autocmd("BufWritePre", {
+    buffer = bufnr,
+    callback = function()
+      vim.cmd("EslintFixAll")
+    end,
+    desc = "Apply ESLint fixes before saving",
+  })
+end
+
+local svelte_autocmds = {}
+
+local function svelte_on_attach(client, bufnr)
+  on_attach(client, bufnr)
+
+  -- A Svelte client can attach to multiple buffers; register one project-wide
+  -- watcher per client rather than duplicating a global autocmd per buffer.
+  if svelte_autocmds[client.id] then
+    return
+  end
+
+  svelte_autocmds[client.id] = vim.api.nvim_create_autocmd("BufWritePost", {
+    pattern = { "*.js", "*.ts" },
+    callback = function(ctx)
+      client.notify("$/onDidChangeTsOrJsFile", { uri = vim.uri_from_fname(ctx.file) })
+    end,
+    desc = "Notify Svelte LSP about JavaScript and TypeScript changes",
+  })
+end
+
+local function ts_ls_on_attach(client, bufnr)
+  on_attach(client, bufnr)
+
+  vim.api.nvim_create_autocmd({ "BufEnter", "CursorHold", "InsertLeave" }, {
+    buffer = bufnr,
+    callback = function()
+      vim.lsp.codelens.refresh({ bufnr = bufnr })
+    end,
+    desc = "Refresh TypeScript language server CodeLens",
+  })
+  vim.lsp.codelens.refresh({ bufnr = bufnr })
+end
+
+local function configure_server(name, overrides)
+  local config = vim.tbl_deep_extend("force", {
+    capabilities = M.capabilities,
+    on_attach = on_attach,
+  }, overrides or {})
+  vim.lsp.config(name, config)
+end
+
+function M.setup()
   local cmp_nvim_lsp = require("cmp_nvim_lsp")
-  local capabilities = cmp_nvim_lsp.default_capabilities()
-  local keymap = vim.keymap -- for conciseness
-  local opts = { noremap = true, silent = true }
-
-  require("mason").setup({
-    ui = {
-      border = "rounded",
-      icons = {
-        package_installed = "✓",
-        package_pending = "➜",
-        package_uninstalled = "✗"
-      }
-    }
-  })
-  require("mason-lspconfig").setup {
-    ensure_installed = servers,
-    handlers = {
-      lsp_zero.default_setup,
-      -- mason-lspconfig v1 auto-sets-up every installed package, not just
-      -- ensure_installed; typescript-tools replaces both of these servers,
-      -- so silence them or TS buffers get three clients attached.
-      ts_ls = lsp_zero.noop,
-      vtsls = lsp_zero.noop,
-    }
-  }
-
-
-  -- import lspconfig plugin
-
-  require("neodev").setup({
-    library = {
-      enabled = true, -- when not enabled, neodev will not change any settings to the LSP server
-      -- these settings will be used for your Neovim config directory
-      runtime = true, -- runtime path
-      plugins = { "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.nvim", "telescope.nvim" },
-      types = true
-    },
-    setup_jsonls = true, -- configures jsonls to provide completion for project specific .luarc.json files
-    lspconfig = true,
-    pathStrict = true,
-  })
-  require('luasnip.loaders.from_vscode').lazy_load()
-
+  M.capabilities = cmp_nvim_lsp.default_capabilities()
   cmp_nvim_lsp.setup()
 
-  local on_attach = function(client, bufnr)
-    opts.buffer = bufnr
-
-    -- set keybinds
-    opts.desc = "Show LSP references"
-    keymap.set("n", "gR", "<cmd>Telescope lsp_references<CR>", opts) -- show definition, references
-
-    opts.desc = "Go to declaration"
-    keymap.set("n", "gD", vim.lsp.buf.declaration, opts) -- go to declaration
-
-    opts.desc = "Show LSP definitions"
-    keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts) -- show lsp definitions
-
-    opts.desc = "Show LSP implementations"
-    keymap.set("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts) -- show lsp implementations
-
-    opts.desc = "Show LSP type definitions"
-    keymap.set("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", opts) -- show lsp type definitions
-
-    opts.desc = "See available code actions"
-    keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts) -- see available code actions, in visual mode will apply to selection
-
-    opts.desc = "Smart rename"
-    keymap.set("n", "<F2>", vim.lsp.buf.rename, opts) -- smart rename
-
-    opts.desc = "Show buffer diagnostics"
-    keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts) -- show  diagnostics for file
-
-    opts.desc = "Show line diagnostics"
-    keymap.set("n", "<leader>DF", vim.diagnostic.open_float, opts) -- show diagnostics for line
-
-    opts.desc = "Go to previous diagnostic"
-    keymap.set("n", "[d", function()
-      vim.diagnostic.jump({
-        count = -1,
-        on_jump = function(_, bufnr)
-          vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
-        end,
-      })
-    end, opts) -- jump to previous diagnostic in buffer
-
-    opts.desc = "Go to next diagnostic"
-    keymap.set("n", "]d", function()
-      vim.diagnostic.jump({
-        count = 1,
-        on_jump = function(_, bufnr)
-          vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
-        end,
-      })
-    end, opts) -- jump to next diagnostic in buffer
-
-    opts.desc = "Show documentation for what is under cursor"
-    keymap.set("n", "K", vim.lsp.buf.hover, opts) -- show documentation for what is under cursor
-
-    opts.desc = "Restart LSP"
-    keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts) -- mapping to restart lsp if necessary
-
-    -- require "lsp_signature".on_attach({
-    --   bind = true,
-    --   handler_opts = {
-    --     border = "rounded",
-    --   },
-    -- }, bufnr)
-  end
-
-  for _, lsp in ipairs(servers) do
-    lspconfig[lsp].setup {
-      on_attach = on_attach,
-      capabilities = capabilities,
-      underline = true,
-      update_in_insert = false,
-      virtual_text = {
-        spacing = 4,
-        source = "if_many",
-        prefix = "●",
-      },
-      severity_sort = true,
-    }
-  end
-
-  require("typescript-tools").setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-    single_file_support = false,
-    root_dir = lspconfig.util.root_pattern("yarn.lock", "package-lock.json"),
-    settings = {
-      complete_function_calls = true,
-      code_lens = "all",
-      disable_member_code_lens = false,
-    },
+  -- Mason installs tools only. Explicit vim.lsp.enable() calls below own activation.
+  M.mason_options = {
+    ensure_installed = M.mason_servers,
+    automatic_enable = false,
   }
+  require("mason-lspconfig").setup(M.mason_options)
 
-  lspconfig.eslint.setup({
-    on_attach = function(_, bufnr)
-      vim.api.nvim_create_autocmd("BufWritePre", {
-        buffer = bufnr,
-        command = "EslintFixAll",
-      })
-    end,
-    underline = true,
-    update_in_insert = false,
-    virtual_text = {
-      spacing = 4,
-      source = "if_many",
-      prefix = "●",
+  -- Keep Neodev for now; its migration to lazydev is tracked independently in #42.
+  -- Integrate through before_init instead of its deprecated lspconfig hook.
+  require("neodev").setup({
+    library = {
+      enabled = true,
+      runtime = true,
+      plugins = { "neotest", "nvim-dap-ui", "nvim-treesitter", "plenary.nvim", "telescope.nvim" },
+      types = true,
     },
-    severity_sort = true,
-    capabilities = capabilities,
-    settings = {
-      -- helps eslint find the eslintrc when it's placed in a subfolder instead of the cwd root
-      workingDirectories = { mode = "auto" },
-    },
-    single_file_support = false,
+    setup_jsonls = false,
+    lspconfig = false,
+    pathStrict = true,
   })
 
-  -- configure svelte server
-  lspconfig["svelte"].setup({
+  require("luasnip.loaders.from_vscode").lazy_load()
+  require("snippets.nvim_cmp")()
+
+  vim.diagnostic.config({
     underline = true,
     update_in_insert = false,
-    virtual_text = {
-      spacing = 4,
-      source = "if_many",
-      prefix = "●",
-    },
+    virtual_text = false,
     severity_sort = true,
-    capabilities = capabilities,
-    on_attach = function(client, bufnr)
-      on_attach(client, bufnr)
-
-      vim.api.nvim_create_autocmd("BufWritePost", {
-        pattern = { "*.js", "*.ts" },
-        callback = function(ctx)
-          if client.name == "svelte" then
-            client.notify("$/onDidChangeTsOrJsFile", { uri = ctx.file })
-          end
-        end,
-      })
-    end,
-  })
-
-
-  lspconfig.docker_compose_language_service.setup({
-    on_attach = on_attach,
-    capabilities = capabilities,
-    underline = true,
-    update_in_insert = false,
-    virtual_text = {
-      spacing = 4,
-      source = "if_many",
-      prefix = "●",
-    },
-    severity_sort = true,
-    root_dir = lspconfig.util.root_pattern(
-      "docker-compose.yml",
-      "docker-compose.yaml"
-    ),
-    filetypes = { "yaml.docker-compose" },
-    single_file_support = false,
-  })
-
-  lspconfig.gopls.setup({
-    on_attach = on_attach,
-    capabilities = capabilities,
-    underline = true,
-    update_in_insert = false,
-    virtual_text = {
-      spacing = 4,
-      source = "if_many",
-      prefix = "●",
-    },
-    severity_sort = true,
-    settings = {
-      gopls = {
-        gofumpt = true,
+    signs = {
+      text = {
+        [vim.diagnostic.severity.ERROR] = "✘",
+        [vim.diagnostic.severity.WARN] = "▲",
+        [vim.diagnostic.severity.HINT] = "⚑",
+        [vim.diagnostic.severity.INFO] = "»",
       },
     },
+    float = {
+      border = "rounded",
+      source = "always",
+    },
   })
 
-  lspconfig.yamlls.setup({
-    on_attach = on_attach,
-    capabilities = capabilities,
-    underline = true,
-    update_in_insert = false,
-    virtual_text = {
-      spacing = 4,
-      source = "if_many",
-      prefix = "●",
+  local server_overrides = {
+    eslint = {
+      on_attach = eslint_on_attach,
+      settings = {
+        workingDirectories = { mode = "auto" },
+      },
+      workspace_required = true,
     },
-    severity_sort = true,
-    settings = {
-      yaml = {
-        validate = false,
-        schemas = {
-          ["https://json.schemastore.org/github-workflow.json"] = "/.github/workflows/*",
+    svelte = {
+      on_attach = svelte_on_attach,
+    },
+    docker_compose_language_service = {
+      filetypes = { "yaml.docker-compose" },
+      root_dir = function(bufnr, on_dir)
+        local filename = vim.api.nvim_buf_get_name(bufnr)
+        local root = vim.fs.root(filename, { "docker-compose.yml", "docker-compose.yaml" })
+        if root then
+          on_dir(root)
+        end
+      end,
+      workspace_required = true,
+    },
+    gopls = {
+      settings = {
+        gopls = {
+          gofumpt = true,
         },
       },
     },
-    filetypes = { "yaml" },
-  })
-
-  -- configure lua server (with special settings)
-  lspconfig.lua_ls.setup({
-    capabilities = capabilities,
-    settings = { -- custom settings for lua
-      Lua = {
-        completion = {
-          callSnippet = "Replace"
-        },
-        virtual_text = {
-          spacing = 4,
-          source = "if_many",
-          prefix = "●",
-          -- this will set set the prefix to a function that returns the diagnostics icon based on the severity
-          -- this only works on a recent 0.10.0 build. Will be set to "●" when not supported
-          -- prefix = "icons",
-        },
-        severity_sort = true,
-        -- make the language server recognize "vim" global
-        diagnostics = {
-          underline = true,
-          update_in_insert = false,
-          globals = { "vim" },
-        },
-        workspace = {
-          -- make language server aware of runtime files
-          library = {
-            [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-            [vim.fn.stdpath("config") .. "/lua"] = true,
+    yamlls = {
+      filetypes = { "yaml" },
+      settings = {
+        yaml = {
+          validate = false,
+          schemas = {
+            ["https://json.schemastore.org/github-workflow.json"] = "/.github/workflows/*",
           },
         },
       },
     },
-  })
+    jsonls = {
+      settings = {
+        json = {
+          schemas = {
+            {
+              name = "LuaLS Settings",
+              url = "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+              fileMatch = { ".luarc.json", ".luarc.jsonc" },
+            },
+          },
+          validate = {
+            enable = true,
+          },
+        },
+      },
+    },
+    lua_ls = {
+      before_init = require("neodev.lsp").before_init,
+      settings = {
+        Lua = {
+          completion = {
+            callSnippet = "Replace",
+          },
+          diagnostics = {
+            globals = { "vim" },
+          },
+          workspace = {
+            library = {
+              [vim.fn.expand("$VIMRUNTIME/lua")] = true,
+              [vim.fn.stdpath("config") .. "/lua"] = true,
+            },
+          },
+        },
+      },
+    },
+    ts_ls = {
+      on_attach = ts_ls_on_attach,
+      root_dir = function(bufnr, on_dir)
+        local root = vim.fs.root(bufnr, { "yarn.lock", "package-lock.json" })
+        if root then
+          on_dir(root)
+        end
+      end,
+      workspace_required = true,
+      settings = {
+        typescript = {
+          completions = {
+            completeFunctionCalls = true,
+          },
+          implementationsCodeLens = {
+            enabled = true,
+          },
+          referencesCodeLens = {
+            enabled = true,
+            showOnAllFunctions = true,
+          },
+        },
+        javascript = {
+          completions = {
+            completeFunctionCalls = true,
+          },
+          implementationsCodeLens = {
+            enabled = true,
+          },
+          referencesCodeLens = {
+            enabled = true,
+            showOnAllFunctions = true,
+          },
+        },
+      },
+    },
+  }
+
+  for _, server in ipairs(M.servers) do
+    configure_server(server, server_overrides[server])
+  end
+  -- All configured servers, including TypeScript, have one explicit activation path.
+  vim.lsp.enable(M.servers)
+  M.enabled_servers = vim.deepcopy(M.servers)
 end
+
+return M

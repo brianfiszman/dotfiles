@@ -113,19 +113,38 @@ other four preserved mappings were confirmed by static review. No representative
 project suite or interactive macOS session was performed. No lockfile or plugin
 version changes were included. Issue #74 is closed as completed.
 
-## Current handoff — remaining work under parent #43
+## Current handoff — Sprint 2: modernize the LSP foundation
 
-- [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75) is complete in [PR #77](https://github.com/brianfiszman/dotfiles/pull/77).
-- [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74) is complete in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84).
-- [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76) remains open and is the remaining child of [parent #43](https://github.com/brianfiszman/dotfiles/issues/43). It was not committed to Sprint 1; select/refine it separately with Brian before implementation.
-- [PR #83](https://github.com/brianfiszman/dotfiles/pull/83), the Sprint 1 planning checkpoint, remains open and unmerged. It was not included in the authorization for PR #84.
-- Keep [#40 — Run with Args](https://github.com/brianfiszman/dotfiles/issues/40) separate from this parent work.
+**Dates:** 2026-11-14 through 2026-11-20  
+**Sprint Goal:** replace the layered/legacy LSP setup with one explicit native Neovim LSP configuration path per server, while preserving current language support, keymaps, completion, diagnostics, formatting, and TypeScript/ESLint behavior.
 
-**Working cadence:** one functional PR at a time. Finish implementation, inspect
-the full diff, validate the exact PR head, merge only with Brian's explicit
-authorization, close only completed issues, reconcile this backlog, and only
-then start the next functional PR. Documentation/foundation work remains in its
-own issue and PR.
+- **Committed issue:** [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41) — estimate **M**.
+- **Active branch:** `feat/lsp-native-setup-41`, based on the post-PR-86 master state.
+- **Current status:** implementation is in [PR #87](https://github.com/brianfiszman/dotfiles/pull/87), currently open. Current PR code head at this checkpoint: `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`; base: `c587c8854faf2e99770ca6f30a51a529a38140bb`. Run [#43552641966](https://github.com/brianfiszman/dotfiles/actions/runs/43552641966) is in progress on that head; the system-tools installation step is still running. Older runs were cancelled before Neovim startup/tests. QA and Senior Reviewer are pending.
+- The LSP migration uses native `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig with `automatic_enable = false`, and one configuration table/activation loop.
+- Targeted compatibility updates only: nvim-lspconfig v2.12.0, Mason-LSPConfig v2.3.0, Mason v2.3.1; CI baseline is Neovim v0.11.3, the minimum required by the selected nvim-lspconfig release.
+- lsp-zero v3.x is being removed as an architectural simplification. Correction to the earlier audit: upstream's README mentions a v4 branch; it was inaccurate to describe the whole project as officially dead.
+- TypeScript Tools is being replaced by native `ts_ls` because the exact locked TypeScript Tools revision still calls the deprecated `require("lspconfig")` setup framework. Its function-call completions and references/implementations CodeLens are being carried over to native TypeScript language-server settings.
+- Neodev remains temporarily for the separate [#42 lazydev migration](https://github.com/brianfiszman/dotfiles/issues/42). Its compatibility helper still imports `lspconfig.util`; this is a known transitional dependency, not a direct server setup path in the new LSP configuration.
+- **Validation pending:** CI run #43552641966 is in progress on the current code head. It validates lockfile JSON before restore; system-tools installation is still in progress and no runtime test has passed yet. QA/Reviewer have not started.
+- **Not included in Sprint 2 commitment:** #42 (lazydev), #44 (Treesitter API migration), #76 (Telescope lazy-loading), or a repository-wide plugin update.
+
+## Agreed modernization sequence after the current LSP issue
+
+1. [#41 — Native LSP ownership](https://github.com/brianfiszman/dotfiles/issues/41) — current Sprint 2 work.
+2. [#42 — Replace neodev with lazydev](https://github.com/brianfiszman/dotfiles/issues/42).
+3. [#44 — Treesitter API/branch migration](https://github.com/brianfiszman/dotfiles/issues/44).
+4. Audit the remaining plugin inventory and update compatible groups deliberately. This is not a one-shot `:Lazy update`; first identify abandoned projects, breaking API migrations, plugin overlaps, and required Neovim versions.
+5. [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76), once the dependency baseline is stable.
+
+The earlier testing/debugging/search work remains complete where merged:
+- [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75), merged in [PR #77](https://github.com/brianfiszman/dotfiles/pull/77).
+- [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74), merged in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84).
+- [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76) remains open under [parent #43](https://github.com/brianfiszman/dotfiles/issues/43).
+
+[PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged as a historical Sprint 1 planning checkpoint; it is not the current Sprint 2 implementation branch and carries no merge authorization.
+
+**Working cadence:** one functional PR at a time. Finish implementation, inspect the full diff, validate the exact PR head, obtain QA PASS and Senior Reviewer APPROVE, and merge only with Brian's explicit authorization. Close issues only after the merged behavior satisfies acceptance criteria.
 
 ## Working agreement
 

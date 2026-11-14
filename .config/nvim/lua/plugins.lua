@@ -188,7 +188,7 @@ require("lazy").setup({
   },
   "mg979/vim-visual-multi",
   --- LSP ---
-  require "lsp.lsp-zero",
+  require "lsp.native",
   --- CORE ---
   require 'core.auto-pairs',
   require 'core.toggleterm',

@@ -211,3 +211,57 @@ here rather than copying it.
 - Confirmed the Neovim headless workflow filters out these two documentation files. No runtime workflow is expected; no runtime test was run or claimed.
 - **Senior Reviewer APPROVE:** the complete two-file patch was checked for stale PR #85 pending claims, incorrect issue/PR states, broken handoff, accidental loss of prior work-log history, and scope expansion. No blocking findings. These are sequential simulated Scrum role passes, not independent human reviews.
 - PR #86 remains open. Brian's authorization for PR #85 does not authorize PR #86; a separate explicit merge decision is required.
+
+
+## 2026-11-14 — Sprint 2 planning and native LSP migration (#41)
+
+- Brian approved reprioritizing Sprint 2 from Telescope lazy-loading to the LSP foundation. Sprint dates: 2026-11-14 through 2026-11-20. Sprint Goal: move to one explicit native LSP configuration/activation path per server while preserving supported workflows. Issue [#41](https://github.com/brianfiszman/dotfiles/issues/41) is the sole committed functional issue (T-shirt size M); #42, #44, #76, and a full plugin inventory update remain later work.
+- Recovered the actual post-PR-86 state: PR [#86](https://github.com/brianfiszman/dotfiles/pull/86) is merged as `c587c8854faf2e99770ca6f30a51a529a38140bb`. The old checkpoint still described it as open; this entry and the active checkpoint reconcile that stale handoff. PR #83 remains open/unmerged.
+- Audited the LSP setup. The old path had lsp-zero v3.x, Mason-LSPConfig v1-style `handlers`, direct `require("lspconfig").setup()` calls, duplicated generic/special server setup, and TypeScript Tools. The exact locked TypeScript Tools revision calls `require("lspconfig")` internally, so the chosen migration is native `ts_ls`, preserving complete-function-call completions and references/implementations CodeLens.
+- **Correction:** an earlier response called lsp-zero officially dead. Its upstream README still describes a v4 branch; that claim was too strong. The reason for removing the repository's v3.x integration is architectural simplification and moving to native Neovim APIs, not a verified declaration that the entire project is dead.
+- Selected compatible released dependencies: nvim-lspconfig v2.12.0 (`4d363f93c3581b9212a24f7a830d7590b3f050af`), Mason-LSPConfig v2.3.0 (`a5671269a1ddfa7790cdf97c14e600e269da550f`), and Mason v2.3.1 (`2a6940af80375532e5e9e7c1f2fc6319a1b7a69d`). The nvim-lspconfig release requires Neovim 0.11.3+, so CI's pinned version was raised from v0.11.0 to v0.11.3. This is a targeted LSP compatibility update, not a mass plugin update.
+- Implementation branch: `feat/lsp-native-setup-41`, created from master after PR #86. Changes so far replace lsp-zero with native `vim.lsp.config()` / `vim.lsp.enable()`, set Mason-LSPConfig `automatic_enable=false`, consolidate each server's configuration into one override table/loop, move completion mappings off lsp-zero, migrate TypeScript to `ts_ls`, update Mason's repository namespace in DAP, update only the LSP lock entries, and add headless assertions plus a script phase.
+- Neodev is deliberately retained for #42. Its `before_init` helper still imports `lspconfig.util`; this is a known transitional compatibility path to remove when lazydev replaces neodev. No direct legacy `require("lspconfig").<server>.setup()` calls remain in the new LSP module.
+- Validation status at this checkpoint: **not run**. The real plugin restore, native startup, and LSP assertions are pending a PR-triggered Actions run. No QA PASS, Senior Reviewer APPROVE, issue closure, or merge is claimed.
+- Next: inspect the complete branch diff and test harness carefully, open the PR for #41, then run and inspect the exact-head Actions workflow before separate QA and Senior Reviewer passes. Merge still requires Brian's explicit authorization.
+
+
+## 2026-11-14 — Open PR #87 and start exact-head validation
+
+- Opened [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) for issue #41. Base is master at `c587c8854faf2e99770ca6f30a51a529a38140bb`; the branch head at first review was `09d59bf996bdd9e117ae3148c645c9030af2a2bb`.
+- Reviewed the changed-file list and key diffs. Reduced the lockfile to the repository's existing compact format so only the intended LSP dependency changes appear. Corrected the new shell test phase to use single-line continuations.
+- Further review found that the original Svelte notification autocmd combined `buffer` and `pattern`, which are mutually exclusive in Neovim's autocmd API and would also have changed the original project-wide JS/TS save behavior. Reworked it to register one project-wide JS/TS watcher per Svelte LSP client and send a proper file URI.
+- Confirmed every configured server name exists in the selected nvim-lspconfig v2.12.0 release, including native `ts_ls`.
+- Exact-head PR workflow [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was observed for the reviewed head and is **queued**. Its job has not started; no runtime validation is claimed yet.
+- The PR's current head advanced after the reviewed snapshot due to the Svelte autocmd fix. Re-fetch the PR head and confirm the workflow is for the latest SHA before treating any result as validation.
+- Next: update the checkpoint/backlog to the live PR state, then inspect the queued run's jobs and steps until it completes. QA and Senior Reviewer remain separate pending gates; merge requires Brian's explicit authorization.
+
+
+## 2026-11-14 — CI cancellation and rerun for PR #87
+
+- Run [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb` was cancelled during the first system-tools installation step. Neovim installation, isolated workspace preparation, plugin restore/build hooks, normal startup, and tests were all skipped; this is not a test failure and provides no runtime evidence.
+- The PR had advanced to `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b` through documentation-only checkpoint/worklog updates after the code snapshot. The path-filtered runtime workflow did not produce a run for that docs-only head. The implementation code was unchanged.
+- Explicitly re-ran the cancelled workflow job. GitHub accepted the rerun; the run is pending again for the original code SHA. The final review must separately inspect the documentation-only commits at the current PR head.
+- Next: monitor the rerun through plugin restore and all test phases. Do not call the cancelled attempt a failure or a pass.
+
+
+## 2026-11-14 — Fresh PR #87 workflow triggered on latest head
+
+- The rerun of [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was also cancelled at job setup before any test phase. No validation evidence was produced by either attempt.
+- Added a small, relevant CI check to the workflow: parse `.config/nvim/lazy-lock.json` with Python before plugin restore. This both validates the changed lockfile and causes the path-filtered runtime workflow to run on the current PR snapshot.
+- GitHub created new PR workflow [#43552051042](https://github.com/brianfiszman/dotfiles/actions/runs/43552051042) for current head `6c359e4ea597842479badf0f4c827244b9629ca4`, based on master `c587c8854faf2e99770ca6f30a51a529a38140bb`. The run is **pending**; its job has not yet been observed.
+- Next: inspect run #43552051042 through completion. The previous cancelled runs are not failures of the Neovim config and are not passes.
+
+
+## 2026-11-14 — Final LSP compatibility refinements before CI
+
+- Updated the Neovim version guard in `.config/nvim/init.lua` and the README requirement to **0.11.3+**, matching the selected nvim-lspconfig v2.12.0 minimum. The CI baseline is also v0.11.3.
+- Preserved the actual diagnostics behavior from the old cmp config: virtual text remains disabled; signs, severity sorting, and rounded diagnostic floats remain configured.
+- Preserved Neodev's `.luarc.json` / `.luarc.jsonc` JSON schema behavior directly in native `jsonls` settings while retaining Neodev's `before_init` integration for lua_ls. Neodev remains a transitional dependency until #42.
+- Separated the Mason-managed server list from the enabled server list: the previous Svelte install policy is unchanged (Svelte remains explicitly enabled but is not added to Mason's install list); native `ts_ls` is added to Mason installs.
+- Replaced the TypeScript root markers with a native `root_dir(bufnr, on_dir)` callback because nvim-lspconfig's built-in `ts_ls` config already defines a `root_dir`; `root_markers` alone would not override it. This preserves the old yarn.lock/package-lock.json workspace policy.
+- Added native CodeLens refresh on TypeScript buffer enter/hold/insert-leave. The TypeScript language server's documented settings support function-call completions and references/implementations CodeLens. Its documented API has no direct equivalent for TypeScript Tools' member-specific CodeLens toggle; that limitation is called out in the PR. Proprietary `:TSTools*` commands are also not mapped in this repository and are called out as a possible manual-use loss.
+- Final exact code/README head before this checkpoint update: `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`. PR [#87](https://github.com/brianfiszman/dotfiles/pull/87) is open.
+- Current workflow [#43552641966](https://github.com/brianfiszman/dotfiles/actions/runs/43552641966) is **in progress** on that head. The system-tools installation step is running; Neovim installation, lockfile validation, plugin restore/build hooks, startup, and LSP assertions have not run yet.
+- Earlier workflow attempts were cancelled as code commits superseded their heads; none produced runtime validation. Do not count them as failures of the LSP config or as passes.
+- Next: monitor #43552641966 through completion, then run separate QA and Senior Reviewer passes against the exact PR diff. Merge still requires Brian's explicit authorization.
