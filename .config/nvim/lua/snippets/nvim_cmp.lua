@@ -41,6 +41,7 @@ return function()
       completeopt = "menu,menuone,noinsert",
     },
     sources = cmp.config.sources({
+      { name = "lazydev", group_index = 0 },
       { name = "nvim_lsp" },
       { name = "luasnip", keyword_length = 3, option = { show_autosnippets = true } },
       { name = "nvim_lsp_signature_help" },
