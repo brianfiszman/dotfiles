@@ -8,12 +8,14 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Current focus: reduce Neovim CI feedback time without weakening clean-install or behavioral coverage.
 - **Issue:** [#91 — Reduce Neovim workflow feedback time without weakening coverage](https://github.com/brianfiszman/dotfiles/issues/91), open and in progress under Epic #16.
 - **Branch / base:** `feat/ci-feedback-91` → `master`, created from merge commit `9e43312f2afa523e658ed583b4f48bebffb98568` (PR #88).
-- **Phase:** runner-provisioning optimization, PR delta gating, and cancellation-safe integration gating are implemented in Draft [PR #92](https://github.com/brianfiszman/dotfiles/pull/92). Exact head `fe5c6b41cc8f162a0ace39a218a92e624d19fa5d` passed full workflow run [#43631136597](https://github.com/brianfiszman/dotfiles/actions/runs/43631136597): decision success, fast checks 14/14, full clean integration success, and artifact upload. The full run validated the new `!cancelled()` condition as well as restore/build hooks, normal startup, LuaLS, and all behavior scenarios.
+- **Implemented:** runner-provisioning optimization, parallel fast checks, PR delta gating, and cancellation-safe integration gating are implemented in Draft [PR #92](https://github.com/brianfiszman/dotfiles/pull/92).
+- **Latest full integration code head:** `fe5c6b41cc8f162a0ace39a218a92e624d19fa5d` passed pull-request run [#43631136597](https://github.com/brianfiszman/dotfiles/actions/runs/43631136597): decision success, fast checks 14/14, full clean integration success, and artifact upload. The full run validated `!cancelled()`, locked plugin restore/build hooks, normal startup, real LuaLS, and all behavior scenarios.
+- **Latest exact PR head:** `138f88aa5a3db06edf83f0d33f06543ccdc47a0d` passed run [#43631725295](https://github.com/brianfiszman/dotfiles/actions/runs/43631725295): decision and fast jobs success, 14/14 Node tests, and heavy integration skipped as expected. The only delta since `fe5c6b4` is documentation (`AGENT_STATE.md`, `AGENT_WORKLOG.md`, and the modernization backlog); the decision log confirms only non-integration files changed since the last successful integration.
 - **Initial baseline:** PR #88 run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749), head `71cd0c6`, approximately 113 seconds total: apt install ~53s, locked plugin restore/build ~26s, normal startup plus behavior suite ~27s; DAP/Mason first-use adapters ~21s within that behavior phase. Single-run observations, not a stable performance estimate.
 - **Additional path-filter finding:** PR #88's documentation-only checkpoint commits still triggered the full workflow because `pull_request.paths` considers the aggregate PR diff. Run [#43619768631](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631) validated the doc-only head; investigate a safe way to avoid redundant heavy reruns without breaking required checks.
 - **First optimization slice:** the workflow now uses hosted Ubuntu 26.04 toolchains with Go 1.26.11 from the tool cache, dynamically installs only supplemental missing packages, and has an independent fast shell/lockfile job. Draft PR #92 validated the full suite twice: #43623707000 (`3766490`) and #43624095518 (`f8d3498`). APT dropped from 428 packages / 116 MB / ~585 MB to 9 packages / 3.64 MB / 12.7 MB. Runner-to-artifact times: 88.95s and 82.50s versus old baseline runs at 109.02s and 135.05s; promising but not controlled due runner/region variance.
 - **Prior functional PR:** PR #90 remains open, Draft, and explicitly paused by Brian pending a separate indentation-ownership/setup diagnosis after PR #88. Do not resume or modify PR #90 as part of #91. #91 is the currently authorized active branch; preserve the one-functional-PR cadence and do not open a second functional PR.
-- **Next action:** validate the scheduled/manual cold-run path on an actual event if a dispatch action is available; then evaluate behavior-test concurrency only with fully isolated XDG/plugin/Mason state. Keep broad plugin/Mason caching deferred until build-hook execution can be proven on cache hits and cold runs.
+- **Cold-path status:** scheduled/manual unit behavior is covered (both events always require integration), but no real `workflow_dispatch` or `schedule` event has run. GitHub only accepts `workflow_dispatch` when the workflow file is on the default branch, and scheduled runs execute the default branch; PR #92 is still Draft/unmerged. The connected GitHub actions do not expose a workflow-dispatch operation. Do not report this as passed.
 
 ## Completed predecessor: PR #88 / Issue #42
 
@@ -69,9 +71,10 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete actions
 
-1. Complete the benchmark/architecture investigation for #91 before modifying workflow behavior.
-2. Preserve the clean isolated prepare → locked restore/build hooks → normal startup contract; any cache or fast path must not substitute for it.
-3. Keep PR #90 Draft/paused until its separate indentation-ownership/setup diagnosis is completed; do not mix it into #91.
+1. Keep PR #92 Draft pending Product Owner review; its current head `138f88a` has fast/decision success and the code head `fe5c6b4` has full integration success.
+2. After explicit merge authorization, validate the actual `workflow_dispatch`/scheduled cold path on `master`; do not treat the unit-test event simulation as a real cold run.
+3. Preserve the clean prepare → locked restore/build hooks → normal startup contract; keep plugin/Mason cache and behavior-suite parallelism deferred until their safety can be proven.
+4. Keep PR #90 Draft/paused until its separate indentation-ownership/setup diagnosis is completed; do not mix it into #91.
 
 ## Scope boundaries
 
