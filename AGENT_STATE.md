@@ -4,96 +4,67 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** implementation and documentation review complete; PR open, final-head validation pending
+- **Status:** Scrum operating model documented; documentation QA/review and PR validation in progress
 - **Repository:** `brianfiszman/dotfiles`
-- **Work branch:** `docs/agent-session-continuity-pr78`
-- **Base branch:** `master`
-- **Base HEAD:** `b30cf6f87dc1a8adbd573a25c712f540db2e548a`
-- **Last verified PR head before this checkpoint update:** `4994f6dabfd4bd43a56597ce250c3800f020b326`
-- **Issue:** [#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78)
-- **Pull request:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79) — open
+- **Work branch:** `docs/scrum-operating-model-pr80`
+- **Base branch:** `docs/agent-session-continuity-pr78` (stacked on PR #79; not yet merged to `master`)
+- **Parent/base HEAD at branch creation:** `721a07819de395527ffe86fc6b0830f2be54702f`
+- **Issue:** [#80 — Formalize a lightweight Scrum operating model](https://github.com/brianfiszman/dotfiles/issues/80)
+- **Pull request:** not opened yet
+- **Parent PR:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79), open; recorded head `721a07819de395527ffe86fc6b0830f2be54702f`
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
-- **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
-- **Current phase:** PR opened; verify its exact head and workflow results
+- **Scrum skill:** [`scrum-team`](.agents/skills/scrum-team/SKILL.md)
+- **Current phase:** documentation review and exact-head validation
 
-The checkpoint is committed on this work branch. Resolve
-`refs/heads/docs/agent-session-continuity-pr78` to obtain the exact SHA of the
-snapshot containing this file (a checkpoint cannot embed the hash of its own
-resulting commit). The parent HEAD above is the exact PR head before this
-checkpoint update.
+## Scrum configuration
+
+- Sprint length: one week; set exact dates at Planning.
+- Estimation: T-shirt sizing (XS/S/M/L/XL); XL must be investigated/split before commitment.
+- Daily Scrum: manual in chat on Brian's request; no scheduled automation.
+- Quality gates: QA PASS followed by separate Senior Reviewer APPROVE; both are required.
+- Product Owner: Brian; final priority, scope, acceptance, and merge authority remain with him.
+- Roles are simulated by one assistant with distinct review passes, not separate autonomous agents or independent humans.
+
+## Current cycle
+
+- **Sprint 0 — foundation/setup:** establish durable continuity and the Scrum operating agreement. This is a setup cycle, not a feature-sprint commitment.
+- **Sprint 1 candidate:** issue [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74), to be considered at the first Planning after the foundation PRs are reviewed/merged. It is not committed yet.
+- Preserve the one-functional-PR-at-a-time rule.
 
 ## Completed and verified
 
-- PR [#77](https://github.com/brianfiszman/dotfiles/pull/77) was squash-merged
-  as [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a).
-- Issue [#75](https://github.com/brianfiszman/dotfiles/issues/75) was closed
-  after the merge.
-- Final PR #77 head:
-  `73b4bf80f811667a778f2105dfd9516aae3bfce4`.
-- Exact-head validation: [Actions run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202),
-  event `pull_request`, conclusion `success`.
-- The run verified clean isolated preparation, locked plugin restoration,
-  normal startup, Go lazy-loading, Mason's clean-registry first-use
-  `:DapInstall` trigger, DAP key/command activation, and Neotest's explicit
-  Debug Test mapping.
-- The final run's log artifact was 255,173 bytes.
-- The issue #78 documentation diff contains exactly five files:
-  `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`,
-  `.agents/skills/execution-continuity/SKILL.md`, and
-  `docs/neovim-modernization-backlog.md`. No Neovim runtime or workflow files
-  changed.
-- Markdown review found and corrected escaped code delimiters before PR
-  preparation. Fenced code blocks are balanced and no escaped backticks remain.
-- A simulated fresh-session recovery passed using the checkpoint, work log,
-  current branch ref, issue #78, merged PR #77, and its exact-head CI evidence.
-- PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) was opened against
-  `master` with the five documentation-only files.
-- No interactive macOS session or live TypeScript debug session was performed.
-
-## Important recovered finding from the interrupted DAP investigation
-
-A scheduler trace showed that scheduled callbacks did execute and Mason's
-`mkdir` operations completed. The 60th scheduled callback began but did not
-reach its end marker for more than four minutes; its blocking function was not
-captured, so the precise root cause remains unknown.
-
-The test had also been repeatedly calling `Package:is_installed()` during
-active adapter installs. This forced repeated scans of Mason's shared install
-directory. The test was changed to observe package-handle and terminal
-installation events instead. The event-driven test passed in run
-[#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228);
-subsequent fixes added clean-registry first-use coverage for `:DapInstall`.
-The latest exact-head run is #43530295202 above.
+- PR [#77](https://github.com/brianfiszman/dotfiles/pull/77) merged as [`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a); issue #75 closed.
+- Parent PR #79 is open against `master`. Its exact head `721a07819de395527ffe86fc6b0830f2be54702f` passed pull-request workflow [#43531552732](https://github.com/brianfiszman/dotfiles/actions/runs/43531552732). That result validates only the parent PR head, not this child branch.
+- Created issue #80 and branch `docs/scrum-operating-model-pr80` from parent PR #79's exact head.
+- Added `.agents/skills/scrum-team/SKILL.md` and updated `AGENTS.md` to require it for sprint work.
+- No daily automation was created.
 
 ## Pending
 
-- Verify the current branch ref and PR #79 head after the checkpoint commit.
-- Inspect the workflow run (if path filters schedule one) and ensure its event
-  and head match the final PR SHA.
-- Review any mergeability or review feedback; do not merge until the PR is
-  reviewed and the required authorization is present.
-- Keep #78 open until its acceptance criteria are satisfied and the PR is merged.
+- Finish complete diff/path/Markdown review and simulate Planning → implementation → QA → Senior Review, including a blocked item.
+- Verify the new branch changed only the intended documentation files.
+- Open a child PR targeting `docs/agent-session-continuity-pr78`; document the dependency on PR #79.
+- Inspect any Actions run against the exact child PR head.
+- Do not retarget the child to `master` until PR #79 merges; do not merge either PR without explicit authorization.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
-| Source baseline | passed | Branch created from `master` at `b30cf6f87dc1a8adbd573a25c712f540db2e548a` |
-| PR #77 runtime integration | passed | Run #43530295202 for exact head `73b4bf80f811667a778f2105dfd9516aae3bfce4` |
-| Markdown delimiters / escaped code spans | passed | Five changed files fetched and checked |
-| Internal path and cross-reference review | passed | All linked repository paths resolve |
-| Simulated recovery | passed | Checkpoint, worklog, live branch, issue #78 and PR #77 reconciled |
-| Scope review | passed | Five documentation paths only; no runtime/workflow files |
-| PR #79 workflow | pending | Recheck exact head after final checkpoint commit |
-| Local filesystem / shell checks | unavailable in this GitHub-only execution | No local repository worktree was used |
-| macOS interactive validation | not run | Not part of issue #78 |
+| Parent PR #79 workflow | passed | Run #43531552732, `pull_request`, exact parent SHA `721a078...` |
+| New branch documentation QA | pending | Review not yet completed |
+| Senior Reviewer pass | pending | Review not yet completed |
+| Child PR workflow | pending | PR not yet opened |
+| Neovim runtime validation | not required | Intended change is documentation-only |
+| Runtime/workflow diff exclusion | pending | Confirm with changed-file list before PR |
 
 ## Blockers
 
-None identified. Final PR-head validation and review are pending.
+- Child PR depends on parent PR #79 remaining available and stable. Its base is intentionally the parent's branch; never merge the child before the parent.
 
 ## Next concrete action
 
-Resolve the remote branch ref, inspect PR #79's latest exact head and checks,
-then update this checkpoint with the observed result.
+Review the complete diff and verify the exact changed-file list on `docs/scrum-operating-model-pr80`, then open the stacked PR only after QA and Senior Reviewer both pass.
+
+The commit containing this checkpoint cannot embed its own resulting SHA. The exact persisted snapshot is obtained by resolving the remote branch ref; verify it during the next recovery.
