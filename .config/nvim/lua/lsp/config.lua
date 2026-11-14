@@ -256,7 +256,12 @@ function M.setup()
     },
     ts_ls = {
       on_attach = ts_ls_on_attach,
-      root_markers = { "yarn.lock", "package-lock.json" },
+      root_dir = function(bufnr, on_dir)
+        local root = vim.fs.root(bufnr, { "yarn.lock", "package-lock.json" })
+        if root then
+          on_dir(root)
+        end
+      end,
       workspace_required = true,
       settings = {
         typescript = {
