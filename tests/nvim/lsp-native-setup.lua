@@ -55,11 +55,14 @@ assert(ts_config.settings.typescript.referencesCodeLens.showOnAllFunctions == tr
   "TypeScript references CodeLens is missing")
 
 assert(lsp.mason_options.automatic_enable == false, "Mason-LSPConfig must not auto-enable servers")
+assert(not vim.tbl_contains(lsp.mason_options.ensure_installed, "svelte"), "Svelte Mason install policy changed")
+assert(vim.tbl_contains(lsp.mason_options.ensure_installed, "ts_ls"), "Native TypeScript server is not included in Mason installs")
 assert(#lsp.enabled_servers == #lsp.servers, "Not all configured servers were explicitly enabled")
 
 local diagnostic_config = vim.diagnostic.config()
 assert(diagnostic_config.underline == true, "Diagnostic underline setting is missing")
 assert(diagnostic_config.update_in_insert == false, "Diagnostics should not update during insert mode")
+assert(diagnostic_config.virtual_text == false, "Diagnostic virtual text should remain disabled")
 assert(diagnostic_config.virtual_text == false, "Diagnostic virtual text should remain disabled")
 assert(diagnostic_config.signs.text[vim.diagnostic.severity.ERROR] == "✘", "Diagnostic error sign changed")
 assert(diagnostic_config.signs.text[vim.diagnostic.severity.WARN] == "▲", "Diagnostic warning sign changed")
