@@ -59,12 +59,9 @@ assert(vim.wait(10000, function()
   return vim.tbl_contains(libraries, telescope_lua)
 end, 100), "Lazydev did not apply Telescope's library to the active LuaLS workspace")
 
-local function request_completion(line, character)
-  local params = {
-    textDocument = { uri = vim.uri_from_bufnr(bufnr) },
-    position = { line = line, character = character },
-    context = { triggerKind = 2, triggerCharacter = "." },
-  }
+local function request_completion()
+  local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  params.context = { triggerKind = 2, triggerCharacter = "." }
   local response, err = client:request_sync("textDocument/completion", params, 5000, bufnr)
   assert(response, "LuaLS completion request failed: " .. tostring(err))
   assert(response.err == nil,
@@ -86,8 +83,9 @@ end
 
 -- This mirrors the user's actual completion context after typing "builtin.".
 local telescope_items = {}
+vim.api.nvim_win_set_cursor(0, { 2, #"local find_files = builtin." })
 assert(vim.wait(10000, function()
-  telescope_items = request_completion(1, #"local find_files = builtin.")
+  telescope_items = request_completion()
   return telescope_items.find_files == true
 end, 100), "LuaLS did not complete telescope.builtin.find_files; labels: "
   .. vim.inspect(vim.tbl_keys(telescope_items))
@@ -102,8 +100,9 @@ vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   "local autocmd = vim.api.",
 })
 local nvim_items = {}
+vim.api.nvim_win_set_cursor(0, { 2, #"local autocmd = vim.api." })
 assert(vim.wait(10000, function()
-  nvim_items = request_completion(1, #"local autocmd = vim.api.")
+  nvim_items = request_completion()
   return nvim_items.nvim_create_autocmd == true
 end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd; labels: "
   .. vim.inspect(vim.tbl_keys(nvim_items)))
