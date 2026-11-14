@@ -229,6 +229,7 @@ function M.setup()
           runtime = {
             version = "LuaJIT",
             path = { "?.lua", "?/init.lua" },
+            pathStrict = true,
           },
           completion = {
             callSnippet = "Replace",
