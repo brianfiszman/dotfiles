@@ -120,7 +120,7 @@ print("PASS: real LuaLS completion returns vim.api.nvim_create_autocmd")
 
 -- Replace the intentionally incomplete completion context with valid Lua and ask
 -- LuaLS to resolve a symbol from that now-valid expression.
-local valid_line = "local find_files = builtin.find_files"
+local valid_line = "return builtin.find_files"
 vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
   valid_line,
@@ -130,7 +130,7 @@ local hover_params = {
   textDocument = { uri = vim.uri_from_bufnr(bufnr) },
   position = {
     line = 1,
-    character = #"local find_files = builtin." + 2,
+    character = #"return builtin." + 2,
   },
 }
 local hover_response, hover_err = client:request_sync("textDocument/hover", hover_params, 10000, bufnr)
