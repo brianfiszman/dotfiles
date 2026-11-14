@@ -211,9 +211,10 @@ test("incomplete workflow-run and job-list API responses fail open", async () =>
 test("the integration job is skipped only after a successful decision with explicit false", () => {
   const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
   const workflow = readFileSync(workflowPath, "utf8");
-  const match = workflow.match(/^  headless-startup:\\n([\\s\\S]*?)(?=^  [a-z0-9_-]+:)/m);
-  assert.ok(match, "headless-startup job must exist");
-  const condition = match[1].match(/^    if: (.+)$/m);
+  const jobStart = workflow.indexOf("  headless-startup:\\n");
+  assert.notEqual(jobStart, -1, "headless-startup job must exist");
+  const headlessJob = workflow.slice(jobStart);
+  const condition = headlessJob.match(/^    if: (.+)$/m);
   assert.ok(condition, "headless-startup must have an explicit fail-open condition");
   assert.equal(
     condition[1],
