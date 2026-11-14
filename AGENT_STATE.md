@@ -4,13 +4,13 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Sprint 2 is active. Implementing [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41) on `feat/lsp-native-setup-41`. The implementation is not yet in a PR; all runtime validation and review gates remain pending.
+- **Status:** Sprint 2 is active. [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implements [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41). PR is open; CI run #43551881373 was queued for head `09d59bf996bdd9e117ae3148c645c9030af2a2bb`. QA and Senior Reviewer have not started.
 - **Repository:** `brianfiszman/dotfiles`
 - **Base:** `master` after PR #86 merge commit `c587c8854faf2e99770ca6f30a51a529a38140bb`.
 - **Implementation branch:** `feat/lsp-native-setup-41`.
-- **Last inspected implementation commit before this checkpoint update:** `6b017922ca5e97975673600f9e497bba9d1bd2d3`; resolve the remote branch ref for the persisted checkpoint/worklog snapshot.
+- **Last inspected implementation commit before this checkpoint update:** `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; the branch has advanced with checkpoint/worklog commits, so resolve the live PR head before acting.
 - **Issue:** [#41](https://github.com/brianfiszman/dotfiles/issues/41).
-- **PR:** not opened yet.
+- **PR:** [#87](https://github.com/brianfiszman/dotfiles/pull/87), open.
 
 ## Sprint 2
 
@@ -54,8 +54,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Check | Status | Evidence |
 |---|---|---|
 | Static review of upstream API/version requirements | passed | Selected releases and requirements inspected; see issue #41 and work log |
-| Real plugin restore | pending | Must run on PR head |
-| Normal real Neovim headless startup | pending | Must run on PR head |
+| Real plugin restore | pending | Run #43551881373 queued for reviewed head `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; recheck live PR head |
+| Normal real Neovim headless startup | pending | Run #43551881373 queued; exact job not started yet |
 | Native LSP behavior assertions | pending | New test file wired into CI; not run yet |
 | QA | pending | Separate QA pass required |
 | Senior Reviewer | pending | Separate full-diff review required |
@@ -69,4 +69,4 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete action
 
-Inspect the full branch diff and test harness, open the PR linked to #41, then run the full isolated workflow on the exact PR head. Record QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
+Re-fetch PR #87's live head and confirm the queued Actions run covers that exact SHA. Inspect job steps/logs through completion, resolve any failures, then perform QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
