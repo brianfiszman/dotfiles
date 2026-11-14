@@ -104,14 +104,37 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
--- Reindent before replacing a line so S starts at the indentation computed for
--- the current syntax scope (Treesitter/indentexpr when available). Preserve
--- Vim's counted S behavior by applying the same count to both operations.
+-- Recalculate the current line's indentation before entering an editing
+-- command. Queue the original command without remapping so the built-in
+-- insert/change behavior still owns the actual text editing and mode switch.
+local function reindent_current_line(count)
+  vim.cmd.normal({ args = { ("%d=="):format(count) }, bang = true })
+end
+
+local function feed_builtin_normal(keys)
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "ni", false)
+end
+
 vim.keymap.set("n", "S", function()
   local count = vim.v.count1
-  return ("%d==%dcc"):format(count, count)
+  reindent_current_line(count)
+  feed_builtin_normal(("%dcc"):format(count))
 end, {
   desc = "Reindent and replace line(s)",
-  expr = true,
+  silent = true,
 })
+
+for key, description in pairs({
+  o = "Reindent and open line below",
+  O = "Reindent and open line above",
+}) do
+  vim.keymap.set("n", key, function()
+    local count = vim.v.count1
+    reindent_current_line(1)
+    feed_builtin_normal(("%d%s"):format(count, key))
+  end, {
+    desc = description,
+    silent = true,
+  })
+end
 
