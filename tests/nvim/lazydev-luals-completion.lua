@@ -65,7 +65,7 @@ local function request_completion(line, character)
     position = { line = line, character = character },
     context = { triggerKind = 2, triggerCharacter = "." },
   }
-  local response, err = client:request_sync("textDocument/completion", params, 20000, bufnr)
+  local response, err = client:request_sync("textDocument/completion", params, 5000, bufnr)
   assert(response, "LuaLS completion request failed: " .. tostring(err))
   assert(response.err == nil,
     "LuaLS returned a completion error: " .. vim.inspect(response.err))
@@ -85,13 +85,14 @@ local function request_completion(line, character)
 end
 
 -- This mirrors the user's actual completion context after typing "builtin.".
-local telescope_items = request_completion(1, #"local find_files = builtin.")
-if not telescope_items.find_files then
-  print("DEBUG: LuaLS Telescope completion labels: " .. vim.inspect(vim.tbl_keys(telescope_items)))
-  print("DEBUG: active LuaLS workspace: " .. vim.inspect(Workspace.find({ buf = bufnr }).settings.Lua.workspace.library))
-end
-assert(telescope_items.find_files,
-  "LuaLS did not complete telescope.builtin.find_files; Lazydev's Telescope types are unavailable")
+local telescope_items = {}
+assert(vim.wait(10000, function()
+  telescope_items = request_completion(1, #"local find_files = builtin.")
+  return telescope_items.find_files == true
+end, 100), "LuaLS did not complete telescope.builtin.find_files; labels: "
+  .. vim.inspect(vim.tbl_keys(telescope_items))
+  .. "; workspace: "
+  .. vim.inspect(Workspace.find({ buf = bufnr }).settings.Lua.workspace.library))
 
 print("PASS: real LuaLS completion returns telescope.builtin.find_files")
 
@@ -100,9 +101,12 @@ vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
   'local builtin = require("telescope.builtin")',
   "local autocmd = vim.api.",
 })
-local nvim_items = request_completion(1, #"local autocmd = vim.api.")
-assert(nvim_items.nvim_create_autocmd,
-  "LuaLS did not complete vim.api.nvim_create_autocmd; Neovim API types are unavailable")
+local nvim_items = {}
+assert(vim.wait(10000, function()
+  nvim_items = request_completion(1, #"local autocmd = vim.api.")
+  return nvim_items.nvim_create_autocmd == true
+end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd; labels: "
+  .. vim.inspect(vim.tbl_keys(nvim_items)))
 
 print("PASS: real LuaLS completion returns vim.api.nvim_create_autocmd")
 
