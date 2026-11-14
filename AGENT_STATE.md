@@ -2,6 +2,24 @@
 
 _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
+## Current checkpoint — issue #89: scope-aware S indentation
+
+- **Repository:** `brianfiszman/dotfiles`.
+- **Issue:** [#89 — Make S reindent the current scope before replacing lines](https://github.com/brianfiszman/dotfiles/issues/89).
+- **Branch:** `fix/indented-substitute-43` → `master` (based on merged #87 commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`).
+- **Implementation:** `.config/nvim/lua/core/general.lua` maps Normal-mode `S` to a counted `==` followed by counted `cc`, using an expression mapping.
+- **Regression test:** `tests/nvim/indented-substitute.lua`; wired into `scripts/test-nvim-headless.sh`.
+- **Current phase:** implementation committed; review/CI not yet run. Do not call this complete until exact-head Actions passes.
+- **Manual validation:** still required in a real Lua and TypeScript buffer on Brian's Mac to confirm the configured parser/filetype indentation behavior.
+- **Other open work:** PR [#88](https://github.com/brianfiszman/dotfiles/pull/88) for issue #42 is separate and remains unmerged; do not merge it as part of this task.
+- **Merge:** no authorization has been given for a future PR implementing #89.
+
+## Next action
+
+Open a PR for #89, inspect the exact diff, run the complete isolated Neovim workflow, and review the exact PR head. If the regression test exposes an issue, fix it before reporting QA. Preserve the manual macOS check as an explicit limitation.
+
+---
+
 ## Current task
 
 - **Repository:** `brianfiszman/dotfiles`.
