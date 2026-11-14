@@ -144,3 +144,12 @@ here rather than copying it.
 - Added the scenario to `scripts/test-nvim-headless.sh`. No lockfile changes.
 - At this checkpoint the implementation is committed, but no Neovim runtime test has run. The trigger-to-which-key handoff and adapter assertions remain unverified until a real headless run.
 - Next: inspect the exact diff, open the focused #74 PR, and use its exact-head CI as runtime evidence. Keep QA and Senior Review separate; do not merge without Brian's explicit authorization.
+
+
+## 2026-11-13 — Open PR #84 and begin exact-head validation
+
+- Opened [PR #84](https://github.com/brianfiszman/dotfiles/pull/84) from `feat/neotest-lazy-loading` to `master`, linking issue #74.
+- PR head at creation: `156270eaa2c4e439e03050f22183d6e393ecdc8f`; base: `c203afd4256398ac003a28abc211cd4f8c376f19`.
+- The PR contains the Neotest lazy spec, the new headless regression scenario, its runner integration, and checkpoint/work-log updates. It does not change `lazy-lock.json`.
+- Initial lookup of workflow runs for the exact head returned no run. This is **not run / not yet observed**, not a pass or failure. Recheck the PR event before deciding whether the workflow is pending or was not triggered.
+- Next: inspect the exact PR head and workflow event, then run QA and Senior Reviewer only after the relevant behavior check completes.
