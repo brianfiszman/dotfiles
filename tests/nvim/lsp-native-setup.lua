@@ -52,6 +52,33 @@ assert(eslint_config.on_attach ~= lua_config.on_attach, "ESLint save-time behavi
 assert(eslint_config.settings.workingDirectories.mode == "auto", "ESLint working directory behavior is missing")
 assert(eslint_config.workspace_required == true, "ESLint workspace requirement is missing")
 
+assert(type(lsp.eslint_default_on_attach) == "function", "Native ESLint attach hook was not preserved")
+assert(lsp.eslint_fix_command == "LspEslintFixAll", "Native ESLint save-fix command name changed")
+
+-- Exercise the buffer-local command and BufWritePre wiring without spawning an ESLint process.
+local eslint_bufnr = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_name(eslint_bufnr, vim.fn.tempname() .. ".ts")
+local captured_fix
+local fake_eslint_client = {
+  request_sync = function(_, method, params, _, requested_bufnr)
+    captured_fix = {
+      method = method,
+      command = params.command,
+      bufnr = requested_bufnr,
+    }
+    return { result = true }, nil
+  end,
+}
+eslint_config.on_attach(fake_eslint_client, eslint_bufnr)
+local eslint_commands = vim.api.nvim_buf_get_commands(eslint_bufnr, {})
+assert(eslint_commands.LspEslintFixAll ~= nil, "Native :LspEslintFixAll command was not created")
+assert(eslint_commands.EslintFixAll == nil, "Deprecated :EslintFixAll command was unexpectedly registered")
+vim.api.nvim_exec_autocmds("BufWritePre", { buffer = eslint_bufnr, modeline = false })
+assert(captured_fix ~= nil, "ESLint save hook did not invoke the native fix command")
+assert(captured_fix.method == "workspace/executeCommand", "ESLint save hook used the wrong LSP method")
+assert(captured_fix.command == "eslint.applyAllFixes", "ESLint save hook used the wrong execute command")
+assert(captured_fix.bufnr == eslint_bufnr, "ESLint save hook targeted the wrong buffer")
+
 local svelte_config = vim.lsp.config.svelte
 assert(svelte_config.on_attach ~= lua_config.on_attach, "Svelte change notification hook is missing")
 
