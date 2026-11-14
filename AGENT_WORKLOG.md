@@ -296,3 +296,11 @@ here rather than copying it.
 - Updated issue #41 acceptance criteria and PR #87 description.
 - Implementation snapshot before this checkpoint update: 1b8bfbf87bec7e36582fff131a280be0f8d35b3e. Run #43602089534 was in progress on that snapshot; the checkpoint/skill/worklog updates may supersede it. Validate the final branch head and repeat QA and Senior Reviewer on the complete current diff.
 - Manual validation still pending: restart Neovim after update, check that inline ESLint diagnostics no longer reappear after undo, and confirm Ctrl+F is the only formatting behavior in normal mode. PR #87 remains open/unmerged; no merge authorization.
+
+## 2026-11-14 — Make Conform Ctrl+F mapping deterministic and testable (#41 / PR #87)
+
+- Run #43602089534 failed at the new assertion using vim.fn.maparg("<C-f>", "n"). The same run had already passed preparation, plugin restore/build hooks, normal startup, and the :Format command existence check. The failing check was a false negative: this mapping had been registered through WhichKey v3's legacy register() queue and was not visible to maparg() at that test point.
+- Switched the primary Conform Ctrl+F mapping to a direct vim.keymap.set("n", "<C-f>", "<cmd>Format<cr>", { desc = "Format", silent = true }). This makes the normal-mode mapping explicit and inspectable. Restored the maparg assertion; it now tests a direct Neovim mapping rather than deferred WhichKey state.
+- Current implementation/test snapshot: 3334b4b9cdf0b22de0990e4def6ff298f4a40bd0. Validate this exact head. Prior run failure was test-timing/registration observability, not a Conform formatting failure.
+- The same change set makes ESLint LSP the only JS/TS ESLint diagnostic publisher by removing eslint/eslint_d from nvim-lint's JS/TS filetype list. The screenshot's stale message remains unproven but duplicate asynchronous ownership is removed.
+- Manual follow-up: Brian should restart Neovim after updating, use Ctrl+F in a TypeScript file, and check whether the old ESLint diagnostic still reappears after undo. PR #87 remains open/unmerged; no merge authorization.
