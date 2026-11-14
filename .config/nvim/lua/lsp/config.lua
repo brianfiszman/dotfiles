@@ -163,109 +163,99 @@ function M.setup()
     },
   })
 
-  local common = {
-    capabilities = M.capabilities,
-    on_attach = on_attach,
-  }
-
-  for _, server in ipairs(M.servers) do
-    configure_server(server, common)
-  end
-
-  configure_server("eslint", {
-    on_attach = eslint_on_attach,
-    settings = {
-      workingDirectories = { mode = "auto" },
-    },
-    workspace_required = true,
-  })
-
-  configure_server("svelte", {
-    on_attach = svelte_on_attach,
-  })
-
-  configure_server("docker_compose_language_service", {
-    filetypes = { "yaml.docker-compose" },
-    root_dir = function(bufnr, on_dir)
-      local filename = vim.api.nvim_buf_get_name(bufnr)
-      local root = vim.fs.root(filename, { "docker-compose.yml", "docker-compose.yaml" })
-      if root then
-        on_dir(root)
-      end
-    end,
-    workspace_required = true,
-  })
-
-  configure_server("gopls", {
-    settings = {
-      gopls = {
-        gofumpt = true,
+  local server_overrides = {
+    eslint = {
+      on_attach = eslint_on_attach,
+      settings = {
+        workingDirectories = { mode = "auto" },
       },
+      workspace_required = true,
     },
-  })
-
-  configure_server("yamlls", {
-    filetypes = { "yaml" },
-    settings = {
-      yaml = {
-        validate = false,
-        schemas = {
-          ["https://json.schemastore.org/github-workflow.json"] = "/.github/workflows/*",
+    svelte = {
+      on_attach = svelte_on_attach,
+    },
+    docker_compose_language_service = {
+      filetypes = { "yaml.docker-compose" },
+      root_dir = function(bufnr, on_dir)
+        local filename = vim.api.nvim_buf_get_name(bufnr)
+        local root = vim.fs.root(filename, { "docker-compose.yml", "docker-compose.yaml" })
+        if root then
+          on_dir(root)
+        end
+      end,
+      workspace_required = true,
+    },
+    gopls = {
+      settings = {
+        gopls = {
+          gofumpt = true,
         },
       },
     },
-  })
-
-  configure_server("lua_ls", {
-    before_init = require("neodev.lsp").before_init,
-    settings = {
-      Lua = {
-        completion = {
-          callSnippet = "Replace",
-        },
-        diagnostics = {
-          globals = { "vim" },
-        },
-        workspace = {
-          library = {
-            [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-            [vim.fn.stdpath("config") .. "/lua"] = true,
+    yamlls = {
+      filetypes = { "yaml" },
+      settings = {
+        yaml = {
+          validate = false,
+          schemas = {
+            ["https://json.schemastore.org/github-workflow.json"] = "/.github/workflows/*",
           },
         },
       },
     },
-  })
-
-  configure_server("ts_ls", {
-    root_markers = { "yarn.lock", "package-lock.json" },
-    workspace_required = true,
-    settings = {
-      typescript = {
-        completions = {
-          completeFunctionCalls = true,
-        },
-        implementationsCodeLens = {
-          enabled = true,
-          showOnAllClassMethods = true,
-          showOnInterfaceMethods = true,
-        },
-        referencesCodeLens = {
-          enabled = true,
-          showOnAllFunctions = true,
-        },
-      },
-      javascript = {
-        completions = {
-          completeFunctionCalls = true,
-        },
-        referencesCodeLens = {
-          enabled = true,
-          showOnAllFunctions = true,
+    lua_ls = {
+      before_init = require("neodev.lsp").before_init,
+      settings = {
+        Lua = {
+          completion = {
+            callSnippet = "Replace",
+          },
+          diagnostics = {
+            globals = { "vim" },
+          },
+          workspace = {
+            library = {
+              [vim.fn.expand("$VIMRUNTIME/lua")] = true,
+              [vim.fn.stdpath("config") .. "/lua"] = true,
+            },
+          },
         },
       },
     },
-  })
+    ts_ls = {
+      root_markers = { "yarn.lock", "package-lock.json" },
+      workspace_required = true,
+      settings = {
+        typescript = {
+          completions = {
+            completeFunctionCalls = true,
+          },
+          implementationsCodeLens = {
+            enabled = true,
+            showOnAllClassMethods = true,
+            showOnInterfaceMethods = true,
+          },
+          referencesCodeLens = {
+            enabled = true,
+            showOnAllFunctions = true,
+          },
+        },
+        javascript = {
+          completions = {
+            completeFunctionCalls = true,
+          },
+          referencesCodeLens = {
+            enabled = true,
+            showOnAllFunctions = true,
+          },
+        },
+      },
+    },
+  }
 
+  for _, server in ipairs(M.servers) do
+    configure_server(server, server_overrides[server])
+  end
   -- All configured servers, including TypeScript, have one explicit activation path.
   vim.lsp.enable(M.servers)
   M.enabled_servers = vim.deepcopy(M.servers)
