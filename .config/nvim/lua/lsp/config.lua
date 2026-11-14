@@ -63,20 +63,11 @@ local function on_attach(client, bufnr)
   set_lsp_keymap("n", "K", vim.lsp.buf.hover, "Show documentation", bufnr)
   set_lsp_keymap("n", "<leader>rs", "<cmd>LspRestart<CR>", "Restart LSP", bufnr)
 
-  -- Preserve lsp-zero's default mappings that are not replaced above.
+  -- Preserve lsp-zero's default navigation mappings.
+  -- Formatting is owned by Conform's <C-f> / :Format path, not LSP servers.
   set_lsp_keymap("n", "go", vim.lsp.buf.type_definition, "Go to type definition", bufnr)
   set_lsp_keymap("n", "gr", vim.lsp.buf.references, "Go to references", bufnr)
-  set_lsp_keymap("n", "<F3>", function()
-    vim.lsp.buf.format({ async = true })
-  end, "Format buffer", bufnr)
-  set_lsp_keymap("x", "<F3>", function()
-    vim.lsp.buf.format({ async = true })
-  end, "Format selection", bufnr)
   set_lsp_keymap("n", "<F4>", vim.lsp.buf.code_action, "Execute code action", bufnr)
-
-  set_lsp_keymap({ "n", "x" }, "<C-S-f>", function()
-    vim.lsp.buf.format({ async = false, timeout_ms = 10000 })
-  end, "Format synchronously", bufnr)
 end
 
 local function eslint_on_attach(client, bufnr)
