@@ -89,15 +89,21 @@ local function eslint_on_attach(client, bufnr)
   })
 end
 
+local svelte_autocmds = {}
+
 local function svelte_on_attach(client, bufnr)
   on_attach(client, bufnr)
-  vim.api.nvim_create_autocmd("BufWritePost", {
-    buffer = bufnr,
+
+  -- A Svelte client can attach to multiple buffers; register one project-wide
+  -- watcher per client rather than duplicating a global autocmd per buffer.
+  if svelte_autocmds[client.id] then
+    return
+  end
+
+  svelte_autocmds[client.id] = vim.api.nvim_create_autocmd("BufWritePost", {
     pattern = { "*.js", "*.ts" },
     callback = function(ctx)
-      if client.name == "svelte" then
-        client.notify("$/onDidChangeTsOrJsFile", { uri = ctx.file })
-      end
+      client.notify("$/onDidChangeTsOrJsFile", { uri = vim.uri_from_fname(ctx.file) })
     end,
     desc = "Notify Svelte LSP about JavaScript and TypeScript changes",
   })
