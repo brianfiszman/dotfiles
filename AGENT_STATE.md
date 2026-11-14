@@ -8,7 +8,7 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 - **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Goal: modernize native LSP ownership and keep language tooling predictable.
 - **Issue / PR:** [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) / [PR #88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
 - **Branch / base:** `feat/lazydev-42` → `master`, based on merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5` from PR #87.
-- **Implementation/test snapshot:** `56e054a93086b116a031fb829eed8e7b2699f592`. Checkpoint/work-log/backlog updates after this snapshot are documentation-only.
+- **Implementation/test snapshot:** `ff5e1e5ca1358516dfd1757c9ada173220a45540`. Checkpoint/work-log/backlog updates after this snapshot are documentation-only.
 - **Phase:** implementation committed and PR open; exact-head CI is running.
 - **Merge:** not authorized for PR #88. Brian's authorization for PR #87 applied to that PR only.
 
