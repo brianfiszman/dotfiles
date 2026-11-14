@@ -282,6 +282,11 @@ and a passing CI run.
   mappings that silently use a different formatter. Be precise about formatter
   semantics: Prettier follows Prettier configuration; it does not automatically
   mean that ESLint --fix rules were run.
+- For a primary shortcut that must exist immediately and be behaviorally tested,
+  prefer a direct vim.keymap.set() with desc over queuing it through legacy
+  WhichKey register(). WhichKey v3 processes those queued specs during setup;
+  an early headless maparg() assertion can therefore be a false negative before
+  the deferred registration has completed.
 - Preserve `lazy-lock.json` unless a ticket explicitly includes a plugin version
   change.
 - Pin or document APIs when upstream plugins make breaking branch migrations.
