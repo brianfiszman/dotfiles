@@ -265,3 +265,13 @@ here rather than copying it.
 - Current workflow [#43552641966](https://github.com/brianfiszman/dotfiles/actions/runs/43552641966) is **in progress** on that head. The system-tools installation step is running; Neovim installation, lockfile validation, plugin restore/build hooks, startup, and LSP assertions have not run yet.
 - Earlier workflow attempts were cancelled as code commits superseded their heads; none produced runtime validation. Do not count them as failures of the LSP config or as passes.
 - Next: monitor #43552641966 through completion, then run separate QA and Senior Reviewer passes against the exact PR diff. Merge still requires Brian's explicit authorization.
+
+
+## 2026-11-14 — Make LSP diagnostics visible inline (#41 / PR #87)
+
+- Brian's manual smoke test confirmed completion and `K` hover work. He reported that errors were represented by a red sign but their message was not visible unless explicitly opened.
+- Traced this to the intentional `virtual_text = false` setting. Updated diagnostics to `virtual_text = { spacing = 2, source = "if_many" }`, retaining signs, underline, severity sorting, and the detailed float/navigation mappings.
+- Updated `tests/nvim/lsp-native-setup.lua` to assert that inline diagnostic virtual text is enabled.
+- Current code/test head: `dd801182126c65a01123c65daf72a43220243e22`. Exact-head workflow [#43600006360](https://github.com/brianfiszman/dotfiles/actions/runs/43600006360) is in progress; no result is claimed yet.
+- Brian does not recall using proprietary `:TSTools*` commands. No repository mappings/configuration for them were found; no compatibility shim is planned.
+- Earlier exact-head CI, QA, and Senior Reviewer gates passed on the predecessor implementation. Repeat CI, QA, and Senior Reviewer against the final PR head after this adjustment. F3 formatting and the inline diagnostic display still need manual validation. PR #87 remains open and unmerged; no merge authorization was given.
