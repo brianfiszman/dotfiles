@@ -327,3 +327,20 @@ here rather than copying it.
 - Additional diagnostic investigation: Neovim v0.11.3's default *push* `publishDiagnostics` handler applies the notification without comparing its optional document version to the buffer's current version. This is only a potential stale-result mechanism if the actual server uses push diagnostics and delivers an older version late; the available evidence does not establish that this is the ESLint path in Brian's project. Do not add a global diagnostic-handler override without capturing the actual diagnostic source/client and LSP log first.
 - **QA PASS (simulated):** rechecked issue #41 acceptance criteria, the exact implementation/test files, and the exact current-head workflow evidence. **Senior Reviewer APPROVE (simulated):** inspected the current implementation diff and the two later documentation-only commits; no new blocking finding. These are sequential roles performed by one assistant, not independent human reviews.
 - Still pending: local representative TS/ESLint attachment and Ctrl+F check; reproduce edit → fix → undo with the diagnostic visible and capture `:lua vim.print(vim.diagnostic.get(0))` plus the relevant `:LspLog` lines so the publishing client/path can be identified. Keep PR #87 and issue #41 open until Brian accepts the result. Merge requires his explicit authorization.
+
+
+---
+
+## 2026-11-14 — Scope-aware indentation for Normal-mode S (#89)
+
+- Created issue [#89](https://github.com/brianfiszman/dotfiles/issues/89) after
+  Brian reported that uppercase `S` enters Insert mode at column 0 rather than
+  the indentation appropriate for the current syntactic scope.
+- Existing config enables `autoindent`, `smartindent`, and Treesitter
+  indentation. The built-in `S`/ `cc` path preserves existing indentation but
+  does not first request a fresh indentation calculation for the line.
+- Implemented an expression mapping that applies the same count to `==` and
+  `cc`, and added a deterministic headless test for single-line and counted
+  replacement. Full CI and exact-head review are pending.
+- Manual follow-up remains necessary on Brian's Mac in representative Lua and
+  TypeScript buffers because the test uses a controlled `indentexpr`.
