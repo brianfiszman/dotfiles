@@ -16,6 +16,16 @@ assert(package.loaded["lsp-zero"] == nil, "lsp-zero was loaded")
 assert(package.loaded["lspconfig"] == nil, "deprecated nvim-lspconfig framework was loaded")
 assert(package.loaded["typescript-tools"] == nil, "legacy TypeScript Tools plugin was loaded")
 
+local lint = require("lint")
+for _, filetype in ipairs({ "javascript", "typescript", "javascriptreact", "typescriptreact" }) do
+  local linters = lint.linters_by_ft[filetype] or {}
+  assert(not vim.tbl_contains(linters, "eslint"), "nvim-lint must not duplicate ESLint LSP diagnostics for " .. filetype)
+  assert(not vim.tbl_contains(linters, "eslint_d"), "nvim-lint must not duplicate ESLint LSP diagnostics for " .. filetype)
+end
+
+assert(vim.fn.exists(":Format") == 2, "Conform :Format command is missing")
+assert(vim.fn.maparg("<C-f>", "n") ~= "", "Normal-mode Ctrl+F formatting mapping is missing")
+
 local json_config = vim.lsp.config.jsonls
 assert(json_config.settings.json.validate.enable == true, "JSON validation setting is missing")
 assert(json_config.settings.json.schemas[1].name == "LuaLS Settings", "Neodev LuaLS JSON schema is missing")
