@@ -205,6 +205,22 @@ function M.setup()
         },
       },
     },
+    jsonls = {
+      settings = {
+        json = {
+          schemas = {
+            {
+              name = "LuaLS Settings",
+              url = "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+              fileMatch = { ".luarc.json", ".luarc.jsonc" },
+            },
+          },
+          validate = {
+            enable = true,
+          },
+        },
+      },
+    },
     lua_ls = {
       before_init = require("neodev.lsp").before_init,
       settings = {
