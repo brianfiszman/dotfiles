@@ -97,3 +97,30 @@ For every level:
 - Report exactly which tests actually ran, their results, and anything that still
   needs validation on the user's Mac. Do not report a test as passing when it was
   unavailable, skipped, mocked, or merely expected to run in CI.
+
+
+## Execution continuity
+
+For substantial, multi-step work, read `AGENT_STATE.md` and follow
+`.agents/skills/execution-continuity/SKILL.md` before acting. The checkpoint
+is a navigation aid, not authority over current GitHub state.
+
+- Recover the current branch, worktree, exact HEAD, linked issues/PRs, and
+  relevant workflow evidence before continuing. Verify checkpoint claims against
+  the live repository and GitHub; never assume a prior session finished an action.
+- Update `AGENT_STATE.md` at meaningful milestones, failures, decisions,
+  before and after risky operations, and before/after long waits. Keep the
+  immediate next action explicit.
+- Append meaningful discoveries, failed attempts, and decisions to
+  `AGENT_WORKLOG.md`. Do not copy full issue/PR discussions or rewrite old
+  entries; link to the canonical record instead.
+- Commit and push checkpoint/worklog changes on the active work branch. Never
+  write directly to `master`. Verify the remote branch contains the update.
+- If a tool call or conversation is interrupted, inspect GitHub before retrying
+  a mutation. The operation may have succeeded even if its response was lost.
+- Distinguish observed, passed, failed, pending, unavailable, mocked, and
+  unverified results. A green run for an older SHA does not validate a newer
+  branch head.
+
+The continuity skill coordinates the specialist skills; it must not duplicate
+their Neovim, GitHub project-management, or Actions procedures.

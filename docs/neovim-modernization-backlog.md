@@ -30,7 +30,7 @@ underlying fix.
 - [#42 Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
 - [#43 Load testing, debugging, and search tools only when used (tracking parent)](https://github.com/brianfiszman/dotfiles/issues/43)
 - [#74 Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74)
-- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75)
+- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75) — merged via [PR #77](https://github.com/brianfiszman/dotfiles/pull/77); exact-head run [#43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202) passed.
 - [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
@@ -63,30 +63,56 @@ Still open after the merge:
 - [#66](https://github.com/brianfiszman/dotfiles/issues/66) — verify the Python provider in a real Neovim runtime.
 - [#69](https://github.com/brianfiszman/dotfiles/issues/69) — verify the first InsertEnter activation and Codeium startup.
 
-## Current handoff — next functional PR
+## Completed — PR #77 merged on 2026-11-13
 
-The next target is [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75),
-the prerequisite for [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74).
-[Telescope #76](https://github.com/brianfiszman/dotfiles/issues/76) stays separate
-and follows after these.
+[PR #77](https://github.com/brianfiszman/dotfiles/pull/77) implements
+[#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75)
+and was squash-merged into `master` as
+[`b30cf6f`](https://github.com/brianfiszman/dotfiles/commit/b30cf6f87dc1a8adbd573a25c712f540db2e548a).
 
-An existing branch, `feat/dap-on-demand`, contains eight commits beyond the
-validated #71 code head. Its exclusive diff is limited to the DAP configuration
-files, the Neotest-to-DAP dependency/mapping, and the headless test script.
-The branch predates the squash merge in its ancestry, so do not open a PR from
-it directly or port the old #71 history again.
+The final PR head
+`73b4bf80f811667a778f2105dfd9516aae3bfce4` passed the full isolated workflow
+in [Actions run #43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202).
+The run was a `pull_request` event for that exact head and passed isolated
+preparation, locked plugin restore/build hooks, normal startup, Go lazy-loading,
+the first-use Mason `:DapInstall` path, DAP key activation, native DAP command
+triggers, and Neotest's Debug Test mapping. All five configured Mason adapters
+reached successful or already-installed terminal states. The logs artifact
+was 255,173 bytes.
 
-The final branch commit introduced doubled shell escape characters in
-`scripts/test-nvim-headless.sh` (including line continuations). Treat this as
-a harness defect to repair, not as validated DAP work. Preserve the original
-branch and review/port its DAP-only changes onto a clean branch based on the
-new `master`. Then validate #75 before starting #74.
+The DAP test now observes Mason package-handle and terminal install events
+rather than repeatedly polling `Package:is_installed()` while installs are in
+progress. An earlier callback trace showed a scheduled callback entering but
+not returning for more than four minutes; the exact blocking function was not
+captured, so the root cause is not claimed as proven. The event-driven test
+passed and removed the repeated filesystem scan from its wait predicate.
+
+Issue #75 is closed as completed. The existing Run with Args defect remains
+separate in [#40](https://github.com/brianfiszman/dotfiles/issues/40). No
+`lazy-lock.json` changes were included. Interactive macOS behavior and a live
+TypeScript debugging session were not tested by CI.
+
+## Current handoff — execution continuity, then next functional issue
+
+The current documentation task is
+[#78 — Add durable agent checkpoints and a reliable session-recovery protocol](https://github.com/brianfiszman/dotfiles/issues/78).
+It is being implemented separately from the DAP PR on branch
+`docs/agent-session-continuity-pr78`. Its scope is the root working agreement,
+a continuity skill, `AGENT_STATE.md`, and append-only `AGENT_WORKLOG.md`;
+it must not change Neovim runtime configuration or workflow behavior.
+
+After #78 is reviewed, validated, and merged, resume the functional sequence
+with [#74 — Neotest lazy-loading](https://github.com/brianfiszman/dotfiles/issues/74),
+which can now rely on #75's removal of Neotest's unconditional DAP dependency.
+[Telescope #76](https://github.com/brianfiszman/dotfiles/issues/76) stays separate.
+The old `feat/dap-on-demand` branch was not used as the merge source; PR #77
+used a clean branch based on the post-#71 master and its final head was validated
+before merging.
 
 **Working cadence:** one functional PR at a time. Finish implementation, inspect
-the full diff, validate the exact PR head, merge it, close only its completed
-issues, reconcile this backlog, and only then start the next PR. Keep unrelated
-or dependent work on separate branches/issues; do not mix them into the PR being
-closed.
+the full diff, validate the exact PR head, merge it, close only completed
+issues, reconcile this backlog, and only then start the next functional PR.
+Documentation/foundation work remains in its own issue and PR.
 
 ## Working agreement
 
@@ -100,3 +126,5 @@ closed.
   as the repository's working agreement.
 - Use the [GitHub Actions validation skill](../.agents/skills/github-actions-validation/SKILL.md)
   to trace workflow runs by exact commit and event.
+- Use the [execution continuity skill](../.agents/skills/execution-continuity/SKILL.md)
+  to recover and persist multi-step work.
