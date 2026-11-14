@@ -174,7 +174,7 @@ test("baseline metadata must match the historical PR head", async () => {
 });
 
 test("missing or incomplete workflow run name metadata fails open", async () => {
-  for (const displayTitle of ["no marker", undefined]) {
+  for (const displayTitle of ["no marker", null]) {
     const github = fakeGithub({ displayTitle });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);

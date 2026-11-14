@@ -537,3 +537,11 @@ here rather than copying it.
 - Regression tests now cover run-name parsing and assert the workflow publishes the marker while preserving the heavy-job check name and default-branch push paths.
 - References: [workflow run-name syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#run-name) and [workflow runs REST API](https://docs.github.com/en/rest/actions/workflow-runs).
 - Status: replacement is committed to the existing PR branch; exact-head CI plus a docs-only end-to-end reuse check are pending.
+
+
+## 2026-11-14 — Correct missing run-name metadata test fixture
+
+- Exact head \`9d1f7b7ab9c0a6e9bcd8906e08b3340101f3163b\` triggered run [#43643121415](https://github.com/brianfiszman/dotfiles/actions/runs/43643121415). The decision job failed open because prior successful runs had no run-name marker, as expected. The fast job passed 18/19 tests; one new negative-case fixture failed.
+- Cause: the test passed \`undefined\` to a mock option that deliberately treats undefined as “use the valid default display title”. It therefore did not simulate missing metadata.
+- Correction: use \`null\` to represent an actually absent display title. The production parser already returns null for non-string/missing titles; no production logic change is required.
+- The failed fast job means run #43643121415 cannot serve as an integration baseline. The next exact-head run must execute the full integration because previous successful baselines predate the run-name marker.
