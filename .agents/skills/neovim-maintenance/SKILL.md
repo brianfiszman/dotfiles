@@ -416,3 +416,16 @@ refresh callback can register commands too late for Lazy's immediate replay.
 Keep the expensive adapter package installations asynchronous through Mason's
 normal ensure-installed flow. Test the Mason command trigger first in the
 headless sequence, before any other DAP test populates the registry.
+
+
+## Preserve indentation when replacing lines
+
+- The repository maps Normal-mode `S` through an expression mapping that runs
+  the buffer's `==` indentation operator before the original `cc` replacement.
+  This lets the active filetype/Tree-sitter `indentexpr` calculate the scope
+  indentation instead of relying only on whitespace already present on the line.
+- Apply the same count to both operations so `2S` still replaces two lines.
+- Keep a headless regression test for Insert-mode entry, computed cursor column,
+  and counted replacement in `tests/nvim/indented-substitute.lua`.
+- Treat headless behavior as regression evidence, not proof that every parser's
+  indentation query behaves correctly in an interactive project buffer.
