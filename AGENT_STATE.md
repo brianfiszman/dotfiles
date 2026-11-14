@@ -4,16 +4,16 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Neotest lazy-loading issue #74 is merged and closed as completed. Post-merge documentation reconciliation is in PR [#85](https://github.com/brianfiszman/dotfiles/pull/85), currently open and unmerged.
+- **Status:** PR #84 (Neotest lazy-loading) and PR #85 (post-merge documentation reconciliation) are both squash-merged into `master`. Issue #74 is closed as completed. A small follow-up checkpoint reconciliation is in PR #86, open and unmerged.
 - **Repository:** `brianfiszman/dotfiles`
-- **Work branch:** `docs/neotest-merge-reconciliation`
-- **Base / last verified master:** `master` at merge commit `110c3658085c4c23d847de361a08b5e15e72b605` (PR #84).
-- **Documentation PR:** [#85 — Reconcile Sprint 1 after Neotest merge](https://github.com/brianfiszman/dotfiles/pull/85). Resolve the live branch ref for the persisted documentation head; this checkpoint cannot embed its own resulting commit SHA.
-- **Completed functional PR:** [#84 — Lazy-load Neotest on existing test actions](https://github.com/brianfiszman/dotfiles/pull/84), squash-merged as [`110c365`](https://github.com/brianfiszman/dotfiles/commit/110c3658085c4c23d847de361a08b5e15e72b605).
-- **Issue:** [#74](https://github.com/brianfiszman/dotfiles/issues/74) is closed with state reason `completed`.
-- **Parent:** [#43](https://github.com/brianfiszman/dotfiles/issues/43) remains open; #75 and #74 are complete, while #76 remains open.
-- **Sprint:** Sprint 1, 2026-11-13 through 2026-11-19; one-week cadence, T-shirt sizing, manual Daily Scrum. #74 was the sole functional commitment recorded for this goal.
-- **Planning checkpoint:** [PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged. It was not included in Brian's authorization for PR #84.
+- **Work branch:** `docs/post-pr85-merge-checkpoint`
+- **Base / last verified master:** `master` at merge commit [`3c3abc6`](https://github.com/brianfiszman/dotfiles/commit/3c3abc65432d8b00bc4272866f49d000dc703eb5) (PR #85).
+- **PR #84:** [Lazy-load Neotest](https://github.com/brianfiszman/dotfiles/pull/84), merged as [`110c365`](https://github.com/brianfiszman/dotfiles/commit/110c3658085c4c23d847de361a08b5e15e72b605).
+- **PR #85:** [Reconcile Sprint 1 after Neotest merge](https://github.com/brianfiszman/dotfiles/pull/85), merged as [`3c3abc6`](https://github.com/brianfiszman/dotfiles/commit/3c3abc65432d8b00bc4272866f49d000dc703eb5).
+- **Issue #74:** closed with state reason `completed`.
+- **Parent #43:** remains open. Child #75 (DAP) and #74 (Neotest) are complete; child [#76 (Telescope)](https://github.com/brianfiszman/dotfiles/issues/76) remains open.
+- **Planning checkpoint:** [PR #83](https://github.com/brianfiszman/dotfiles/pull/83) remains open and unmerged; neither #83 nor #76 was included in the merge authorization for #85.
+- **Checkpoint follow-up:** [PR #86](https://github.com/brianfiszman/dotfiles/pull/86) records this post-#85 merge state. Resolve the live branch ref for its final persisted HEAD.
 
 ## Sprint Goal
 
@@ -26,40 +26,38 @@ Keep Neotest, vim-test, and test adapters out of ordinary idle startup while pre
 - Headless regression checks idle startup, dispatches the callback-backed Test Stop mapping without starting a test suite, verifies Neotest/vim-test/configured adapters load, and confirms ordinary testing leaves DAP unloaded.
 - The existing Debug Test regression verifies Neotest runs with the DAP strategy and loads the DAP stack on demand.
 - `discovery.enabled = false` remains in place. No `lazy-lock.json` updates or plugin version changes were included.
-- Exact final PR head `f4b9f2744e65a23cbf8a6600abfefcc4ca75bf12` passed pull-request workflow [#43542407243](https://github.com/brianfiszman/dotfiles/actions/runs/43542407243). All job steps passed: isolated preparation, locked plugin restore/build hooks, normal startup, Neotest lazy-loading, Go regressions, Mason/DAP lazy-loading, Debug Test, and log upload.
-- **QA PASS:** checked the issue's acceptance criteria. Test Stop and Debug Test were dispatched in headless tests; the other four preserved mappings were confirmed by static review. The Scrum QA role was performed by this assistant.
-- **Senior Reviewer APPROVE:** the complete exact PR diff was reviewed with no blocking findings. The Scrum QA and Reviewer roles were performed sequentially by one assistant, not independent human reviewers.
-- Brian gave explicit Product Owner acceptance and merge authorization. PR #84 was squash-merged; GitHub automatically closed issue #74 as completed. The issue body and parent #43 child-status section now record the result.
-- The current documentation branch updates the canonical backlog and appends this merge event to the work log. It contains documentation only; no runtime, installer, test, lockfile, or workflow files are changed.
+- Exact PR #84 head `f4b9f2744e65a23cbf8a6600abfefcc4ca75bf12` passed pull-request workflow [#43542407243](https://github.com/brianfiszman/dotfiles/actions/runs/43542407243): isolated preparation, locked plugin restore/build hooks, normal startup, Neotest lazy-loading, Go regressions, Mason/DAP lazy-loading, Debug Test, and log upload.
+- **QA PASS** and **Senior Reviewer APPROVE** were recorded for PR #84 before merge. Test Stop and Debug Test were dispatched in CI; the other four preserved mappings were confirmed statically. Scrum roles were performed sequentially by one assistant, not independent human reviewers.
+- Brian explicitly authorized PR #84 and then PR #85 separately. Both were squash-merged successfully. PR #85's documentation-only QA PASS and Senior Reviewer APPROVE are recorded in the work log and PR description.
+- The canonical backlog now shows #74 and #75 as completed and #76 as remaining open work.
 
 ## Pending / unverified
 
 - A representative project-level test suite and interactive macOS behavior remain unverified. The headless Test Stop scenario intentionally does not run a real project test suite.
 - All six mappings remain present; only Test Stop and Debug Test were dispatched in CI. The other four were checked statically, not individually executed.
-- **PR #85 documentation QA: PASS; Senior Reviewer: APPROVE.** The exact three-file diff was reviewed against the live issue/PR states, source SHA, merge commit, and workflow path filter. The final persisted branch head must be resolved from the live branch ref after this checkpoint commit. The Scrum roles were performed sequentially by one assistant, not independent human reviewers.
-- The workflow `.github/workflows/neovim-headless.yml` filters out `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and `docs/neovim-modernization-backlog.md`; no Neovim runtime workflow is expected or required for this documentation-only diff.
 - Issue #76 (Telescope lazy-loading) remains open. It was not committed to Sprint 1; do not start it or treat it as committed without Brian's planning decision.
-- Do not merge PR #85 without Brian's separate explicit authorization. The authorization for PR #84 does not carry over.
+- **PR #86 documentation QA: PASS; Senior Reviewer: APPROVE.** The exact two-file diff was checked against live GitHub states, merge SHAs, and the path-filtered workflow. A final re-fetch/review of the recorded gate update is required before handoff. The Scrum roles are simulated sequentially by one assistant, not independent human reviewers.
+- The Neovim workflow excludes these documentation files, so no runtime run is expected or claimed.
+- Do not merge PR #86 without Brian's separate explicit authorization. Authorizations for PR #84 and #85 do not carry over.
 
 ## Validation
 
 | Check | Status | Evidence |
 |---|---|---|
 | PR #84 exact-head CI | passed | Run [#43542407243](https://github.com/brianfiszman/dotfiles/actions/runs/43542407243) for `f4b9f2744e65a23cbf8a6600abfefcc4ca75bf12` |
-| PR #84 static diff review | passed | Five changed files; no lockfile/plugin version changes |
-| PR #84 QA | passed | Acceptance checks documented in [PR #84](https://github.com/brianfiszman/dotfiles/pull/84) |
-| PR #84 Senior Reviewer | approved | Complete diff; simulated role, not independent human review |
-| PR #84 merge | completed | Squash merge commit `110c3658085c4c23d847de361a08b5e15e72b605` |
+| PR #84 QA / Senior Reviewer | passed / approved | Acceptance checks plus full diff review; simulated Scrum roles |
+| PR #84 merge | completed | `110c3658085c4c23d847de361a08b5e15e72b605` |
+| PR #85 documentation QA / Senior Reviewer | passed / approved | Exact three-file docs-only diff; workflow path filter excludes those files |
+| PR #85 merge | completed | `3c3abc65432d8b00bc4272866f49d000dc703eb5` |
 | Issue #74 | closed | GitHub state reason `completed` |
-| PR #85 documentation QA/review | passed / approved | Three-file docs-only diff; exact source head reviewed and final checkpoint snapshot re-verified from live branch ref |
-| PR #85 Neovim runtime CI | not applicable | Workflow path filter excludes all changed documentation paths |
+| PR #86 docs-only QA / Senior Reviewer | passed / approved | Reviewed exact source head `0c9d2bb3f57ef28df4a7338d96875d0bd7d9d032`; final persisted head to be re-fetched before handoff |
 
 ## Blockers
 
 - No implementation blocker for #74.
 - Manual macOS and representative project-suite validation remain unverified, not blockers to the accepted headless scope.
-- PR #85 has QA/reviewer sign-off; its merge still requires Brian's separate explicit authorization.
+- PR #86 has QA/reviewer sign-off but still requires Brian's separate explicit merge authorization. No merge authorization exists for PR #83 or any future implementation of #76.
 
 ## Next concrete action
 
-Brian: review PR #85 and decide whether to give separate explicit authorization for its documentation-only squash merge. Do not merge it without that authorization. Leave PR #83 and issue #76 untouched unless Brian chooses them next.
+Re-fetch and inspect PR #86's final exact HEAD, then ask Brian for separate explicit authorization before merging it. After that, ask Brian whether to refine and schedule #76 or choose another backlog item.
