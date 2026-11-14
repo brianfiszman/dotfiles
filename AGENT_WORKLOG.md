@@ -71,3 +71,13 @@ here rather than copying it.
 - PR [#79](https://github.com/brianfiszman/dotfiles/pull/79) remained open on exact head `721a07819de395527ffe86fc6b0830f2be54702f`; pull-request run [#43531552732](https://github.com/brianfiszman/dotfiles/actions/runs/43531552732) completed successfully for that exact SHA, including preparation, locked plugin restore/build hooks, and normal headless startup.
 - The five-file PR scope was reviewed against issue #78. QA passed for recovery sequence, exact evidence, linked paths, Markdown structure, and documentation-only scope. Senior Reviewer approved consistency with the repository safety and project-management rules.
 - No local macOS interactive session was performed. Issue #78 remains open until the PR is merged; merge authorization remains with Brian.
+
+
+---
+
+## 2026-11-14 — PR #79 restored-worklog head validation passed
+
+- Pull-request run [#43534384968](https://github.com/brianfiszman/dotfiles/actions/runs/43534384968) completed successfully for exact PR #79 head `0d006c2af97137adc8f9a189d6aa2280a59dcdd2`.
+- All job steps passed: prerequisites, pinned Neovim, isolated workspace, installer safety, locked plugin restore/build, normal startup, and log upload.
+- This run includes the append-only work-log restoration and checkpoint/work-log reconciliation.
+- The following checkpoint commit advances the branch again; inspect the workflow run associated with that resulting exact head before treating the PR as fully validated.
