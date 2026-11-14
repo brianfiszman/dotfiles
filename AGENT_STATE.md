@@ -9,14 +9,14 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 - **Work branch:** `docs/post-scrum-merge-state-82`
 - **Base branch / HEAD:** `master` / `e43ce86e98344094021421cbe789df5e956b8982`
 - **Current PR:** [#82 — Reconcile execution checkpoint after Scrum merge](https://github.com/brianfiszman/dotfiles/pull/82)
-- **Source HEAD before this checkpoint update:** `bbdd526a2c14af99a21af7fa5e6a9b3bb018c52a`
+- **Source HEAD before this checkpoint update:** `829f3b1b9b511ce8a55e1c4c9b41e49e19c235f2`
 - **Completed continuity PR:** [#79](https://github.com/brianfiszman/dotfiles/pull/79), squash-merged as [`a006c8a`](https://github.com/brianfiszman/dotfiles/commit/a006c8afb84518098009e4bd8da4436c8e926aa4); issue #78 closed.
 - **Completed Scrum PR:** [#81](https://github.com/brianfiszman/dotfiles/pull/81), squash-merged as [`e43ce86`](https://github.com/brianfiszman/dotfiles/commit/e43ce86e98344094021421cbe789df5e956b8982); issue #80 closed.
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
 - **Continuity skill:** [`execution-continuity`](.agents/skills/execution-continuity/SKILL.md)
 - **Scrum skill:** [`scrum-team`](.agents/skills/scrum-team/SKILL.md)
-- **Current phase:** validate the final two-file checkpoint reconciliation PR #82.
+- **Current phase:** PR #82 documentation review passed; awaiting Brian's separate merge authorization.
 
 ## Scrum configuration
 
@@ -45,9 +45,8 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Pending
 
-- Complete QA and a separate Senior Reviewer pass for the final two-file documentation diff.
-- No Neovim headless Actions run is expected for PR #82: its changed paths (`AGENT_STATE.md` and `AGENT_WORKLOG.md`) are excluded by the workflow's `pull_request.paths` filter. Treat this as not required, not pending or failed.
-- Merge PR #82 only after Brian explicitly authorizes it. Authorization to merge #81 does not authorize #82.
+- Await Brian's explicit authorization before merging PR #82. Authorization to merge #81 does not authorize #82.
+- No Neovim headless Actions run is expected for PR #82: its changed paths (`AGENT_STATE.md` and `AGENT_WORKLOG.md`) are excluded by the workflow's `pull_request.paths` filter. This is not required, not pending or failed.
 
 ## Validation
 
@@ -58,15 +57,15 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 | PR #81 QA / Senior Reviewer | passed | Final master-based four-file diff; QA PASS, Reviewer APPROVE |
 | PR #82 two-file scope | passed | Compare against master: only `AGENT_STATE.md` and `AGENT_WORKLOG.md` |
 | PR #82 Neovim headless Actions | not required | Workflow path filter excludes both changed paths; no runtime/config files changed |
-| PR #82 QA / Senior Reviewer | pending | Separate documentation review still required |
+| PR #82 QA / Senior Reviewer | passed | QA PASS and simulated separate Senior Reviewer APPROVE; exact two-file diff reviewed |
 | Neovim runtime validation | not required | Documentation-only reconciliation; no runtime/workflow files changed |
 
 ## Blockers
 
-- Only PR #82's exact-head validation/review and Brian's separate merge authorization remain.
+- Only Brian's separate explicit merge authorization for PR #82 remains.
 
 ## Next concrete action
 
-Resolve the remote ref for `docs/post-scrum-merge-state-82`, inspect the final two-file diff, complete QA and a separate Senior Reviewer pass, and then request explicit merge authorization for PR #82. Do not wait for or invent a Neovim run that the workflow's path filters will not trigger.
+Request Brian's explicit merge authorization for PR #82. Do not wait for or invent a Neovim run that the workflow's path filters will not trigger. Once authorized, verify the branch head has not changed and merge using the exact expected SHA.
 
 The commit containing this checkpoint cannot embed its own resulting SHA. Resolve the named remote branch ref to verify the persisted snapshot.
