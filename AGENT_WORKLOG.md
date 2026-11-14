@@ -153,3 +153,13 @@ here rather than copying it.
 - The PR contains the Neotest lazy spec, the new headless regression scenario, its runner integration, and checkpoint/work-log updates. It does not change `lazy-lock.json`.
 - Initial lookup of workflow runs for the exact head returned no run. This is **not run / not yet observed**, not a pass or failure. Recheck the PR event before deciding whether the workflow is pending or was not triggered.
 - Next: inspect the exact PR head and workflow event, then run QA and Senior Reviewer only after the relevant behavior check completes.
+
+
+
+## 2026-11-13 — Fix Neotest lazy-trigger headless assertion (#74 / PR #84)
+
+- The pull-request run [#43540903350](https://github.com/brianfiszman/dotfiles/actions/runs/43540903350) failed on source SHA `d06626861f88d61a3ca1d47f7a2ae409c3f51db3` after preparation, locked plugin restore/build hooks, and normal startup had passed.
+- The failing assertion compared `mapping.lhs` byte-for-byte with the requested leader sequence. The subsequent successful trace established why that was invalid: the lookup key is `" ts"`, while Neovim reports the normalized `mapping.lhs` as `"<Space>ts"`; the mapping had a Lua callback and no string rhs.
+- Commit [`4ca54c5`](https://github.com/brianfiszman/dotfiles/commit/4ca54c598b55f9129f15130eabe37c5e804ea691) corrected the test to accept callback-backed or rhs-backed mapping metadata, log the normalized lhs, and still dispatch the actual key before asserting Neotest and vim-test setup.
+- Pull-request run [#43541470634](https://github.com/brianfiszman/dotfiles/actions/runs/43541470634) passed for exact source SHA `4ca54c598b55f9129f15130eabe37c5e804ea691`: isolated prepare, locked restore/build hooks, normal startup, Neotest lazy loading, Go lazy-loading regressions, Mason/DAP lazy-loading, and the Debug Test mapping all passed.
+- Next: validate the branch after this checkpoint/work-log update, then complete QA PASS and a separate Senior Reviewer APPROVE. Interactive macOS behavior and a representative project test suite remain unverified.
