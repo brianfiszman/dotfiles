@@ -4,14 +4,14 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Scrum operating model documented; PR open; child-head CI validation pending
+- **Status:** Scrum operating model documented; PR open; exact-head Actions validation pending
 - **Repository:** `brianfiszman/dotfiles`
 - **Work branch:** `docs/scrum-operating-model-pr80`
 - **Base branch:** `docs/agent-session-continuity-pr78` (stacked on PR #79; not yet merged to `master`)
 - **Parent/base HEAD:** `721a07819de395527ffe86fc6b0830f2be54702f`
 - **Issue:** [#80 — Formalize a lightweight Scrum operating model](https://github.com/brianfiszman/dotfiles/issues/80)
 - **Pull request:** [#81 — Scrum team operating model](https://github.com/brianfiszman/dotfiles/pull/81) — open
-- **PR source HEAD before this checkpoint update:** `440372f9d4b53cf0aa262239f4b45800de1c9874`
+- **PR source HEAD before this checkpoint update:** `c6bc1b903e7448ac7fb65768b1e9a24830474951`
 - **Parent PR:** [#79 — Durable agent session continuity](https://github.com/brianfiszman/dotfiles/pull/79), open at `721a07819de395527ffe86fc6b0830f2be54702f`
 - **Checkpoint:** `AGENT_STATE.md`
 - **Work log:** [`AGENT_WORKLOG.md`](AGENT_WORKLOG.md)
@@ -42,7 +42,7 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 - QA passed: four intended documentation files only, internal paths resolve, Markdown delimiters and EOF newlines checked.
 - Senior Reviewer approved the complete diff against repository working agreements.
 - Opened stacked PR [#81](https://github.com/brianfiszman/dotfiles/pull/81), based on PR #79's branch. It is not mergeable before its parent merges.
-- PR #81 run [#43533418098](https://github.com/brianfiszman/dotfiles/actions/runs/43533418098) started for source head `440372f9d4b53cf0aa262239f4b45800de1c9874` and was still in progress when this checkpoint was prepared. The run's visible job was at “Install system tools used by plugin builds”. Job logs were not yet downloadable while the job was running.
+- PR #81 run [#43533616675](https://github.com/brianfiszman/dotfiles/actions/runs/43533616675) is a `pull_request` run for source head `c6bc1b903e7448ac7fb65768b1e9a24830474951`; it was in progress when this checkpoint was prepared. Its job was at “Install system tools used by plugin builds”. The earlier run #43533418098 is for the superseded SHA `440372f9d4b53cf0aa262239f4b45800de1c9874` and is not evidence for the latest source head.
 - No daily automation was created. No Neovim runtime or CI workflow definitions were changed.
 
 ## Pending
@@ -60,7 +60,7 @@ _Last updated: 2026-11-13 (America/Argentina/Buenos_Aires)_
 | Documentation QA | passed | Issue #80 acceptance criteria mapped; four intended files; internal path/Markdown checks |
 | Senior Reviewer | approved | Current diff reviewed against continuity, GitHub project-management, and repository validation rules |
 | Parent PR #79 workflow | passed | Run #43531552732, `pull_request`, exact parent SHA `721a078...` |
-| Initial PR #81 workflow | in progress at last observation | Run #43533418098 for source SHA `440372f9d4b53cf0aa262239f4b45800de1c9874`; not evidence for the checkpoint commit's resulting head |
+| Current PR #81 workflow | in progress at last observation | Run #43533616675, `pull_request`, source SHA `c6bc1b903e7448ac7fb65768b1e9a24830474951` |
 | Neovim runtime validation | not required | Documentation-only change |
 | Runtime/workflow diff exclusion | passed | Compare against parent contains only `AGENTS.md`, `AGENT_STATE.md`, `AGENT_WORKLOG.md`, and the new Scrum skill |
 

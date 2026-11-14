@@ -128,3 +128,13 @@ PR's exact head and any resulting workflow run before handing off.
 - PR source head at opening: `440372f9d4b53cf0aa262239f4b45800de1c9874`. Workflow run [#43533418098](https://github.com/brianfiszman/dotfiles/actions/runs/43533418098) was in progress at the time of this entry; its visible job step was installing system tools. The run is not a pass and will not validate any later head.
 - QA returned PASS and the separate Senior Reviewer pass returned APPROVE for the four-file documentation diff.
 - Next: resolve the branch after this checkpoint/work-log commit and validate the exact new PR head and its own Actions run.
+
+
+---
+
+## 2026-11-13 — PR #81 run observed on source head
+
+- Verified PR #81's head after the first checkpoint commit: `c6bc1b903e7448ac7fb65768b1e9a24830474951`.
+- Its pull-request workflow run [#43533616675](https://github.com/brianfiszman/dotfiles/actions/runs/43533616675) started for that exact SHA and was observed in progress at “Install system tools used by plugin builds”.
+- The earlier run #43533418098 targets the previous SHA and is superseded for current-head validation.
+- This checkpoint/work-log commit itself advances the branch; the next recovery must resolve the remote branch ref again and inspect the run associated with the resulting PR head.
