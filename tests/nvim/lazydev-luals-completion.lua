@@ -83,6 +83,15 @@ local function request_completion(line, character)
   return labels
 end
 
+local function has_completion(labels, name)
+  for label in pairs(labels) do
+    if label == name or label:match("^" .. name .. "%s*%(") then
+      return true
+    end
+  end
+  return false
+end
+
 -- This mirrors the user's actual completion context after typing "builtin.".
 local telescope_items = {}
 assert(vim.wait(10000, function()
@@ -103,7 +112,7 @@ vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
 local nvim_items = {}
 assert(vim.wait(10000, function()
   nvim_items = request_completion(1, #"local autocmd = vim.api.")
-  return nvim_items.nvim_create_autocmd == true
+  return has_completion(nvim_items, "nvim_create_autocmd")
 end, 100), "LuaLS did not complete vim.api.nvim_create_autocmd; labels: "
   .. vim.inspect(vim.tbl_keys(nvim_items)))
 
