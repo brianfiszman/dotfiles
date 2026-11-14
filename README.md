@@ -73,7 +73,7 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
   For JavaScript and TypeScript it selects `prettierd` when available, otherwise
   `prettier`, and follows the project's Prettier configuration.
 - ESLint diagnostics for JavaScript/TypeScript come from the ESLint language
-  server. Its `EslintFixAll` action still runs before saving an attached buffer.
+  server. Its `LspEslintFixAll` action still runs before saving an attached buffer.
 - Use `K` for symbol documentation, `<leader>DF` for the diagnostic under the
   cursor, and `[d` / `]d` to move between diagnostics.
 
