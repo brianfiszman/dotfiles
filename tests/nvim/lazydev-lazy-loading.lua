@@ -1,7 +1,6 @@
 -- Verify lazydev loads only for Lua buffers and preserves LuaLS/plugin integrations.
 
-local retired_lua_dev = "neo" .. "dev"
-assert(package.loaded[retired_lua_dev] == nil, "replaced Lua development plugin must not be loaded")
+assert(package.loaded["neodev"] == nil, "replaced Lua development plugin must not be loaded")
 assert(package.loaded["lazydev"] == nil, "lazydev loaded during unrelated startup")
 assert(vim.fn.exists(":LazyDev") == 0, ":LazyDev should not exist before a Lua buffer is opened")
 
@@ -49,11 +48,10 @@ assert(integrations.loaded.lspconfig == true, "lazydev native LSP integration di
 assert(vim.lsp.is_enabled("lua_ls"), "native LuaLS server is not enabled")
 
 local lazy = require("lazy.core.config")
-local retired_spec = retired_lua_dev .. ".nvim"
 assert(lazy.plugins["lazydev.nvim"] ~= nil, "lazydev plugin spec is missing")
 assert(vim.tbl_contains(lazy.plugins["lazydev.nvim"].ft or {}, "lua"),
   "lazydev must use a Lua filetype trigger")
-assert(lazy.plugins[retired_spec] == nil, "replaced Lua development plugin remains in lazy specs")
+assert(lazy.plugins["neodev.nvim"] == nil, "replaced Lua development plugin remains in lazy specs")
 
 print("PASS: lazydev remains unloaded outside Lua filetypes")
 print("PASS: opening a Lua buffer loads lazydev and registers :LazyDev")
