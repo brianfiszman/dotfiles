@@ -193,3 +193,12 @@ here rather than copying it.
 - Confirmed the Neovim workflow's path filters exclude all three changed documents. No Neovim runtime workflow is expected; no runtime test was run or claimed for this documentation-only PR.
 - **Senior Reviewer APPROVE:** inspected the complete three-file diff for stale handoffs, contradictory states, lost work-log history, incorrect validation claims, and accidental runtime scope. No blocking findings. QA and Reviewer are simulated Scrum role passes performed sequentially by one assistant, not independent human reviews.
 - PR #85 remains open. Its merge requires Brian's separate explicit authorization; PR #84's authorization does not carry over.
+
+
+## 2026-11-13 — Merge post-Neotest documentation reconciliation (#85)
+
+- Brian separately authorized the squash merge of documentation PR [#85](https://github.com/brianfiszman/dotfiles/pull/85). GitHub confirmed merge commit [`3c3abc6`](https://github.com/brianfiszman/dotfiles/commit/3c3abc65432d8b00bc4272866f49d000dc703eb5) for exact reviewed PR head `025d29625dad4631ef0efe690b3e24bc701a432d`.
+- PR #85's three-file docs-only diff had QA PASS and Senior Reviewer APPROVE; the Neovim runtime workflow was not applicable because its path filter excludes the three changed documentation files.
+- Verified after merge: PRs #84 and #85 are merged; issue #74 is closed as completed; parent #43 remains open; #76 remains open; PR #83 remains open/unmerged.
+- The checkpoint merged by #85 necessarily described #85 as awaiting authorization. Created follow-up docs-only branch `docs/post-pr85-merge-checkpoint` from `3c3abc6` to reconcile `AGENT_STATE.md` and append this event to the work log. No runtime code, plugin lockfile, installer, tests, backlog, or workflow files are changed.
+- PR #86 will carry that checkpoint update. It requires its own QA/reviewer pass and Brian's separate merge authorization; authorization for #85 does not carry over.
