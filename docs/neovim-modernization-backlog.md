@@ -26,7 +26,7 @@ underlying fix.
 ## P1 — Keep language and navigation tools reliable
 
 - [#40 Make the Run with Args keymap actually pass debug arguments](https://github.com/brianfiszman/dotfiles/issues/40)
-- [#41 Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41)
+- [#41 Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41) — completed in PR #87.
 - [#42 Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
 - [#43 Load testing, debugging, and search tools only when used (tracking parent)](https://github.com/brianfiszman/dotfiles/issues/43)
 - [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
@@ -116,30 +116,28 @@ version changes were included. Issue #74 is closed as completed.
 ## Current handoff — Sprint 2: modernize the LSP foundation
 
 **Dates:** 2026-11-14 through 2026-11-20  
-**Sprint Goal:** replace the layered/legacy LSP setup with one explicit native Neovim LSP configuration path per server, while preserving current language support and consistent editor behavior.
+**Sprint Goal:** move language tooling to explicit native Neovim ownership while preserving everyday editing and Lua development workflows.
 
-- **Committed issue:** [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41) — estimate **M**.
-- **Active PR:** [#87](https://github.com/brianfiszman/dotfiles/pull/87), open and unmerged.
-- **Branch/base:** `feat/lsp-native-setup-41` to `master` at `c587c8854faf2e99770ca6f30a51a529a38140bb`.
-- **Implementation/test snapshot:** `facec29efbe2c7628cb68e077afc27d8c06c3613`. The PR head `3b7def57ed417a94278255357e5ad2381b917b62` contains two later checkpoint/work-log-only commits; their diff against the implementation/test snapshot changes no code or tests. Subsequent handoff-only commits must be resolved from the live branch ref.
-- **Exact-head validation:** pull-request run [#43603478475](https://github.com/brianfiszman/dotfiles/actions/runs/43603478475) passed on PR head `3b7def57ed417a94278255357e5ad2381b917b62`. Every job step succeeded, including system dependencies, Neovim v0.11.3, lockfile validation, isolated preparation, locked plugin restore/build hooks, normal startup, and behavioral regression scenarios. The implementation/test assertions also passed in [run #43603153115](https://github.com/brianfiszman/dotfiles/actions/runs/43603153115) on exact code/test SHA `facec29efbe2c7628cb68e077afc27d8c06c3613`.
-- The LSP migration uses native `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig with `automatic_enable = false`, and one configuration table/activation loop.
-- Targeted compatibility updates only: nvim-lspconfig v2.12.0, Mason-LSPConfig v2.3.0, Mason v2.3.1; CI baseline is Neovim v0.11.3.
-- TypeScript Tools is replaced by native `ts_ls`; function-call completion and references/implementations CodeLens are retained. The old TypeScript Tools-specific member CodeLens toggle has no documented direct equivalent and exact parity is not claimed. Neodev remains temporarily for the separate [#42 lazydev migration](https://github.com/brianfiszman/dotfiles/issues/42), including its transitional `lspconfig.util` import.
-- **Formatting:** Normal-mode **Ctrl+F** directly invokes Conform's `:Format`. JavaScript/TypeScript use `prettierd` when available, otherwise `prettier`, following the project's Prettier configuration. This is not an ESLint `--fix` invocation. Competing F3 / Ctrl+Shift+F LSP formatter mappings are removed. ESLint's separate native `:LspEslintFixAll` save action remains.
-- **Diagnostics:** ESLint LSP owns JS/TS ESLint diagnostics; nvim-lint no longer launches `eslint` or `eslint_d` for JavaScript, TypeScript, JSX, or TSX. Other nvim-lint filetypes remain configured. This removes a credible source of overlapping asynchronous results, but the exact stale diagnostic has not yet been reproduced against Brian's local project. Do not treat duplicate publishers as the proven root cause.
-- **ESLint save fix:** the native nvim-lspconfig `on_attach` is preserved and `:LspEslintFixAll` is invoked on `BufWritePre`; the headless test verifies the command path using a stub client.
-- **QA / Senior Reviewer:** PASS / APPROVE on the implementation/test snapshot; these were separate sequential simulated role passes by one assistant, not independent human reviews. The current exact-head Actions run also covers the two documentation-only commits.
-- **Manual validation still pending:** restart Neovim from this branch, verify Ctrl+F in a representative TS file, and reproduce edit → fix → undo while the stale diagnostic is visible. Capture `:lua vim.print(vim.diagnostic.get(0))` and relevant `:LspLog` lines to identify the actual source/client before considering any diagnostic-handler workaround.
-- **Not included in Sprint 2 commitment:** #42 (lazydev), #44 (Treesitter), #76 (Telescope), or a repository-wide plugin update. PR #87 remains open/unmerged; merge requires Brian's explicit authorization.
+- **Current committed issue:** [#42 — Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42) — estimate **S**.
+- **Active PR:** [#88](https://github.com/brianfiszman/dotfiles/pull/88), open and unmerged.
+- **Branch/base:** `feat/lazydev-42` to `master` at merge commit `a74368456f9c829197aa7569d6cf720b1bc7d9d5`.
+- **Implementation/test snapshot:** `360ed9b5df6d1d61a723a2287c6a4024917b6141`. The latest PR head at this checkpoint is the same SHA; later state/worklog/backlog updates are documentation-only.
+- **Exact-head CI:** pull-request run [#43605503484](https://github.com/brianfiszman/dotfiles/actions/runs/43605503484) is in progress on `360ed9b`. The workflow must pass isolated preparation, locked plugin restore/build hooks, normal startup, native LSP assertions, and the new Lazydev Lua-filetype behavior test before QA/review sign-off.
+- **Completed predecessor:** [#41 — Native LSP ownership](https://github.com/brianfiszman/dotfiles/issues/41) was squash-merged in [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) as [`a743684`](https://github.com/brianfiszman/dotfiles/commit/a74368456f9c829197aa7569d6cf720b1bc7d9d5). Exact PR-head run [#43604418747](https://github.com/brianfiszman/dotfiles/actions/runs/43604418747) passed; post-merge push run [#43604690496](https://github.com/brianfiszman/dotfiles/actions/runs/43604690496) also passed all steps. Issue #41 is closed as completed.
+- **Lazydev design:** separate root spec `folke/lazydev.nvim` with `ft = "lua"`; do not make it a dependency of the eager native LSP plugin. Enable its native LSP and nvim-cmp integrations.
+- **Preserved LuaLS behavior:** LuaJIT runtime, `?.lua` / `?/init.lua` paths, `vim` diagnostic global, function-call snippet completion, Neovim runtime and config Lua libraries, and all five prior plugin API libraries (`neotest`, `nvim-dap-ui`, `nvim-treesitter`, `plenary.nvim`, `telescope.nvim`). The existing jsonls schema for `.luarc.json` / `.luarc.jsonc` remains independent and unchanged.
+- **Dependencies:** remove the Neodev spec/setup/lock entry and add Lazydev pinned at `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d`. No unrelated plugin update.
+- **Validation:** the pinned nvim-cmp source was inspected to confirm `cmp.get_registered_sources()` exists. Lazydev's pinned implementation confirms filetype setup and native LSP/cmp integrations. Full runtime assertions remain pending run #43605503484.
+- **Manual validation pending:** open/edit a representative Lua config on Brian's Mac and confirm LuaLS completion/hover and plugin API type resolution.
+- **Separate residual from #41:** the exact JS/TS ESLint diagnostic reappearing after edit/undo has not been reproduced in a representative local project. Duplicate ESLint publishers were removed, but the original race is not proven fixed; identify the source/client from diagnostics and `:LspLog` if it recurs.
+- **QA / Senior Reviewer:** pending against the complete current PR diff after exact-head CI. PR #88 merge requires Brian's explicit authorization.
 
 ## Agreed modernization sequence after the current LSP issue
 
-1. [#41 — Native LSP ownership](https://github.com/brianfiszman/dotfiles/issues/41) — current Sprint 2 work.
-2. [#42 — Replace neodev with lazydev](https://github.com/brianfiszman/dotfiles/issues/42).
-3. [#44 — Treesitter API/branch migration](https://github.com/brianfiszman/dotfiles/issues/44).
-4. Audit the remaining plugin inventory and update compatible groups deliberately. This is not a one-shot `:Lazy update`; first identify abandoned projects, breaking API migrations, plugin overlaps, and required Neovim versions.
-5. [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76), once the dependency baseline is stable.
+1. [#42 — Replace Neodev with Lazydev](https://github.com/brianfiszman/dotfiles/issues/42) — current Sprint 2 work.
+2. [#44 — Treesitter API/branch migration](https://github.com/brianfiszman/dotfiles/issues/44).
+3. Audit the remaining plugin inventory and update compatible groups deliberately. This is not a one-shot `:Lazy update`; first identify abandoned projects, breaking API migrations, plugin overlaps, and required Neovim versions.
+4. [#76 — Telescope lazy-loading](https://github.com/brianfiszman/dotfiles/issues/76), once the dependency baseline is stable.
 
 The earlier testing/debugging/search work remains complete where merged:
 - [#75 — DAP lazy-loading](https://github.com/brianfiszman/dotfiles/issues/75), merged in [PR #77](https://github.com/brianfiszman/dotfiles/pull/77).
