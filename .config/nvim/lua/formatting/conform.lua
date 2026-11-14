@@ -4,8 +4,6 @@ local M = {
 }
 
 function M.config()
-  local wk = require "which-key"
-
   vim.api.nvim_create_user_command("Format", function(args)
     local range = nil
     if args.count ~= -1 then
@@ -19,9 +17,7 @@ function M.config()
   end, { range = true })
 
 
-  wk.register {
-    ["<C-f>"] = { "<cmd>Format<cr>", "Format" },
-  }
+  vim.keymap.set("n", "<C-f>", "<cmd>Format<cr>", { desc = "Format", silent = true })
 
   -- Picks the first available formatter without stop_after_first, which
   -- would also swallow the "*" codespell pass that runs after it.

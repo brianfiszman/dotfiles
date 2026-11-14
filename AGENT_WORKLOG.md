@@ -211,3 +211,119 @@ here rather than copying it.
 - Confirmed the Neovim headless workflow filters out these two documentation files. No runtime workflow is expected; no runtime test was run or claimed.
 - **Senior Reviewer APPROVE:** the complete two-file patch was checked for stale PR #85 pending claims, incorrect issue/PR states, broken handoff, accidental loss of prior work-log history, and scope expansion. No blocking findings. These are sequential simulated Scrum role passes, not independent human reviews.
 - PR #86 remains open. Brian's authorization for PR #85 does not authorize PR #86; a separate explicit merge decision is required.
+
+
+## 2026-11-14 — Sprint 2 planning and native LSP migration (#41)
+
+- Brian approved reprioritizing Sprint 2 from Telescope lazy-loading to the LSP foundation. Sprint dates: 2026-11-14 through 2026-11-20. Sprint Goal: move to one explicit native LSP configuration/activation path per server while preserving supported workflows. Issue [#41](https://github.com/brianfiszman/dotfiles/issues/41) is the sole committed functional issue (T-shirt size M); #42, #44, #76, and a full plugin inventory update remain later work.
+- Recovered the actual post-PR-86 state: PR [#86](https://github.com/brianfiszman/dotfiles/pull/86) is merged as `c587c8854faf2e99770ca6f30a51a529a38140bb`. The old checkpoint still described it as open; this entry and the active checkpoint reconcile that stale handoff. PR #83 remains open/unmerged.
+- Audited the LSP setup. The old path had lsp-zero v3.x, Mason-LSPConfig v1-style `handlers`, direct `require("lspconfig").setup()` calls, duplicated generic/special server setup, and TypeScript Tools. The exact locked TypeScript Tools revision calls `require("lspconfig")` internally, so the chosen migration is native `ts_ls`, preserving complete-function-call completions and references/implementations CodeLens.
+- **Correction:** an earlier response called lsp-zero officially dead. Its upstream README still describes a v4 branch; that claim was too strong. The reason for removing the repository's v3.x integration is architectural simplification and moving to native Neovim APIs, not a verified declaration that the entire project is dead.
+- Selected compatible released dependencies: nvim-lspconfig v2.12.0 (`4d363f93c3581b9212a24f7a830d7590b3f050af`), Mason-LSPConfig v2.3.0 (`a5671269a1ddfa7790cdf97c14e600e269da550f`), and Mason v2.3.1 (`2a6940af80375532e5e9e7c1f2fc6319a1b7a69d`). The nvim-lspconfig release requires Neovim 0.11.3+, so CI's pinned version was raised from v0.11.0 to v0.11.3. This is a targeted LSP compatibility update, not a mass plugin update.
+- Implementation branch: `feat/lsp-native-setup-41`, created from master after PR #86. Changes so far replace lsp-zero with native `vim.lsp.config()` / `vim.lsp.enable()`, set Mason-LSPConfig `automatic_enable=false`, consolidate each server's configuration into one override table/loop, move completion mappings off lsp-zero, migrate TypeScript to `ts_ls`, update Mason's repository namespace in DAP, update only the LSP lock entries, and add headless assertions plus a script phase.
+- Neodev is deliberately retained for #42. Its `before_init` helper still imports `lspconfig.util`; this is a known transitional compatibility path to remove when lazydev replaces neodev. No direct legacy `require("lspconfig").<server>.setup()` calls remain in the new LSP module.
+- Validation status at this checkpoint: **not run**. The real plugin restore, native startup, and LSP assertions are pending a PR-triggered Actions run. No QA PASS, Senior Reviewer APPROVE, issue closure, or merge is claimed.
+- Next: inspect the complete branch diff and test harness carefully, open the PR for #41, then run and inspect the exact-head Actions workflow before separate QA and Senior Reviewer passes. Merge still requires Brian's explicit authorization.
+
+
+## 2026-11-14 — Open PR #87 and start exact-head validation
+
+- Opened [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) for issue #41. Base is master at `c587c8854faf2e99770ca6f30a51a529a38140bb`; the branch head at first review was `09d59bf996bdd9e117ae3148c645c9030af2a2bb`.
+- Reviewed the changed-file list and key diffs. Reduced the lockfile to the repository's existing compact format so only the intended LSP dependency changes appear. Corrected the new shell test phase to use single-line continuations.
+- Further review found that the original Svelte notification autocmd combined `buffer` and `pattern`, which are mutually exclusive in Neovim's autocmd API and would also have changed the original project-wide JS/TS save behavior. Reworked it to register one project-wide JS/TS watcher per Svelte LSP client and send a proper file URI.
+- Confirmed every configured server name exists in the selected nvim-lspconfig v2.12.0 release, including native `ts_ls`.
+- Exact-head PR workflow [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was observed for the reviewed head and is **queued**. Its job has not started; no runtime validation is claimed yet.
+- The PR's current head advanced after the reviewed snapshot due to the Svelte autocmd fix. Re-fetch the PR head and confirm the workflow is for the latest SHA before treating any result as validation.
+- Next: update the checkpoint/backlog to the live PR state, then inspect the queued run's jobs and steps until it completes. QA and Senior Reviewer remain separate pending gates; merge requires Brian's explicit authorization.
+
+
+## 2026-11-14 — CI cancellation and rerun for PR #87
+
+- Run [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb` was cancelled during the first system-tools installation step. Neovim installation, isolated workspace preparation, plugin restore/build hooks, normal startup, and tests were all skipped; this is not a test failure and provides no runtime evidence.
+- The PR had advanced to `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b` through documentation-only checkpoint/worklog updates after the code snapshot. The path-filtered runtime workflow did not produce a run for that docs-only head. The implementation code was unchanged.
+- Explicitly re-ran the cancelled workflow job. GitHub accepted the rerun; the run is pending again for the original code SHA. The final review must separately inspect the documentation-only commits at the current PR head.
+- Next: monitor the rerun through plugin restore and all test phases. Do not call the cancelled attempt a failure or a pass.
+
+
+## 2026-11-14 — Fresh PR #87 workflow triggered on latest head
+
+- The rerun of [#43551881373](https://github.com/brianfiszman/dotfiles/actions/runs/43551881373) was also cancelled at job setup before any test phase. No validation evidence was produced by either attempt.
+- Added a small, relevant CI check to the workflow: parse `.config/nvim/lazy-lock.json` with Python before plugin restore. This both validates the changed lockfile and causes the path-filtered runtime workflow to run on the current PR snapshot.
+- GitHub created new PR workflow [#43552051042](https://github.com/brianfiszman/dotfiles/actions/runs/43552051042) for current head `6c359e4ea597842479badf0f4c827244b9629ca4`, based on master `c587c8854faf2e99770ca6f30a51a529a38140bb`. The run is **pending**; its job has not yet been observed.
+- Next: inspect run #43552051042 through completion. The previous cancelled runs are not failures of the Neovim config and are not passes.
+
+
+## 2026-11-14 — Final LSP compatibility refinements before CI
+
+- Updated the Neovim version guard in `.config/nvim/init.lua` and the README requirement to **0.11.3+**, matching the selected nvim-lspconfig v2.12.0 minimum. The CI baseline is also v0.11.3.
+- Preserved the actual diagnostics behavior from the old cmp config: virtual text remains disabled; signs, severity sorting, and rounded diagnostic floats remain configured.
+- Preserved Neodev's `.luarc.json` / `.luarc.jsonc` JSON schema behavior directly in native `jsonls` settings while retaining Neodev's `before_init` integration for lua_ls. Neodev remains a transitional dependency until #42.
+- Separated the Mason-managed server list from the enabled server list: the previous Svelte install policy is unchanged (Svelte remains explicitly enabled but is not added to Mason's install list); native `ts_ls` is added to Mason installs.
+- Replaced the TypeScript root markers with a native `root_dir(bufnr, on_dir)` callback because nvim-lspconfig's built-in `ts_ls` config already defines a `root_dir`; `root_markers` alone would not override it. This preserves the old yarn.lock/package-lock.json workspace policy.
+- Added native CodeLens refresh on TypeScript buffer enter/hold/insert-leave. The TypeScript language server's documented settings support function-call completions and references/implementations CodeLens. Its documented API has no direct equivalent for TypeScript Tools' member-specific CodeLens toggle; that limitation is called out in the PR. Proprietary `:TSTools*` commands are also not mapped in this repository and are called out as a possible manual-use loss.
+- Final exact code/README head before this checkpoint update: `7d8bd3ecb64408f3b538f2efdec27f11bd5c4ff3`. PR [#87](https://github.com/brianfiszman/dotfiles/pull/87) is open.
+- Current workflow [#43552641966](https://github.com/brianfiszman/dotfiles/actions/runs/43552641966) is **in progress** on that head. The system-tools installation step is running; Neovim installation, lockfile validation, plugin restore/build hooks, startup, and LSP assertions have not run yet.
+- Earlier workflow attempts were cancelled as code commits superseded their heads; none produced runtime validation. Do not count them as failures of the LSP config or as passes.
+- Next: monitor #43552641966 through completion, then run separate QA and Senior Reviewer passes against the exact PR diff. Merge still requires Brian's explicit authorization.
+
+
+## 2026-11-14 — Make LSP diagnostics visible inline (#41 / PR #87)
+
+- Brian's manual smoke test confirmed completion and `K` hover work. He reported that errors were represented by a red sign but their message was not visible unless explicitly opened.
+- Traced this to the intentional `virtual_text = false` setting. Updated diagnostics to `virtual_text = { spacing = 2, source = "if_many" }`, retaining signs, underline, severity sorting, and the detailed float/navigation mappings.
+- Updated `tests/nvim/lsp-native-setup.lua` to assert that inline diagnostic virtual text is enabled.
+- Current code/test head: `dd801182126c65a01123c65daf72a43220243e22`. Exact-head workflow [#43600006360](https://github.com/brianfiszman/dotfiles/actions/runs/43600006360) is in progress; no result is claimed yet.
+- Brian does not recall using proprietary `:TSTools*` commands. No repository mappings/configuration for them were found; no compatibility shim is planned.
+- Earlier exact-head CI, QA, and Senior Reviewer gates passed on the predecessor implementation. Repeat CI, QA, and Senior Reviewer against the final PR head after this adjustment. F3 formatting and the inline diagnostic display still need manual validation. PR #87 remains open and unmerged; no merge authorization was given.
+
+
+## 2026-11-14 — Final inline diagnostics validation and review gates (#41 / PR #87)
+
+- The diagnostic visibility change is `virtual_text = { spacing = 2, source = "if_many" }`; it keeps gutter signs and detailed floats while showing messages inline.
+- The first headless run after that change found that the new LSP module redundantly set `update_in_insert = false`, conflicting with the existing global setting in `.config/nvim/lua/navigation/bufferline.lua` (`true`). Removed the LSP-level assignment and removed the test's incorrect expectation. Bufferline remains the owner; the diagnostic change itself stays in place.
+- Final code/test head `380e35d0960aad312d23c2cd8509c42fb4f6d721` passed exact-head Actions run [#43600645750](https://github.com/brianfiszman/dotfiles/actions/runs/43600645750): isolated preparation, Neovim v0.11.3, lockfile validation, plugin restore/build hooks, normal startup, native LSP assertions, Neotest, Go, and DAP checks.
+- **QA PASS:** issue #41 acceptance criteria and final PR diff checked, including single server ownership/activation, native `ts_ls`, preserved server settings and custom hooks, diagnostic display, keymaps, formatting, lockfile scope, and CI evidence.
+- **Senior Reviewer APPROVE:** separate complete-diff pass found no blocking correctness, architectural, compatibility, test, or scope issues. These are sequential simulated role passes by the assistant, not independent human reviews.
+- Brian confirmed completion and `K` hover work. He does not recall using `:TSTools*` commands; no proprietary-command compatibility layer is planned. Manual confirmation of `F3` formatting and inline messages in a representative local project remains pending; so do representative TypeScript/ESLint attachment and interactive macOS checks.
+- PR #87 remains open and unmerged; issue #41 remains open pending Product Owner acceptance. No merge authorization has been given.
+
+## 2026-11-14 — Consolidate formatting and JavaScript/TypeScript ESLint ownership (#41 / PR #87)
+
+- Brian reported that the Conform Ctrl+F action produced the expected formatting, while the LSP F3 path produced a different result. Inspected the actual keymaps: Ctrl+F runs Conform's :Format (JS/TS uses prettierd if available, otherwise prettier); F3 and Ctrl+Shift+F called vim.lsp.buf.format() directly. Removed those competing LSP formatter mappings so the shared Conform path is canonical. Prettier uses Prettier configuration; it is not an ESLint --fix invocation. ESLint's existing EslintFixAll remains on save.
+- Brian's screenshot showed a diagnostic labelled eslint: Parsing error: ',' expected. The repo configured ESLint diagnostics through the ESLint LSP and also ran both eslint and eslint_d from nvim-lint on JS/TS read/write/insert-leave events. This is credible overlapping asynchronous diagnostic ownership, but the screenshot alone does not prove that it caused the exact stale result.
+- Removed JS/TS/JSX/TSX ESLint entries from nvim-lint; the ESLint language server now owns those diagnostics. Other nvim-lint filetype configurations remain. Kept ESLint's save-time fix action.
+- Added headless assertions that the normal-mode Ctrl+F mapping and :Format exist, and nvim-lint does not run eslint / eslint_d for JS/TS. Documented the canonical workflow in README and the reusable single-owner rule in .agents/skills/neovim-maintenance/SKILL.md.
+- Updated issue #41 acceptance criteria and PR #87 description.
+- Implementation snapshot before this checkpoint update: 1b8bfbf87bec7e36582fff131a280be0f8d35b3e. Run #43602089534 was in progress on that snapshot; the checkpoint/skill/worklog updates may supersede it. Validate the final branch head and repeat QA and Senior Reviewer on the complete current diff.
+- Manual validation still pending: restart Neovim after update, check that inline ESLint diagnostics no longer reappear after undo, and confirm Ctrl+F is the only formatting behavior in normal mode. PR #87 remains open/unmerged; no merge authorization.
+
+## 2026-11-14 — Make Conform Ctrl+F mapping deterministic and testable (#41 / PR #87)
+
+- Run #43602089534 failed at the new assertion using vim.fn.maparg("<C-f>", "n"). The same run had already passed preparation, plugin restore/build hooks, normal startup, and the :Format command existence check. The failing check was a false negative: this mapping had been registered through WhichKey v3's legacy register() queue and was not visible to maparg() at that test point.
+- Switched the primary Conform Ctrl+F mapping to a direct vim.keymap.set("n", "<C-f>", "<cmd>Format<cr>", { desc = "Format", silent = true }). This makes the normal-mode mapping explicit and inspectable. Restored the maparg assertion; it now tests a direct Neovim mapping rather than deferred WhichKey state.
+- Current implementation/test snapshot: 3334b4b9cdf0b22de0990e4def6ff298f4a40bd0. Validate this exact head. Prior run failure was test-timing/registration observability, not a Conform formatting failure.
+- The same change set makes ESLint LSP the only JS/TS ESLint diagnostic publisher by removing eslint/eslint_d from nvim-lint's JS/TS filetype list. The screenshot's stale message remains unproven but duplicate asynchronous ownership is removed.
+- Manual follow-up: Brian should restart Neovim after updating, use Ctrl+F in a TypeScript file, and check whether the old ESLint diagnostic still reappears after undo. PR #87 remains open/unmerged; no merge authorization.
+
+## 2026-11-14 — Preserve native ESLint save fix, complete QA and Senior Review (#41 / PR #87)
+
+- Final review against the pinned nvim-lspconfig v2.12.0 source found that the native ESLint config creates the buffer-local command `LspEslintFixAll`, not the legacy `EslintFixAll`. The migration had overridden the native ESLint `on_attach`, then invoked the old command name on save. That would break ESLint auto-fixes on save.
+- Fixed the custom ESLint attach hook to compose the pinned nvim-lspconfig default `on_attach`, preserving creation of `:LspEslintFixAll`, then adds shared keymaps and a `BufWritePre` autocmd that invokes `LspEslintFixAll`.
+- Added a headless regression that uses a stub ESLint client, calls the configured attach hook, verifies the buffer-local command exists, executes `BufWritePre`, and asserts the client receives `workspace/executeCommand` with `eslint.applyAllFixes`. The test also asserts the deprecated `:EslintFixAll` command is not being used.
+- Updated README and PR description to use the native `:LspEslintFixAll` command name.
+- Exact implementation/test head `facec29efbe2c7628cb68e077afc27d8c06c3613` passed Actions run [#43603153115](https://github.com/brianfiszman/dotfiles/actions/runs/43603153115): isolated preparation, Neovim v0.11.3, lockfile validation, real locked plugin restore/build hooks, normal startup, native LSP tests (including the ESLint save-fix simulation), and Neotest/Go/DAP regression checks.
+- **QA PASS:** reviewed every issue #41 acceptance criterion against the final diff and exact-head evidence, including formatter ownership, diagnostic ownership, inline diagnostics, native ESLint save fixes, server activation, dependency scope, and existing workflows.
+- **Senior Reviewer APPROVE:** separate final-diff review found no blocking correctness, architecture, compatibility, test, or scope issues. QA and Senior Reviewer are simulated sequential passes by one assistant, not independent human reviewers.
+- Manual checks still pending: Brian should confirm Ctrl+F behavior and whether the stale ESLint diagnostic remains gone after restart and undo in a representative TypeScript project. Headless tests cannot prove project-specific attachment or interactive macOS behavior. PR #87 remains open/unmerged; no merge authorization has been given.
+
+
+## 2026-11-14 — Recover PR #87 exact-head state and tighten the diagnostic handoff
+
+- Recovered live state for [PR #87](https://github.com/brianfiszman/dotfiles/pull/87): branch `feat/lsp-native-setup-41`, base `master` at `c587c8854faf2e99770ca6f30a51a529a38140bb`, PR head before this checkpoint update `3b7def57ed417a94278255357e5ad2381b917b62`. [Issue #41](https://github.com/brianfiszman/dotfiles/issues/41) and PR #87 are still open; no merge was performed or authorized.
+- Compared the current PR head with code/test SHA `facec29efbe2c7628cb68e077afc27d8c06c3613`: two commits ahead, zero behind, and only checkpoint/work-log documentation paths changed. The implementation and test files are unchanged.
+- Exact current PR-head pull-request run [#43603478475](https://github.com/brianfiszman/dotfiles/actions/runs/43603478475) completed successfully on `3b7def57ed417a94278255357e5ad2381b917b62`. All job steps passed, including isolated preparation, Neovim v0.11.3 installation, lockfile validation, locked plugin restore/build hooks, normal headless startup, and the startup script's behavioral regression scenarios. The earlier implementation/test run [#43603153115](https://github.com/brianfiszman/dotfiles/actions/runs/43603153115) additionally exercises the native LSP, Ctrl+F, duplicate-linter, and mocked ESLint save-fix assertions on exact code/test SHA `facec29`.
+- Reconfirmed the formatting contract: Normal-mode Ctrl+F maps directly to Conform `:Format`; JS/TS chooses `prettierd` or `prettier`. It follows Prettier configuration and is **not** ESLint `--fix`. The LSP attach path has no competing F3 / Ctrl+Shift+F formatter mapping. ESLint's `:LspEslintFixAll` remains a separate save-time action.
+- Reconfirmed diagnostic ownership: `nvim-lint` no longer launches `eslint` / `eslint_d` for JS/TS/JSX/TSX, leaving the ESLint LSP as the configured ESLint diagnostics owner. The headless assertion verifies this configuration boundary; it does not reproduce out-of-order server messages or prove that duplicate publishers caused Brian's exact stale diagnostic.
+- Additional diagnostic investigation: Neovim v0.11.3's default *push* `publishDiagnostics` handler applies the notification without comparing its optional document version to the buffer's current version. This is only a potential stale-result mechanism if the actual server uses push diagnostics and delivers an older version late; the available evidence does not establish that this is the ESLint path in Brian's project. Do not add a global diagnostic-handler override without capturing the actual diagnostic source/client and LSP log first.
+- **QA PASS (simulated):** rechecked issue #41 acceptance criteria, the exact implementation/test files, and the exact current-head workflow evidence. **Senior Reviewer APPROVE (simulated):** inspected the current implementation diff and the two later documentation-only commits; no new blocking finding. These are sequential roles performed by one assistant, not independent human reviews.
+- Still pending: local representative TS/ESLint attachment and Ctrl+F check; reproduce edit → fix → undo with the diagnostic visible and capture `:lua vim.print(vim.diagnostic.get(0))` plus the relevant `:LspLog` lines so the publishing client/path can be identified. Keep PR #87 and issue #41 open until Brian accepts the result. Merge requires his explicit authorization.

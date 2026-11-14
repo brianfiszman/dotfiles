@@ -10,7 +10,7 @@ dein.vim or run a manual plugin-manager command.
 
 ### Requirements
 
-- Neovim 0.11 or newer.
+- Neovim 0.11.3 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
 - A terminal with a Nerd Font is recommended for icons, but the font is not
@@ -66,6 +66,16 @@ Use `:Lazy` inside Neovim to inspect plugin status.
 
 If lazy.nvim cannot be downloaded, Neovim displays an actionable error. Check
 that Git is installed and that the network can reach GitHub, then restart Neovim.
+
+### Editing
+
+- In Normal mode, **Ctrl+F** runs the shared `:Format` command through Conform.
+  For JavaScript and TypeScript it selects `prettierd` when available, otherwise
+  `prettier`, and follows the project's Prettier configuration.
+- ESLint diagnostics for JavaScript/TypeScript come from the ESLint language
+  server. Its `LspEslintFixAll` action still runs before saving an attached buffer.
+- Use `K` for symbol documentation, `<leader>DF` for the diagnostic under the
+  cursor, and `[d` / `]d` to move between diagnostics.
 
 ### Optional: Python provider
 

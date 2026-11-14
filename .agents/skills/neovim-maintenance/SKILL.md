@@ -271,6 +271,22 @@ and a passing CI run.
   or keys for search/debug/test workflows, and insert mode for typing assistants.
 - Avoid overlapping providers for scrolling, formatting, linting, highlighting,
   and LSP server setup.
+- Assign one diagnostic producer per tool/filetype. In JavaScript/TypeScript,
+  do not run the same ESLint configuration concurrently through both the ESLint
+  language server and nvim-lint (eslint / eslint_d): asynchronous results from
+  competing publishers can leave duplicate or stale-looking diagnostics. Keep
+  the ESLint LSP as the diagnostic owner when it is already attached and retain
+  its save-time fix action.
+- Keep one canonical formatting path per filetype. When Conform owns the
+  user-facing :Format command, avoid attaching competing vim.lsp.buf.format()
+  mappings that silently use a different formatter. Be precise about formatter
+  semantics: Prettier follows Prettier configuration; it does not automatically
+  mean that ESLint --fix rules were run.
+- For a primary shortcut that must exist immediately and be behaviorally tested,
+  prefer a direct vim.keymap.set() with desc over queuing it through legacy
+  WhichKey register(). WhichKey v3 processes those queued specs during setup;
+  an early headless maparg() assertion can therefore be a false negative before
+  the deferred registration has completed.
 - Preserve `lazy-lock.json` unless a ticket explicitly includes a plugin version
   change.
 - Pin or document APIs when upstream plugins make breaking branch migrations.
@@ -340,30 +356,35 @@ for the validated snapshot, not by assumption for all future revisions.
 
 ## Mason package-install regression tests
 
-For Mason-managed adapters, observe lifecycle events instead of polling
-`Package:is_installed()` inside a `vim.wait()` predicate:
+For Mason-managed adapters, observe terminal install lifecycle events instead of
+polling `Package:is_installed()` inside a `vim.wait()` predicate:
 
-- Subscribe to `registry:on("package:handle", ...)` to record which configured
-  packages were requested.
-- Subscribe to `package:install:success` and `package:install:failed` and keep
-  terminal results in an in-memory table.
-- Wait on that table. Avoid repeated `Package:is_installed()` calls during
-  active installs: the current Mason implementation scans the shared install
-  root synchronously, so polling is expensive and is not a reliable async
-  completion signal.
-- Assert that every expected package was requested and that every terminal
-  result is successful. Preserve stderr for failed handles in the test output.
+- Subscribe to the registry-level `package:install:success` and
+  `package:install:failed` events and keep terminal results in an in-memory
+  table.
+- Do not subscribe to a registry-level `package:handle` event: the install
+  handle is exposed by each `Package` instance, not emitted as a registry
+  lifecycle event. A registry listener for `package:handle` never fires.
+- Wait on the terminal-result table. Avoid repeated `Package:is_installed()`
+  calls during active installs: the current Mason implementation scans the
+  shared install root synchronously, so polling is expensive and is not a
+  reliable async completion signal.
+- For an adapter that is already installed before the action, seed its result
+  as existing/successful. In a clean isolated CI workspace, the remaining
+  adapters must produce the registry success events after the actual command
+  is invoked. If the test needs to prove that the command requested adapters,
+  also assert the expected package request/installation path rather than
+  treating a pre-existing installed package as evidence of a new request.
+- Preserve stderr for failed handles in the test output and assert every
+  expected adapter reaches a successful terminal state.
 
-Incident 2026-11-13: a headless test that polled the registry while five DAP
-adapters were installing timed out without terminal results. Replacing the
-polling loop with Mason lifecycle events passed all five adapter installations
-in 20 seconds on exact PR head
-`605010ffc6825500bdab6b07bb1192e79791e3cc`, run
-[43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
-This validates the event-driven signal; it does not establish that every Mason
-install stall has the same root cause.
-
-
+Incident 2026-11-13: a headless test listened for a nonexistent registry-level
+`package:handle` event and timed out even though Mason completed installs.
+Replacing that listener with `package:install:success` /
+`package:install:failed` observers passed the five adapter installations in
+[run #43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
+This validates the registry terminal-event signal; it does not establish that
+every Mason install stall has the same root cause.
 
 ## Lazy entry points for Mason DAP commands
 

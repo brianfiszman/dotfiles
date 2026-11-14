@@ -18,7 +18,7 @@ local M = {
         },
       },
     },
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
   },
   -- Keep the native command API lazy-loadable too, not just the keymaps.
   cmd = {
