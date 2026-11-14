@@ -4,11 +4,11 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Current task
 
-- **Status:** Sprint 2 is active. [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implements [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41). PR is open at head `70cb57792a3fe9e395295d3a9b2ec2a6d08d819b`; runtime code snapshot is `09d59bf996bdd9e117ae3148c645c9030af2a2bb`. Run #43551881373's first attempt was cancelled before tests; its rerun is pending for the code snapshot. QA and Senior Reviewer have not started.
+- **Status:** Sprint 2 is active. [PR #87](https://github.com/brianfiszman/dotfiles/pull/87) implements [#41 — Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41). PR is open at head `6c359e4ea597842479badf0f4c827244b9629ca4`; runtime implementation code snapshot is `09d59bf996bdd9e117ae3148c645c9030af2a2bb`. New run #43552051042 is pending for the latest head. Earlier run #43551881373 attempts were cancelled before tests. QA and Senior Reviewer have not started.
 - **Repository:** `brianfiszman/dotfiles`
 - **Base:** `master` after PR #86 merge commit `c587c8854faf2e99770ca6f30a51a529a38140bb`.
 - **Implementation branch:** `feat/lsp-native-setup-41`.
-- **Last inspected implementation commit before this checkpoint update:** `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; the branch has advanced with checkpoint/worklog commits, so resolve the live PR head before acting.
+- **Last inspected implementation commit before this checkpoint update:** `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; current PR head includes docs and the lockfile-JSON workflow step at `6c359e4ea597842479badf0f4c827244b9629ca4`.
 - **Issue:** [#41](https://github.com/brianfiszman/dotfiles/issues/41).
 - **PR:** [#87](https://github.com/brianfiszman/dotfiles/pull/87), open.
 
@@ -54,8 +54,8 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 | Check | Status | Evidence |
 |---|---|---|
 | Static review of upstream API/version requirements | passed | Selected releases and requirements inspected; see issue #41 and work log |
-| Real plugin restore | pending | Run #43551881373 rerun pending for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb`; docs-only commits follow on PR head `70cb577` |
-| Normal real Neovim headless startup | pending | Run #43551881373 rerun pending; first attempt cancelled before Neovim installation |
+| Real plugin restore | pending | Run #43552051042 pending for current PR head `6c359e4ea597842479badf0f4c827244b9629ca4` |
+| Normal real Neovim headless startup | pending | Run #43552051042 pending; earlier run #43551881373 attempts cancelled before Neovim installation |
 | Native LSP behavior assertions | pending | New test file wired into CI; not run yet |
 | QA | pending | Separate QA pass required |
 | Senior Reviewer | pending | Separate full-diff review required |
@@ -69,4 +69,4 @@ _Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
 
 ## Next concrete action
 
-Monitor run #43551881373 for code SHA `09d59bf996bdd9e117ae3148c645c9030af2a2bb` through completion. The latest PR head is `70cb577` and differs only by docs-only checkpoint/worklog commits; review those separately. Resolve any runtime failures, then perform QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
+Monitor run #43552051042 for the current PR head `6c359e4ea597842479badf0f4c827244b9629ca4` through completion. Inspect the lockfile validation, plugin restore/build hooks, normal startup, and LSP assertions. Resolve any runtime failures, then perform QA and Senior Reviewer as separate simulated role passes. Do not merge without Brian's separate explicit authorization.
