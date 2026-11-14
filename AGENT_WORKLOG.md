@@ -132,3 +132,16 @@ here rather than copying it.
 - **Senior Reviewer APPROVE:** confirmed the checkpoint no longer presents #81 or its CI as pending, does not misrepresent absent Actions checks as failures, preserves the separate merge-authorization rule for #82, and adds no unrelated implementation scope.
 - The Neovim headless Actions workflow is **not required** for this two-file PR because both changed paths are excluded by its `pull_request.paths` filter. This is not a passing runtime test; no runtime test was run or needed.
 - PR #82 remains open. Its merge requires Brian's separate explicit authorization; authorization for PR #81 does not carry over.
+
+
+---
+
+## 2026-11-13 — Sprint 1 Planning approved and started
+
+- Product Owner Brian approved the Sprint 1 Goal: keep Neotest, vim-test, and test adapters out of ordinary idle startup while preserving the existing test workflow.
+- Sprint dates: 2026-11-13 through 2026-11-19 (America/Argentina/Buenos_Aires). Brian preferred starting earlier; the one-week sprint therefore starts immediately rather than waiting until Monday.
+- Committed backlog item: [#74 — Load Neotest and its adapters only when a test action is invoked](https://github.com/brianfiszman/dotfiles/issues/74), estimate **M**.
+- Excluded: #76 Telescope and #40 Run with Args; neither is part of this sprint commitment.
+- Dependency #75 (DAP lazy-loading) is already merged in PR #77, so #74 can now own the Neotest-to-DAP decoupling and verify that ordinary test actions do not load DAP.
+- Planning checkpoint branch: `docs/sprint-1-planning`, based on master `c203afd4256398ac003a28abc211cd4f8c376f19`. No direct master edits.
+- Next: persist the approved plan through a small docs-only PR, then begin focused technical discovery and implementation for #74. No PR merge is authorized without Brian's explicit approval.
