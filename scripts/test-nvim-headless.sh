@@ -261,8 +261,8 @@ startup() {
     "+qa!"
 
   printf '\n[behavior] Verifying native LSP configuration and single ownership.\n'
-  run_nvim "lsp-native-setup" "$NVIM_STARTUP_TIMEOUT" \\
-    "+luafile $REPO_ROOT/tests/nvim/lsp-native-setup.lua" \\
+  run_nvim "lsp-native-setup" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lsp-native-setup.lua" \
     "+qa!"
 
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
