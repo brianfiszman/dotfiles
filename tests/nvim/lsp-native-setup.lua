@@ -47,6 +47,7 @@ assert(svelte_config.on_attach ~= lua_config.on_attach, "Svelte change notificat
 
 local ts_config = vim.lsp.config.ts_ls
 assert(ts_config.workspace_required == true, "TypeScript workspace requirement changed")
+assert(type(ts_config.root_dir) == "function", "TypeScript lockfile root policy is missing")
 assert(ts_config.on_attach ~= lua_config.on_attach, "TypeScript CodeLens attach hook is missing")
 assert(ts_config.settings.typescript.completions.completeFunctionCalls == true,
   "TypeScript complete-function-calls behavior is missing")
