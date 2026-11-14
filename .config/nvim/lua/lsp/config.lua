@@ -162,7 +162,6 @@ function M.setup()
 
   vim.diagnostic.config({
     underline = true,
-    update_in_insert = false,
     virtual_text = { spacing = 2, source = "if_many" },
     severity_sort = true,
     signs = {
