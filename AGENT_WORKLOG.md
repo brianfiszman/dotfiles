@@ -560,3 +560,10 @@ here rather than copying it.
 - Final review of the baseline marker transport found that the workflow interpolated the editable PR title before the marker. A title containing a marker-shaped string could be parsed before the trusted workflow-generated marker.
 - Removed the title interpolation; the run-name now uses the fixed workflow name followed by the exact base/head/tested SHAs. Added a contract test to keep the run-name prefix fixed and reject PR-title interpolation.
 - This does not alter the baseline decision or test paths; it hardens the metadata source against title ambiguity. Exact-head full integration is required because the workflow and CI contract test changed.
+
+
+## 2026-11-14 — Correct run-name contract test after fixed-prefix hardening
+
+- Exact head `c4c81626fe790f3dce724c0ca315a84968cb734c` triggered run [#43643785384](https://github.com/brianfiszman/dotfiles/actions/runs/43643785384). The decision job correctly required full integration because the workflow and CI test changed. The new contract test failed because its regular expression over-escaped the literal GitHub expression prefix `${{ github.workflow }}`; the other 18 tests passed.
+- Correction: assert the expected fixed run-name prefix with a literal `String.includes` check, and keep the negative assertion that PR-title interpolation is absent. No production logic change.
+- The next exact-head workflow run will re-run all fast tests and full integration; the previous run is not accepted as validation because its fast job failed.

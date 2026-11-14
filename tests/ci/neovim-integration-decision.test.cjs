@@ -283,7 +283,8 @@ test("workflow run name carries the immutable PR baseline and keeps the heavy jo
   const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
   const workflow = readFileSync(workflowPath, "utf8");
   assert.match(workflow, /^run-name:.*nvim-ci-baseline.*base=.*pr_head=.*tested=/m);
-  assert.match(workflow, /^run-name: \\$\{\\{ github\\.workflow \\}\\}/m);
+  assert.ok(workflow.includes("run-name: ${{ github.workflow }} [nvim-ci-baseline"));
+
   assert.doesNotMatch(workflow, /github\\.event\\.pull_request\\.title/);
   assert.match(workflow, /name: Fresh install and headless startup/);
   assert.match(workflow, /- "scripts\/ci\/\*\*"/);
