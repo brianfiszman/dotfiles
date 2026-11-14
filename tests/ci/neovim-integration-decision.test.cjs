@@ -208,7 +208,7 @@ test("incomplete workflow-run and job-list API responses fail open", async () =>
   }
 });
 
-test("the integration job is skipped only after a successful decision with explicit false", () => {
+test("integration runs on decision failure but does not outlive a cancelled workflow", () => {
   const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
   const workflow = readFileSync(workflowPath, "utf8");
   const jobStart = workflow.indexOf("  headless-startup:");
@@ -218,7 +218,7 @@ test("the integration job is skipped only after a successful decision with expli
   assert.ok(condition, "headless-startup must have an explicit fail-open condition");
   assert.equal(
     condition[1],
-    "${{ always() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}",
+    "${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}",
     "integration must run when decision fails, output is missing, or output is anything except the exact string false"
   );
 });
