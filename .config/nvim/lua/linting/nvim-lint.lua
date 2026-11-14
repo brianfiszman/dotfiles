@@ -17,10 +17,8 @@ function M.config()
     c = { 'clangtidy' },
     cpp = { 'clangtidy' },
     go = { 'golangcilint' },
-    javascript = { 'eslint', 'eslint_d' },
-    typescript = { 'eslint', 'eslint_d' },
-    javascriptreact = { 'eslint', 'eslint_d' },
-    typescriptreact = { 'eslint', 'eslint_d' },
+    -- JavaScript/TypeScript diagnostics are owned by the ESLint LSP.
+    -- Avoid duplicate asynchronous eslint/eslint_d results from nvim-lint.
     css = { 'stylelint' },
     scss = { 'stylelint' },
     html = { 'tidy', 'htmlhint' },
