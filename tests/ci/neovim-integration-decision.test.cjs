@@ -1,4 +1,6 @@
 "use strict";
+const { readFileSync } = require("node:fs");
+const { resolve } = require("node:path");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
@@ -43,11 +45,13 @@ function fakeGithub(options = {}) {
       async listWorkflowRuns(args) {
         calls.runs.push(args);
         if (options.error === "runs") throw new Error("runs unavailable");
+        if (options.incomplete === "runs") return { data: {} };
         return { data: { workflow_runs: runs } };
       },
       async listJobsForWorkflowRun(args) {
         calls.jobs.push(args);
         if (options.error === "jobs") throw new Error("jobs unavailable");
+        if (options.incomplete === "jobs") return { data: {} };
         return { data: { jobs: jobsByRun[args.run_id] || [] } };
       },
     } },
