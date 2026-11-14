@@ -29,7 +29,6 @@ underlying fix.
 - [#41 Give every language server one setup owner](https://github.com/brianfiszman/dotfiles/issues/41)
 - [#42 Replace the archived neodev plugin with lazydev](https://github.com/brianfiszman/dotfiles/issues/42)
 - [#43 Load testing, debugging, and search tools only when used (tracking parent)](https://github.com/brianfiszman/dotfiles/issues/43)
-- [#75 Load DAP, its UI, and debug adapters only when debugging is invoked](https://github.com/brianfiszman/dotfiles/issues/75) — merged via [PR #77](https://github.com/brianfiszman/dotfiles/pull/77); exact-head run [#43530295202](https://github.com/brianfiszman/dotfiles/actions/runs/43530295202) passed.
 - [#76 Load Telescope and its extensions on the first picker action](https://github.com/brianfiszman/dotfiles/issues/76)
 - [#44 Pin the Treesitter API and make parser updates predictable](https://github.com/brianfiszman/dotfiles/issues/44)
 - [#45 Make shell, font, and clipboard settings portable](https://github.com/brianfiszman/dotfiles/issues/45)
