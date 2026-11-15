@@ -205,7 +205,7 @@ local function scope_indent_local_options()
     omnifunc = vim.bo.omnifunc,
     complete = vim.bo.complete,
     virtualedit = vim.wo.virtualedit,
-    whichwrap = vim.wo.whichwrap,
+    whichwrap = vim.o.whichwrap,
   }
 end
 
