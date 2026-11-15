@@ -22,19 +22,17 @@ end
 -- registry-level package:handle event would time out even after successful
 -- installs. The success/failure events below prove that the command requested
 -- each configured adapter and let the test assert the actual outcome.
-registry:on("package:install:success", function(pkg, handle)
+registry:on("package:install:success", function(pkg, receipt)
   if vim.tbl_contains(package_names, pkg.name) then
-    install_results[pkg.name] = { status = "success", handle = handle }
+    install_results[pkg.name] = { status = "success", receipt = receipt }
     print(("PACKAGE INSTALL SUCCESS %s"):format(pkg.name))
   end
 end)
-registry:on("package:install:failed", function(pkg, handle)
+registry:on("package:install:failed", function(pkg, result)
   if vim.tbl_contains(package_names, pkg.name) then
-    local stderr = handle and handle.stdio and handle.stdio.buffers
-        and table.concat(handle.stdio.buffers.stderr or {}, "")
-      or ""
-    install_results[pkg.name] = { status = "failed", handle = handle, error = stderr }
-    print(("PACKAGE INSTALL FAILED %s: %s"):format(pkg.name, stderr:gsub("%s+$", ""):sub(1, 400)))
+    local message = tostring(result)
+    install_results[pkg.name] = { status = "failed", error = message }
+    print(("PACKAGE INSTALL FAILED %s: %s"):format(pkg.name, message:gsub("%s+$", ""):sub(1, 400)))
   end
 end)
 
