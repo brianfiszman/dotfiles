@@ -75,13 +75,19 @@ jobs:
         run: node --test tests/ci/neovim-integration-decision.test.cjs
 
   headless-startup:
-    name: Fresh install and headless startup
+    name: Fresh install and headless startup (Neovim ${{ matrix.neovim-version }})
     needs: integration-decision
     if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim-version:
+          - v0.11.3
+          - v0.12.6
     env:
-      NEOVIM_VERSION: v0.11.3
+      NEOVIM_VERSION: ${{ matrix.neovim-version }}
       NVIM_BIN: nvim
     steps:
       - name: Check out repository
@@ -205,7 +211,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nvim-headless-smoke-logs
+          name: nvim-headless-smoke-logs-${{ matrix.neovim-version }}
           path: |
             ${{ runner.temp }}/nvim-headless-smoke/*.log
             ${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log

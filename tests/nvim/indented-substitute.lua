@@ -1,21 +1,21 @@
 -- Regression test for scope-aware indentation with S, o and O.
 --
 -- The mapped commands must reindent the source line before opening the native
--- edit line. The TypeScript/Lua scenarios deliberately start with stale
--- whitespace and also assert that the source line itself was reindented, which
--- is the observable difference from the built-in commands.
+-- edit line. Language fixtures use real filenames so filetype detection,
+-- Treesitter attachment, and the configured indentexpr are all exercised.
+-- Expected indentation is explicit; the output of "==" is never its own oracle.
 --
 -- Real input is queued with nvim_input() and asserted from deferred callbacks
 -- after Neovim's main loop has processed it. This is a disposable headless
--- process: fail() exits non-zero immediately so a bad assertion can never turn
--- into a CI timeout.
---
--- The last scenario keeps a fold closed on purpose: native o opens at the fold
--- boundary there, so the mapping must skip the hidden source line instead of
--- reindenting it.
+-- process: fail() exits non-zero immediately so a bad assertion cannot become
+-- a CI timeout.
+
 _G.DotfilesTestIndent = function()
   return 4
 end
+
+local temp_files = {}
+local current_parser_language = "none"
 
 local function fail(message)
   io.stderr:write("[indented-substitute] FAIL: " .. debug.traceback(tostring(message), 2) .. "\n")
@@ -31,9 +31,17 @@ local function safely(callback)
 end
 
 local function buffer_state()
-  return ("mode=%s cursor=%s buffer=%s"):format(
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  return ("nvim=%s filetype=%s parser=%s indentexpr=%s shiftwidth=%d foldclosed=%d "
+      .. "mode=%s cursor=%s buffer=%s"):format(
+    vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
+    vim.bo.filetype,
+    current_parser_language,
+    vim.bo.indentexpr,
+    vim.fn.shiftwidth(),
+    vim.fn.foldclosed(cursor[1]),
     vim.fn.mode(),
-    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.inspect(cursor),
     vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))
   )
 end
@@ -76,7 +84,8 @@ local function assert_insert(expected_row, expected_indent, description)
   assert(vim.fn.mode():sub(1, 1) == "i",
     description .. " must be in Insert mode (" .. buffer_state() .. ")")
   assert(cursor[1] == expected_row,
-    ("%s row expected %d, got %d (%s)"):format(description, expected_row, cursor[1], buffer_state()))
+    ("%s row expected %d, got %d (%s)"):format(
+      description, expected_row, cursor[1], buffer_state()))
   assert(vim.fn.indent(cursor[1]) == expected_indent,
     ("%s indent expected %d, got %d (%s)"):format(
       description, expected_indent, vim.fn.indent(cursor[1]), buffer_state()))
@@ -84,7 +93,8 @@ local function assert_insert(expected_row, expected_indent, description)
     ("%s column expected %d, got %d (%s)"):format(
       description, expected_indent, cursor[2], buffer_state()))
   assert(line == string.rep(" ", expected_indent),
-    ("%s must leave an empty indented line, got %s"):format(description, vim.inspect(line)))
+    ("%s empty line expected %s, got %s (%s)"):format(
+      description, vim.inspect(string.rep(" ", expected_indent)), vim.inspect(line), buffer_state()))
   print(("[indented-substitute] %s: row=%d column=%d indent=%d"):format(
     description, cursor[1], cursor[2], vim.fn.indent(cursor[1])))
 end
@@ -93,8 +103,10 @@ local function set_buffer(lines, cursor)
   vim.cmd("enew!")
   vim.bo.buftype = ""
   vim.bo.bufhidden = "wipe"
+  vim.bo.filetype = ""
   vim.bo.expandtab = true
   vim.bo.shiftwidth = 2
+  vim.bo.softtabstop = 2
   vim.bo.tabstop = 2
   vim.bo.autoindent = true
   vim.bo.smartindent = false
@@ -103,55 +115,178 @@ local function set_buffer(lines, cursor)
   vim.wo.foldenable = false
   vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
   vim.api.nvim_win_set_cursor(0, cursor)
+  current_parser_language = "none"
   assert(vim.fn.foldclosed(cursor[1]) == -1,
-    "fixture must not hide the source line in a closed fold")
+    "fixture must not hide the source line in a closed fold (" .. buffer_state() .. ")")
 end
 
-local function deterministic_fixture(lines, cursor)
-  set_buffer(lines, cursor)
-  vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
-end
+local parser_fixtures = {
+  lua = { extension = ".lua", parser = "lua" },
+  javascript = { extension = ".js", parser = "javascript" },
+  javascriptreact = { extension = ".jsx", parser = "javascript" },
+  typescript = { extension = ".ts", parser = "typescript" },
+  typescriptreact = { extension = ".tsx", parser = "tsx" },
+  json = { extension = ".json", parser = "json" },
+  yaml = { extension = ".yaml", parser = "yaml" },
+}
 
 local function treesitter_fixture(filetype, lines, cursor)
-  set_buffer(lines, cursor)
-  vim.cmd("setfiletype " .. filetype)
+  local spec = assert(parser_fixtures[filetype], "missing parser fixture for " .. filetype)
+  local path = vim.fn.tempname() .. spec.extension
+  temp_files[#temp_files + 1] = path
+  assert(vim.fn.writefile(lines, path) == 0, "could not write " .. filetype .. " fixture")
+  vim.cmd("enew!")
+  vim.cmd("edit " .. vim.fn.fnameescape(path))
+
+  -- Apply deterministic indentation dimensions after real FileType autocommands.
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.softtabstop = 2
+  vim.bo.tabstop = 2
+  vim.bo.autoindent = true
+  vim.bo.smartindent = false
+  vim.wo.foldenable = false
+
   assert(vim.bo.filetype == filetype,
-    "fixture filetype expected " .. filetype .. ", got " .. vim.inspect(vim.bo.filetype))
+    "filename-based filetype expected " .. filetype .. ", got " .. vim.inspect(vim.bo.filetype)
+      .. " (" .. buffer_state() .. ")")
   assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
-    filetype .. " must use the configured Treesitter indentexpr (got "
-      .. vim.inspect(vim.bo.indentexpr) .. ")")
-  local parser = vim.treesitter.get_parser(0, filetype)
-  assert(parser ~= nil, filetype .. " Treesitter parser must be available")
+    filetype .. " must use configured Treesitter indentexpr (" .. buffer_state() .. ")")
+  local ok, parser = pcall(vim.treesitter.get_parser, 0)
+  assert(ok and parser ~= nil,
+    filetype .. " Treesitter parser must be available: " .. vim.inspect(parser))
+  current_parser_language = parser:lang()
+  assert(current_parser_language == spec.parser,
+    filetype .. " parser expected " .. spec.parser .. ", got " .. current_parser_language
+      .. " (" .. buffer_state() .. ")")
   parser:parse()
   vim.api.nvim_win_set_cursor(0, cursor)
   assert(vim.fn.foldclosed(cursor[1]) == -1,
-    "fixture must not hide the source line in a closed fold")
+    "fixture must not hide source line in a closed fold (" .. buffer_state() .. ")")
+  print(("[indented-substitute] fixture: filetype=%s parser=%s indentexpr=%s shiftwidth=%d"):format(
+    filetype, current_parser_language, vim.bo.indentexpr, vim.fn.shiftwidth()))
 end
 
--- Reindent once with the same engine used by the mapping, record the result,
--- then restore stale whitespace so the mapped command has to compute it again.
-local function expected_indent_and_reset(row, stale_line)
-  local view = vim.fn.winsaveview()
-  vim.cmd.normal({ args = { "==" }, bang = true })
-  local expected = vim.fn.indent(row)
-  vim.fn.winrestview(view)
-  assert(expected > 0,
-    "Treesitter must compute a nested indentation for the fixture (got " .. expected .. ")")
-  vim.api.nvim_buf_set_lines(0, row - 1, row, false, { stale_line })
-  vim.treesitter.get_parser(0, vim.bo.filetype):parse()
-  vim.api.nvim_win_set_cursor(0, { row, 0 })
-  assert(vim.fn.indent(row) == 0, "fixture must start from stale indentation")
-  return expected
+local assert_source_reindented
+
+local home_react_source = {
+  'import { Fragment } from "react";',
+  "import {",
+  "  RouterLink,",
+  "  Link,",
+  "  Countdown,",
+  "  Picture,",
+  "  Title,",
+  "  MainBody,",
+  "  MainHeader,",
+  '} from "../../components";',
+  'import { theme } from "../../style/theme.style";',
+  'import { startOfDay } from "date-fns";',
+  'import chaufoPic from "../../resources/img/chaufo.png";',
+  'import "./Home.css";',
+  "",
+  "function Home() {",
+  "  const timeForChaufo = startOfDay(new Date(2023, 8, 30));",
+  "",
+  "  return (",
+  "    <Fragment>",
+  "      <MainHeader theme={theme}>",
+  "        <Picture",
+  "          src={chaufoPic}",
+  '          alt="chaufo"',
+  '          size="small"',
+  '          borderRadius="4rem"',
+  "        />",
+  "      </MainHeader>",
+  "",
+  "      <MainBody theme={theme}>",
+  "        {Date.now() < timeForChaufo ? (",
+  '          <Title theme={theme}>En honor a Chaufo</Title>',
+  "        ) : (",
+  '          ""',
+  "        )}",
+  "",
+  "        <Countdown countdownTo={timeForChaufo} theme={theme}>",
+  "          <MainBody theme={theme}>",
+  '            <Title theme={theme}>Timbre de Chaufo</Title>',
+  "",
+  '            <Link theme={theme} href="https://www.instagram.com/chaufoman/">',
+  "              Learn about Chaufo",
+  "            </Link>",
+  "",
+  '            <RouterLink to={"top10"} theme={theme}>',
+  "              Top 7 de cosas con las que Chaufo nos ha divertido :-D",
+  "            </RouterLink>",
+  "",
+  '            <RouterLink to={"chaufest"} theme={theme}>',
+  "              Conocé todo sobre la Chaufest!",
+  "            </RouterLink>",
+  "          </MainBody>",
+  "        </Countdown>",
+  "      </MainBody>",
+  "    </Fragment>",
+  "  );",
+  "}",
+  "",
+  "export default Home;",
+}
+
+local function home_react_case(filetype, target_fragment, key, source_indent, insert_indent, next_case)
+  local lines = vim.deepcopy(home_react_source)
+  local target_row
+  for row, line in ipairs(lines) do
+    if line:find(target_fragment, 1, true) then
+      target_row = row
+      break
+    end
+  end
+  assert(target_row, "Home React fixture is missing target line " .. target_fragment)
+
+  treesitter_fixture(filetype, lines, { target_row, 0 })
+  local source_line = vim.api.nvim_buf_get_lines(0, target_row - 1, target_row, false)[1]
+  local source_text = source_line:gsub("^%s+", "")
+  assert(source_text:find(target_fragment, 1, true),
+    "Home React target changed unexpectedly (" .. buffer_state() .. ")")
+  vim.api.nvim_buf_set_lines(0, target_row - 1, target_row, false, { source_text })
+  vim.treesitter.get_parser(0):parse()
+  vim.api.nvim_win_set_cursor(0, { target_row, 0 })
+  assert(vim.fn.indent(target_row) == 0,
+    "Home React target must start with stale zero indentation (" .. buffer_state() .. ")")
+
+  press(key, "Home React " .. filetype .. " " .. key .. " " .. target_fragment, function()
+    local inserted_row = key == "o" and target_row + 1 or target_row
+    assert_insert(inserted_row, insert_indent, "Home React " .. filetype .. " " .. key
+      .. " " .. target_fragment)
+    if key == "o" then
+      assert_source_reindented(target_row, source_indent, source_text, "Home React " .. key)
+    elseif key == "O" then
+      assert_source_reindented(target_row + 1, source_indent, source_text, "Home React " .. key)
+    end
+    leave_insert("Home React " .. filetype .. " " .. key, next_case)
+  end)
 end
 
-local function assert_source_reindented(row, expected, stale_line, description)
-  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
-  assert(vim.fn.indent(row) == expected,
-    ("%s must reindent the source line to %d, got %d"):format(
-      description, expected, vim.fn.indent(row)))
-  assert(line == string.rep(" ", expected) .. stale_line,
-    ("%s source line expected %s, got %s"):format(
-      description, vim.inspect(string.rep(" ", expected) .. stale_line), vim.inspect(line)))
+local function assert_stale_source(row, expected_text, description)
+  local actual = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
+  assert(actual == expected_text,
+    ("%s fixture text expected %s, got %s (%s)"):format(
+      description, vim.inspect(expected_text), vim.inspect(actual), buffer_state()))
+  assert(vim.fn.indent(row) == 0,
+    ("%s fixture must start with stale zero indentation, got %d (%s)"):format(
+      description, vim.fn.indent(row), buffer_state()))
+end
+
+assert_source_reindented = function(row, expected_indent, original_text, description)
+  local expected = string.rep(" ", expected_indent) .. original_text
+  local actual = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
+  assert(vim.fn.indent(row) == expected_indent,
+    ("%s source indent expected %d, got %d (%s)"):format(
+      description, expected_indent, vim.fn.indent(row), buffer_state()))
+  assert(actual == expected,
+    ("%s source line expected %s, got %s (%s)"):format(
+      description, vim.inspect(expected), vim.inspect(actual), buffer_state()))
 end
 
 for key, description in pairs({
@@ -166,12 +301,41 @@ end
 
 local function finish()
   _G.DotfilesTestIndent = nil
-  print("PASS: deterministic S, o, O and counted 2S use the computed indentation")
+  for _, path in ipairs(temp_files) do
+    vim.fn.delete(path)
+  end
+  print("PASS: deterministic S, o, O and counted 2S use the expected indentation")
   print("PASS: real Lua Treesitter indentation survives S")
-  print("PASS: real TypeScript Treesitter indentation reindents the source for o and O")
+  print("PASS: real TypeScript object-literal indentation supports o and O")
+  print("PASS: real JavaScript block/object indentation supports S, o and O")
+  print("PASS: simple JSX and TSX open-line indentation uses their configured parsers")
+  print("PASS: the supplied Home React component preserves S, o and O in JS, JSX and TSX")
+  print("PASS: real TypeScript interface/block/object indentation supports S, o and O")
+  print("PASS: real JSON and YAML parsers preserve nested open-line indentation")
   print("PASS: a closed fold keeps native o at the fold boundary and hides the source")
   os.exit(0, true)
 end
+
+local run_yaml_control
+local run_json_control
+local run_javascript_substitute
+local run_javascript_open_below
+local run_javascript_open_above
+local run_typescript_substitute
+local run_typescript_nested_open_below
+local run_typescript_nested_open_above
+local run_typescript_open_above
+local run_jsx_open_below
+local run_tsx_open_below
+local run_home_js_open_below
+local run_home_js_substitute
+local run_home_js_open_above
+local run_home_jsx_open_below
+local run_home_jsx_substitute
+local run_home_jsx_open_above
+local run_home_tsx_open_below
+local run_home_tsx_substitute
+local run_home_tsx_open_above
 
 local function run_closed_fold_control()
   set_buffer({ "fold head", "  stale", "fold tail" }, { 2, 0 })
@@ -185,26 +349,163 @@ local function run_closed_fold_control()
     -- hidden source line. The fold start line has no indentation to copy.
     assert_insert(4, 0, "closed-fold o")
     assert(vim.api.nvim_buf_get_lines(0, 1, 2, false)[1] == "  stale",
-      "closed-fold o must not reindent the hidden source line")
+      "closed-fold o must not reindent the hidden source line (" .. buffer_state() .. ")")
     assert(vim.fn.foldclosed(2) ~= -1,
       "closed-fold o must leave the fold closed (" .. buffer_state() .. ")")
     leave_insert("closed-fold o", finish)
   end)
 end
 
-local run_typescript_open_above
+run_home_tsx_open_above = function()
+  home_react_case("typescriptreact", "<Countdown countdownTo=", "O", 8, 8, run_home_js_open_below)
+end
 
-local function run_typescript_open_below()
+run_home_js_open_above = function()
+  home_react_case("javascript", "<Countdown countdownTo=", "O", 8, 8, run_typescript_open_above)
+end
+
+run_home_js_substitute = function()
+  home_react_case("javascript", "<Picture", "S", 8, 8, run_home_js_open_above)
+end
+
+run_home_js_open_below = function()
+  home_react_case("javascript", "<MainHeader theme=", "o", 6, 8, run_home_js_substitute)
+end
+
+run_home_tsx_substitute = function()
+  home_react_case("typescriptreact", "<Picture", "S", 8, 8, run_home_tsx_open_above)
+end
+
+run_home_tsx_open_below = function()
+  home_react_case("typescriptreact", "<MainHeader theme=", "o", 6, 8, run_home_tsx_substitute)
+end
+
+run_home_jsx_open_above = function()
+  home_react_case("javascriptreact", "<Countdown countdownTo=", "O", 8, 8, run_home_tsx_open_below)
+end
+
+run_home_jsx_substitute = function()
+  home_react_case("javascriptreact", "<Picture", "S", 8, 8, run_home_jsx_open_above)
+end
+
+run_home_jsx_open_below = function()
+  home_react_case("javascriptreact", "<MainHeader theme=", "o", 6, 8, run_home_jsx_substitute)
+end
+
+run_tsx_open_below = function()
+  treesitter_fixture("typescriptreact", {
+    "export default function Home() {",
+    "return (",
+    "<>",
+    "<Button",
+    "style={{",
+    "color: 'blue',",
+    "}}",
+    "/>",
+    "</>",
+    ")",
+    "}",
+  }, { 4, 0 })
+  assert_stale_source(4, "<Button", "TSX component opening")
+  press("o", "TSX component o", function()
+    assert_insert(5, 8, "TSX component o")
+    assert_source_reindented(4, 6, "<Button", "TSX component o")
+    leave_insert("TSX component o", run_home_jsx_open_below)
+  end)
+end
+
+run_jsx_open_below = function()
+  treesitter_fixture("javascriptreact", {
+    "export default function Home() {",
+    "return (",
+    "<>",
+    "<Button",
+    "style={{",
+    "color: 'blue',",
+    "}}",
+    "/>",
+    "</>",
+    ")",
+    "}",
+  }, { 4, 0 })
+  assert_stale_source(4, "<Button", "JSX component opening")
+  press("o", "JSX component o", function()
+    assert_insert(5, 8, "JSX component o")
+    assert_source_reindented(4, 6, "<Button", "JSX component o")
+    leave_insert("JSX component o", run_tsx_open_below)
+  end)
+end
+
+run_json_control = function()
+  treesitter_fixture("json", {
+    "{",
+    '"options": {',
+    '"enabled": true',
+    "}",
+    "}",
+  }, { 2, 0 })
+  assert_stale_source(2, '"options": {', "JSON nested object")
+  press("o", "JSON nested o", function()
+    assert_insert(3, 4, "JSON nested o")
+    assert_source_reindented(2, 2, '"options": {', "JSON nested o")
+    leave_insert("JSON nested o", run_jsx_open_below)
+  end)
+end
+
+run_yaml_control = function()
+  treesitter_fixture("yaml", {
+    "service:",
+    "  enabled: true",
+  }, { 2, 0 })
+  press("o", "YAML nested o", function()
+    assert_insert(3, 2, "YAML nested o")
+    assert_source_reindented(2, 2, "enabled: true", "YAML nested o")
+    leave_insert("YAML nested o", run_json_control)
+  end)
+end
+
+run_typescript_nested_open_above = function()
   treesitter_fixture("typescript", {
-    "const options = {",
+    "export function build() {",
+    "return {",
     "enabled: true,",
     "};",
+    "}",
+  }, { 3, 0 })
+  assert_stale_source(3, "enabled: true,", "TypeScript nested object O")
+  press("O", "TypeScript nested O", function()
+    assert_insert(3, 4, "TypeScript nested O")
+    assert_source_reindented(4, 4, "enabled: true,", "TypeScript nested O")
+    leave_insert("TypeScript nested O", run_yaml_control)
+  end)
+end
+
+run_typescript_nested_open_below = function()
+  treesitter_fixture("typescript", {
+    "export function build() {",
+    "return {",
+    "enabled: true,",
+    "};",
+    "}",
   }, { 2, 0 })
-  local expected = expected_indent_and_reset(2, "enabled: true,")
-  press("o", "TypeScript o", function()
-    assert_insert(3, expected, "TypeScript o")
-    assert_source_reindented(2, expected, "enabled: true,", "TypeScript o")
-    leave_insert("TypeScript o", run_typescript_open_above)
+  assert_stale_source(2, "return {", "TypeScript nested object o")
+  press("o", "TypeScript nested o", function()
+    assert_insert(3, 4, "TypeScript nested o")
+    assert_source_reindented(2, 2, "return {", "TypeScript nested o")
+    leave_insert("TypeScript nested o", run_typescript_nested_open_above)
+  end)
+end
+
+run_typescript_substitute = function()
+  treesitter_fixture("typescript", {
+    "interface Settings {",
+    "enabled: boolean;",
+    "}",
+  }, { 2, 0 })
+  assert_stale_source(2, "enabled: boolean;", "TypeScript interface S")
+  press("S", "TypeScript interface S", function()
+    assert_insert(2, 2, "TypeScript interface S")
+    leave_insert("TypeScript interface S", run_typescript_nested_open_below)
   end)
 end
 
@@ -214,11 +515,60 @@ run_typescript_open_above = function()
     "enabled: true,",
     "};",
   }, { 2, 0 })
-  local expected = expected_indent_and_reset(2, "enabled: true,")
-  press("O", "TypeScript O", function()
-    assert_insert(2, expected, "TypeScript O")
-    assert_source_reindented(3, expected, "enabled: true,", "TypeScript O")
-    leave_insert("TypeScript O", run_closed_fold_control)
+  assert_stale_source(2, "enabled: true,", "TypeScript object O")
+  local computed_indent = require("nvim-treesitter.indent").get_indent(2)
+  assert(computed_indent == 2,
+    ("TypeScript object indentexpr expected 2, got %s (%s)"):format(
+      tostring(computed_indent), buffer_state()))
+  press("O", "TypeScript object O", function()
+    assert_insert(2, 2, "TypeScript object O")
+    assert_source_reindented(3, 2, "enabled: true,", "TypeScript object O")
+    leave_insert("TypeScript object O", run_closed_fold_control)
+  end)
+end
+
+run_javascript_open_above = function()
+  treesitter_fixture("javascript", {
+    "function build() {",
+    "if (true) {",
+    "return true;",
+    "}",
+    "}",
+  }, { 3, 0 })
+  assert_stale_source(3, "return true;", "JavaScript nested block O")
+  press("O", "JavaScript nested block O", function()
+    assert_insert(3, 4, "JavaScript nested block O")
+    assert_source_reindented(4, 4, "return true;", "JavaScript nested block O")
+    leave_insert("JavaScript nested block O", run_typescript_substitute)
+  end)
+end
+
+run_javascript_open_below = function()
+  treesitter_fixture("javascript", {
+    "function build() {",
+    "return {",
+    "enabled: true,",
+    "};",
+    "}",
+  }, { 2, 0 })
+  assert_stale_source(2, "return {", "JavaScript nested object o")
+  press("o", "JavaScript nested object o", function()
+    assert_insert(3, 4, "JavaScript nested object o")
+    assert_source_reindented(2, 2, "return {", "JavaScript nested object o")
+    leave_insert("JavaScript nested object o", run_javascript_open_above)
+  end)
+end
+
+run_javascript_substitute = function()
+  treesitter_fixture("javascript", {
+    "function build() {",
+    "return true;",
+    "}",
+  }, { 2, 0 })
+  assert_stale_source(2, "return true;", "JavaScript block S")
+  press("S", "JavaScript block S", function()
+    assert_insert(2, 2, "JavaScript block S")
+    leave_insert("JavaScript block S", run_javascript_open_below)
   end)
 end
 
@@ -228,15 +578,17 @@ local function run_lua_substitute()
     "enabled = true,",
     "}",
   }, { 2, 0 })
-  local expected = expected_indent_and_reset(2, "enabled = true,")
+  -- This fixture intentionally retains the original Lua parser coverage.
+  assert(vim.fn.indent(2) == 0, "Lua fixture must start with stale indentation (" .. buffer_state() .. ")")
   press("S", "Lua S", function()
-    assert_insert(2, expected, "Lua S")
-    leave_insert("Lua S", run_typescript_open_below)
+    assert_insert(2, 2, "Lua S")
+    leave_insert("Lua S", run_javascript_substitute)
   end)
 end
 
 local function run_counted_substitute()
-  deterministic_fixture({ "one", "two", "tail" }, { 1, 0 })
+  set_buffer({ "one", "two", "tail" }, { 1, 0 })
+  vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
   press("2S", "2S", function()
     assert(vim.api.nvim_buf_line_count(0) == 2,
       "2S must replace exactly two lines with one (" .. buffer_state() .. ")")
@@ -246,7 +598,8 @@ local function run_counted_substitute()
 end
 
 local function run_open_above()
-  deterministic_fixture({ "head", "stale" }, { 2, 0 })
+  set_buffer({ "head", "stale" }, { 2, 0 })
+  vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
   press("O", "O", function()
     assert_insert(2, 4, "O")
     leave_insert("O", run_counted_substitute)
@@ -254,15 +607,33 @@ local function run_open_above()
 end
 
 local function run_open_below()
-  deterministic_fixture({ "stale", "tail" }, { 1, 0 })
+  set_buffer({ "stale", "tail" }, { 1, 0 })
+  vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
   press("o", "o", function()
     assert_insert(2, 4, "o")
     leave_insert("o", run_open_above)
   end)
 end
 
-deterministic_fixture({ "stale", "tail" }, { 1, 0 })
-press("S", "S", function()
-  assert_insert(1, 4, "S")
-  leave_insert("S", run_open_below)
-end)
+local function run_deterministic_substitute()
+  set_buffer({ "stale", "tail" }, { 1, 0 })
+  vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
+  press("S", "S", function()
+    assert_insert(1, 4, "S")
+    leave_insert("S", run_open_below)
+  end)
+end
+
+local nvim_version = vim.version()
+local lockfile_path = vim.fn.stdpath("config") .. "/lazy-lock.json"
+local lockfile_lines = vim.fn.readfile(lockfile_path)
+local lockfile = vim.json.decode(table.concat(lockfile_lines, "\n"))
+local treesitter_lock = lockfile["nvim-treesitter"] and lockfile["nvim-treesitter"].commit or "unknown"
+print(("[indented-substitute] environment: Neovim %d.%d.%d, nvim-treesitter=%s"):format(
+  nvim_version.major, nvim_version.minor, nvim_version.patch, treesitter_lock))
+
+vim.defer_fn(function()
+  fail("indentation test sequence exceeded 60 seconds")
+end, 60000)
+
+run_deterministic_substitute()
