@@ -202,6 +202,36 @@ local function reindent_and_edit(key)
     end
 
     restore_source_cursor(source_cursor, key .. " scheduled dispatch")
+
+    -- TEMPORARY DIAGNOSTICS: trace the exact native-open / Insert lifecycle.
+    local trace_group = vim.api.nvim_create_augroup("DotfilesScopeIndentTrace", {
+      clear = true,
+    })
+    local trace_enters, trace_leaves = 0, 0
+    local function trace_scope_event(label)
+      local cursor = vim.api.nvim_win_get_cursor(winid)
+      local line = vim.api.nvim_buf_get_lines(bufnr, cursor[1] - 1, cursor[1], false)[1] or ""
+      print(("[scope-indent-trace] %s mode=%s enter=%d leave=%d cursor=%s lines=%d indentexpr=%q line=%q"):format(
+        label, vim.fn.mode(), trace_enters, trace_leaves, vim.inspect(cursor),
+        vim.api.nvim_buf_line_count(bufnr), vim.bo.indentexpr, line))
+    end
+    vim.api.nvim_create_autocmd("InsertEnter", {
+      group = trace_group,
+      buffer = bufnr,
+      callback = function()
+        trace_enters = trace_enters + 1
+        trace_scope_event("InsertEnter")
+      end,
+    })
+    vim.api.nvim_create_autocmd("InsertLeave", {
+      group = trace_group,
+      buffer = bufnr,
+      callback = function()
+        trace_leaves = trace_leaves + 1
+        trace_scope_event("InsertLeave")
+      end,
+    })
+    trace_scope_event("before native normal")
     local saved_indentexpr = vim.bo.indentexpr
     -- The Treesitter indentexpr can reposition the native open-line target
     -- while Neovim computes indentation for the newly created blank line.
@@ -214,6 +244,7 @@ local function reindent_and_edit(key)
       args = { keys },
       bang = true,
     })
+    trace_scope_event("after native normal returns")
     -- :normal! opens the line natively, triggers an initial InsertEnter, then
     -- returns to Normal when the Ex command ends. Register after that first
     -- event so this callback runs on the second InsertEnter caused by
@@ -223,6 +254,7 @@ local function reindent_and_edit(key)
       buffer = bufnr,
       once = true,
       callback = function()
+        trace_scope_event("prefix callback entered")
         local cursor = vim.api.nvim_win_get_cursor(winid)
         local line = vim.api.nvim_get_current_line()
         local old_indent = line:match("^%s*") or ""
@@ -232,6 +264,7 @@ local function reindent_and_edit(key)
           source_indent .. body,
         })
         vim.bo.indentexpr = saved_indentexpr
+        trace_scope_event("prefix applied and indentexpr restored")
         print(("[scope-indent] applied prefix and restored indentexpr for %s row=%d indent=%d line=%q"):format(
           key, cursor[1], vim.fn.indent(cursor[1]), vim.api.nvim_get_current_line()))
 
@@ -251,11 +284,15 @@ local function reindent_and_edit(key)
           vim.api.nvim_win_set_cursor(winid, { current[1], #indent })
           print(("[scope-indent] positioned cursor for %s row=%d column=%d line=%q"):format(
             key, current[1], vim.api.nvim_win_get_cursor(winid)[2], current_line))
+          trace_scope_event("scheduled after startinsert")
+          vim.api.nvim_del_augroup_by_id(trace_group)
         end)
       end,
       desc = "Apply the source indentation after native open and Insert restart",
     })
+    trace_scope_event("before explicit startinsert")
     vim.cmd("startinsert!")
+    trace_scope_event("after explicit startinsert returns")
   end)
 end
 
