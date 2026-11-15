@@ -114,9 +114,13 @@ local scope_indent_group = vim.api.nvim_create_augroup("DotfilesScopeIndent", {
 local function reindent_current_line(lnum)
   local indentexpr = vim.bo.indentexpr
   if indentexpr == "nvim_treesitter#indent()" then
+    print(("[scope-indent] before get_indent row=%d cursor=%s"):format(
+      lnum, vim.inspect(vim.api.nvim_win_get_cursor(0))))
     local ok, indent = pcall(function()
       return require("nvim-treesitter.indent").get_indent(lnum)
     end)
+    print(("[scope-indent] after get_indent ok=%s indent=%s cursor=%s"):format(
+      tostring(ok), tostring(indent), vim.inspect(vim.api.nvim_win_get_cursor(0))))
     if ok and type(indent) == "number" and indent >= 0 then
       local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
       local old_indent = line:match("^%s*") or ""
@@ -124,6 +128,8 @@ local function reindent_current_line(lnum)
       vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, {
         string.rep(" ", indent) .. body,
       })
+      print(("[scope-indent] after set_lines row=%d cursor=%s"):format(
+        lnum, vim.inspect(vim.api.nvim_win_get_cursor(0))))
       return string.rep(" ", indent)
     end
   end
@@ -189,10 +195,14 @@ local function reindent_and_edit(key)
       vim.api.nvim_buf_set_lines(0, cursor[1] - 1, cursor[1], false, {
         source_indent .. body,
       })
+      print(("[scope-indent] InsertEnter before prefix cursor=%s current=%s source_indent=%q"):format(
+        vim.inspect(cursor), vim.inspect(line), source_indent))
       vim.api.nvim_win_set_cursor(0, {
         cursor[1],
         #source_indent + body_column,
       })
+      print(("[scope-indent] InsertEnter after prefix cursor=%s line=%s"):format(
+        vim.inspect(vim.api.nvim_win_get_cursor(0)), vim.inspect(vim.api.nvim_get_current_line())))
     end,
     desc = "Apply the source indentation to a newly opened line",
   })
