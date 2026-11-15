@@ -480,9 +480,15 @@ headless sequence, before any other DAP test populates the registry.
 - Lua has its own pinned `queries/lua/indents.scm`; TypeScript's pinned query
   inherits the ECMA indentation query. The indent-blankline and mini.indentscope
   plugins provide visual guides, not the indentation calculation.
-- When a Normal-mode edit must use the active buffer indentation engine before
-  replacing/opening a line, run the native `==` operator before the native
-  `S`, `o`, or `O` action and preserve the user's count.
+- Do not assume that running `==` before a native edit is position-neutral.
+  A filetype or Treesitter `indentexpr` can adjust the cursor while it computes
+  indentation. Snapshot the source buffer/row/cursor before any indentation
+  calculation, inspect the cursor and buffer immediately after it, and restore
+  the intended source position before dispatching native `S`, `o`, or `O`.
+  For parser-backed indentation, prefer the provider's line-number API when it
+  can calculate the target row without editing the buffer, but still verify
+  cursor stability; an API call is not assumed side-effect-free merely because
+  it returns a number.
 - In headless tests, `nvim_feedkeys(..., "x", ...)` sends an implicit Escape at
   end-of-typeahead if the editor remains in Insert mode. Avoid synchronous
   `feedkeys(..., "x!")` to assert an active Insert-mode transition: it can keep
@@ -492,8 +498,11 @@ headless sequence, before any other DAP test populates the registry.
   Therefore, do not call `vim.wait()` from the same `+luafile` chunk and expect
   queued input to have run. Queue the user input, return from the Lua chunk,
   then use `vim.defer_fn()` callbacks to assert the resulting mode with a
-  bounded deadline. Let the final callback exit Neovim with `qa!`; do not pass
-  a subsequent command-line `+qa!` that can quit before the deferred test runs.
+  bounded deadline. Do not pass a subsequent command-line `+qa!` that can quit
+  before the deferred test runs. In a standalone disposable headless test,
+  terminate a deferred assertion failure with `os.exit(1, true)` and successful
+  completion with `os.exit(0, true)`; invoking an Ex quit command from a
+  deferred callback has previously left Neovim alive until the outer timeout.
 - Derive a language-specific expected indentation from the actual active
   `indentexpr` (for example, use a control `==` operation on the same syntax
   fixture) instead of assuming a fixed column count across parsers. Compare the
@@ -503,6 +512,56 @@ headless sequence, before any other DAP test populates the registry.
   is reported through the normal test process and log scanner. Print trace/pass
   markers before and after input transitions so a timeout identifies the last
   action reached instead of leaving an empty behavior log.
+
+### Native edit mappings with parser-backed indentation
+
+Treat these as separate observable phases:
+
+1. Compute the source line's indentation.
+2. Dispatch the native edit command (`S`, `o`, or `O`).
+3. Observe the actual line/row created by the command.
+4. Apply or verify the required leading whitespace while preserving any
+   comment leader or existing line body.
+5. Confirm the final cursor row, byte column, line indentation, buffer contents,
+   active `indentexpr`, and Insert mode.
+
+Important regression lessons from issue #89:
+
+- Reindenting a source line and opening a new line are not one atomic action.
+  A parser-backed `indentexpr` may affect the cursor position during a
+  reindent. Capture the intended source row/cursor before the computation and
+  explicitly restore it before feeding the native edit key. Log both positions
+  when diagnosing a mismatch.
+- A parser indentation result and native `autoindent` are not interchangeable.
+  Opening a blank line can ask the indentation engine to calculate a different
+  result from the source line. A mapped `o`/ `O` must be checked against the
+  intended source line's computed prefix, not assumed correct because the
+  editor entered Insert mode.
+- `InsertEnter` is a useful boundary for applying a prefix to a newly opened
+  line, but inspect the actual cursor row in that callback. Do not assume it is
+  always source row + 1 (or source row) without checking the real command path.
+  Preserve the rest of the new line so native comment leaders and body text
+  survive.
+- A test that sees `vim.fn.mode() == "i"` has proved only the mode transition.
+  If more input or an `InsertEnter` callback is queued, continue waiting for
+  the final row, cursor column, prefix, and buffer contents. Use a bounded
+  deadline and print the last observed mode/row/column/line on failure.
+- Keep separate assertions for the deterministic provider and real parser
+  providers. A passing fixed `indentexpr` fixture does not prove a real
+  Treesitter query behaves the same way.
+- When reading a CI failure, inspect the exact-head artifact's per-test log.
+  Distinguish: wrong source anchor, wrong target row, wrong whitespace,
+  Insert-mode timeout, and failure to terminate. Do not patch the production
+  mapping merely because a test expectation failed; first make the test
+  report source cursor, target cursor, line text, actual indentation, and
+  active buffer options.
+
+For this class of regression, the acceptance test should cover deterministic
+`S`, `o`, `O`, counted `2S`, a Lua Treesitter buffer, and a TypeScript
+Treesitter buffer. The TypeScript case should derive its expected indentation
+from the active pinned provider/query, and assert both `o` and `O` on their
+expected rows. A final exact-head full integration is required after changes to
+either the mapping or the test runner.
 
 ## Preserve functional files when rebuilding a PR tree
 
