@@ -167,20 +167,26 @@ local function reindent_and_edit(key)
     desc = "Apply the reindented source prefix to a newly opened line",
   })
 
-  -- Some indentexpr implementations move the cursor while recomputing scope.
-  -- Re-anchor immediately before the native open command, not before queued
-  -- parser/indent callbacks get another chance to move it.
-  local reset_cursor = (":<C-u>call cursor(%d, %d)<CR>"):format(
-    source_cursor[1],
-    source_cursor[2] + 1
-  )
-  local keys = vim.api.nvim_replace_termcodes(
-    reset_cursor .. ("%d%s"):format(count, key),
-    true,
-    false,
-    true
-  )
-  vim.api.nvim_feedkeys(keys, "int", false)
+  -- Treesitter may schedule cursor bookkeeping after ==. Re-anchor and
+  -- enqueue the native open command on the next event-loop turn, after that
+  -- bookkeeping has completed. Insert the keys at the front so fast user input
+  -- cannot overtake the mapping's native edit.
+  vim.schedule(function()
+    if not vim.api.nvim_buf_is_valid(bufnr) or vim.api.nvim_get_current_buf() ~= bufnr then
+      return
+    end
+    vim.api.nvim_win_set_cursor(0, {
+      source_cursor[1],
+      math.min(source_cursor[2], #source_line),
+    })
+    local keys = vim.api.nvim_replace_termcodes(
+      ("%d%s"):format(count, key),
+      true,
+      false,
+      true
+    )
+    vim.api.nvim_feedkeys(keys, "int", false)
+  end)
 end
 
 vim.keymap.set("n", "S", function()
