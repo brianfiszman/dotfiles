@@ -251,7 +251,11 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  local -a restore_checks=("+Lazy! restore" "+qa!")
+  local -a restore_checks=(
+    "+Lazy! restore"
+    "+luafile $REPO_ROOT/tests/nvim/mason-installations-ready.lua"
+    "+qa!"
+  )
   run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
@@ -322,12 +326,6 @@ startup() {
   # other DAP scenario downloads or installs adapters.
   run_nvim "dap-mason-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-mason-command-trigger.lua" \
-    "+qa!"
-
-  # The first DAP action installs the five adapters lazily. Verify all six
-  # external packages only after the actual first-use installer has completed.
-  run_nvim "mason-installations-ready" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/mason-installations-ready.lua" \
     "+qa!"
 
   run_nvim "dap-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
