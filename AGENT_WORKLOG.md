@@ -703,3 +703,18 @@ here rather than copying it.
   to stale whitespace, then compares the mapped `o/O` result to that value.
   This avoids assuming that the parser must produce exactly two columns.
 
+
+
+## 2026-11-14 — Isolate TypeScript source-anchor drift and improve Neovim skill (#89)
+
+- Inspected live PR #90 and exact implementation head `6c30e1d870c3341a1b3355b45976ee4fe66b9b68`; the base remains `7857e8774471d4a756190e73d563ea4f537782d5`.
+- Exact-head full integration [#43669430111](https://github.com/brianfiszman/dotfiles/actions/runs/43669430111) completed with failure in the behavior phase. Clean setup, pinned Neovim/LuaLS, isolated preparation, locked plugin restore/build hooks, and normal startup all passed.
+- The artifact [14144020492](https://github.com/brianfiszman/dotfiles/actions/runs/43669430111/artifacts/14144020492) confirms:
+  - deterministic `S`, `o`, `O`, and counted `2S` pass;
+  - real Lua Treesitter `S` passes;
+  - real TypeScript indentation returns the expected two-space source prefix;
+  - `InsertEnter` for the TypeScript `o` case observes cursor row 4, although the expected line is row 3. The callback applies the prefix to row 4, and the bounded test then fails with a concrete row mismatch.
+- This is not evidence that the TypeScript query returns the wrong indentation. It proves the source/target cursor anchor is wrong by the time native `o` enters Insert mode. The likely next check is whether the provider call moves the cursor or whether the queued native key is dispatched from a changed row. Snapshot and restore the original cursor immediately after provider calculation, log both positions, then re-run exact-head CI before adopting any broader workaround.
+- Updated `.agents/skills/neovim-maintenance/SKILL.md` (commit `b7fb512f316006fed68ed960f9eb79c27e912cf2`) with a dedicated playbook for parser-backed native edit mappings: separate computation/open/InsertEnter/final-assertion phases; preserve and log source cursor; assert final row/content rather than only Insert mode; keep test failure termination bounded.
+- Updated `AGENT_STATE.md` to make the exact failing head/run, current evidence, next diagnostic, skill improvement, and merge restriction explicit.
+- PR #90 remains Draft and unmerged. The full behavior suite has not passed; no review or merge sign-off is claimed.
