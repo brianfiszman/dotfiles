@@ -9,6 +9,10 @@
 -- after Neovim's main loop has processed it. This is a disposable headless
 -- process: fail() exits non-zero immediately so a bad assertion can never turn
 -- into a CI timeout.
+--
+-- The last scenario keeps a fold closed on purpose: native o opens at the fold
+-- boundary there, so the mapping must skip the hidden source line instead of
+-- reindenting it.
 _G.DotfilesTestIndent = function()
   return 4
 end
@@ -94,8 +98,8 @@ local function set_buffer(lines, cursor)
   vim.bo.tabstop = 2
   vim.bo.autoindent = true
   vim.bo.smartindent = false
-  -- A closed fold makes native o/O open at the fold boundary, not next to the
-  -- source line. Keep fixtures unfolded so the assertion is about indentation.
+  -- Fixtures stay unfolded so indentation assertions are about the mapping.
+  -- The closed-fold control opts back into folding explicitly.
   vim.wo.foldenable = false
   vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
   vim.api.nvim_win_set_cursor(0, cursor)
@@ -165,7 +169,27 @@ local function finish()
   print("PASS: deterministic S, o, O and counted 2S use the computed indentation")
   print("PASS: real Lua Treesitter indentation survives S")
   print("PASS: real TypeScript Treesitter indentation reindents the source for o and O")
+  print("PASS: a closed fold keeps native o at the fold boundary and hides the source")
   os.exit(0, true)
+end
+
+local function run_closed_fold_control()
+  set_buffer({ "fold head", "  stale", "fold tail" }, { 2, 0 })
+  vim.wo.foldmethod = "manual"
+  vim.wo.foldenable = true
+  vim.cmd("1,3fold")
+  assert(vim.fn.foldclosed(2) ~= -1,
+    "control fixture must hide the stale source line in a closed fold")
+  press("o", "closed-fold o", function()
+    -- Native o on a closed fold opens after the whole fold, not after the
+    -- hidden source line. The fold start line has no indentation to copy.
+    assert_insert(4, 0, "closed-fold o")
+    assert(vim.api.nvim_buf_get_lines(0, 1, 2, false)[1] == "  stale",
+      "closed-fold o must not reindent the hidden source line")
+    assert(vim.fn.foldclosed(2) ~= -1,
+      "closed-fold o must leave the fold closed (" .. buffer_state() .. ")")
+    leave_insert("closed-fold o", finish)
+  end)
 end
 
 local run_typescript_open_above
@@ -194,7 +218,7 @@ run_typescript_open_above = function()
   press("O", "TypeScript O", function()
     assert_insert(2, expected, "TypeScript O")
     assert_source_reindented(3, expected, "enabled: true,", "TypeScript O")
-    leave_insert("TypeScript O", finish)
+    leave_insert("TypeScript O", run_closed_fold_control)
   end)
 end
 
