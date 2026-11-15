@@ -16,7 +16,6 @@ authorization to continue paused work. Keep this file at 40 lines or fewer.
 - **Docs PR:** [#94](https://github.com/brianfiszman/dotfiles/pull/94)
   `docs/agent-memory-hygiene`, evidence head `9ff6c50`, merge approved.
   State/worklog budgets, skill trims, active-artifact checks.
-- **Closed predecessor:** #90, superseded; archive `archive/indented-substitute-43` (`85f1ec7`).
 
 ## Verified evidence
 
