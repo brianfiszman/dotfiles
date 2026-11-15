@@ -1,5 +1,6 @@
 -- Exercise the actual LazyUpdatePre/LazyUpdate events against Git checkout collisions.
 local config = require("lazy.core.config")
+local expected_commit = "85168f15808d89b0222313652b9d2777eda3cb08"
 local treesitter = config.plugins["nvim-treesitter"]
 assert(treesitter and treesitter.commit == expected_commit,
   "legacy nvim-treesitter must stay on the exact commit covered by the compatibility adapter")
