@@ -232,9 +232,12 @@ local function reindent_and_edit(key)
     end
 
     restore_source_cursor(source_cursor, key .. " scheduled dispatch")
-    print(("[scope-indent] dispatch native %s count=%d cursor=%s"):format(
+    print(("[scope-indent] execute native %s count=%d cursor=%s"):format(
       key, count, vim.inspect(vim.api.nvim_win_get_cursor(winid))))
-    vim.api.nvim_feedkeys(keys, "nt", false)
+    vim.cmd.normal({
+      args = { keys },
+      bang = true,
+    })
   end)
 end
 
