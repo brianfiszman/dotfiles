@@ -66,7 +66,7 @@ local function install_legacy_query_predicates_adapter(plugin)
   end
 
   package.preload[query_predicates_module] = function()
-    local query = vim.treesitter.query
+    local query = require("vim.treesitter.query")
     local add_predicate = query.add_predicate
     local add_directive = query.add_directive
 

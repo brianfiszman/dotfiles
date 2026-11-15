@@ -35,6 +35,9 @@ assert(clean_file.code == 0,
 
 assert(type(package.preload[module_name]) == "function" or package.loaded[module_name] ~= nil,
   "the in-memory query-predicate adapter was not installed before plugin loading")
+require(module_name)
+assert(package.loaded[module_name] ~= nil,
+  "the in-memory query-predicate adapter did not load the legacy predicate module")
 
 -- Exercise an actual legacy custom predicate. On Neovim 0.12 the capture is a
 -- list; the adapter must pass one TSNode to the locked legacy handler.
