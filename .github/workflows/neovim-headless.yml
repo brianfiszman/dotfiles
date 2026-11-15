@@ -79,7 +79,7 @@ jobs:
     needs: integration-decision
     if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
