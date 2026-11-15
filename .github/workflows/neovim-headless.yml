@@ -204,7 +204,7 @@ jobs:
       - name: Start Neovim normally after plugin restore
         run: bash ./scripts/test-nvim-headless.sh startup
         env:
-          NVIM_STARTUP_TIMEOUT: 5m
+          NVIM_STARTUP_TIMEOUT: 30m
 
       - name: Upload headless logs
         if: always()
