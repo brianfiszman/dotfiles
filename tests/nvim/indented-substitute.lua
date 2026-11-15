@@ -199,6 +199,38 @@ local function probe_native_typescript_open(label, formatoptions, indentexpr, ke
     vim.inspect(after_lines)))
 end
 
+local function probe_typescript_without_parser()
+  setup_typescript_buffer()
+  vim.bo.indentexpr = ""
+  vim.bo.formatoptions = ""
+  local parser = vim.treesitter.get_parser(0, "typescript")
+  print(("[scope-indent-probe] before stop parser attached=%s cursor=%s line_count=%d"):format(
+    tostring(parser ~= nil), vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0)))
+  vim.treesitter.stop(0)
+  print(("[scope-indent-probe] after stop parser=%s cursor=%s line_count=%d indentexpr=%q"):format(
+    tostring(pcall(vim.treesitter.get_parser, 0, "typescript")),
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0), vim.bo.indentexpr))
+  vim.cmd.normal({ args = { "o" }, bang = true })
+  print(("[scope-indent-probe] after native o with TS filetype and parser stopped cursor=%s line_count=%d buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
+local function probe_javascript_filetype()
+  setup_typescript_buffer()
+  vim.bo.filetype = "javascript"
+  vim.bo.indentexpr = ""
+  vim.bo.formatoptions = ""
+  vim.cmd.normal({ args = { "o" }, bang = true })
+  print(("[scope-indent-probe] after native o javascript filetype cursor=%s line_count=%d buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
 local function probe_feedkeys_native_open()
   setup_typescript_buffer()
   vim.bo.indentexpr = ""
@@ -220,6 +252,8 @@ local function probe_native_typescript_open_variants()
   probe_native_typescript_open("no-count, formatoptions empty", "", "", "o")
   probe_native_typescript_open("no-count, Treesitter indentexpr active", "jcroql", "nvim_treesitter#indent()", "o")
   probe_native_typescript_open("no-count, no TypeScript filetype", "tcqj", "", "o", true)
+  probe_typescript_without_parser()
+  probe_javascript_filetype()
   probe_feedkeys_native_open()
 end
 
