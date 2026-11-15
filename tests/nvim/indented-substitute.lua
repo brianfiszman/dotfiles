@@ -177,7 +177,34 @@ end
 
 local run_typescript_O
 
+local function probe_native_typescript_open(label, formatoptions, indentexpr, keys)
+  setup_typescript_buffer()
+  vim.bo.formatoptions = formatoptions
+  vim.bo.indentexpr = indentexpr
+  local before = {
+    cursor = vim.api.nvim_win_get_cursor(0),
+    lines = vim.api.nvim_buf_get_lines(0, 0, -1, false),
+  }
+  print(("[scope-indent-probe] before %s cursor=%s line_count=%d formatoptions=%q indentexpr=%q"):format(
+    label, vim.inspect(before.cursor), #before.lines, vim.bo.formatoptions, vim.bo.indentexpr))
+  vim.cmd.normal({ args = { keys }, bang = true })
+  local after_cursor = vim.api.nvim_win_get_cursor(0)
+  local after_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  print(("[scope-indent-probe] after %s cursor=%s line_count=%d mode=%s buffer=%s"):format(
+    label, vim.inspect(after_cursor), #after_lines, vim.fn.mode(),
+    vim.inspect(after_lines)))
+end
+
+local function probe_native_typescript_open_variants()
+  probe_native_typescript_open("no-count, indentexpr disabled", "jcroql", "", "o")
+  probe_native_typescript_open("count-one, indentexpr disabled", "jcroql", "", "1o")
+  probe_native_typescript_open("no-count, formatoptions without o", "jcrql", "", "o")
+  probe_native_typescript_open("no-count, formatoptions empty", "", "", "o")
+  probe_native_typescript_open("no-count, Treesitter indentexpr active", "jcroql", "nvim_treesitter#indent()", "o")
+end
+
 local function run_typescript_o()
+  probe_native_typescript_open_variants()
   local expected = setup_typescript_buffer()
   press("o", "i", "TypeScript o with Treesitter indentation", function()
     wait_for_current_line_indent(expected, 3, "TypeScript o with Treesitter indentation", function()
