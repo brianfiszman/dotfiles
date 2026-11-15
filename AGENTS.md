@@ -40,6 +40,11 @@ grow into a second transcript.
 - **Stop and reframe after two failed attempts** at the same symptom. Record the
   hypothesis, what was ruled out, and which layer to test next. Do not keep
   stacking fixes or probes on a failing approach.
+- **Remote-only agents: CI is the only runtime.** Do not use CI to explore
+  hypotheses. State the root cause in one sentence before pushing a fix, batch
+  related assertions into one run, and make every assertion print expected vs
+  actual plus the relevant fixture state. After two failed runs on the same
+  symptom, stop and hand off the diagnosis instead of pushing another guess.
 - **No committed probe files or debug prints.** Experiments belong in a scratch
   file under the temporary directory, or in a single disposable change removed
   before review. A confirmed repro becomes a focused regression test.

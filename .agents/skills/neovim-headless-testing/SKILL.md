@@ -34,6 +34,36 @@ plugin/LSP/tool trigger. Report the level actually reached.
 - Keep the test deterministic: no arbitrary sleeps. Wait for a specific event,
   client attachment, command registration, or result table.
 
+## Self-diagnosing tests for remote-only agents
+
+Some agents, including Codex, cannot run Neovim locally. The CI log is then the
+only debugging surface, so each run must explain itself.
+
+- Print the environment once: `vim.version()`, filetype, relevant options,
+  `foldclosed(line)`, and the lockfile revision when it matters.
+- Assert expected vs actual in the failure message, not only at the end of the
+  file.
+- Use a small helper so every failure carries context:
+
+```lua
+local function check(label, expected, actual)
+  if not vim.deep_equal(expected, actual) then
+    error(("%s: expected %s, got %s"):format(
+      label,
+      vim.inspect(expected),
+      vim.inspect(actual)
+    ))
+  end
+  print("PASS: " .. label)
+end
+```
+
+- Wrap external calls in `pcall` and include the error text in the failure.
+- One run should answer one hypothesis and all its sub-questions. Do not push
+  one assertion per run.
+- Do not add a probe notebook. Keep diagnostics as assertions in the test file
+  and remove temporary prints before review.
+
 ## Fixture isolation
 
 Before asserting line or editing behavior, reset every option that can move the

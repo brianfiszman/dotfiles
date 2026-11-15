@@ -71,6 +71,29 @@ Before review:
   durable, an incident or ADR.
 - State what was not proven.
 
+## When you cannot run locally
+
+Some agents, including Codex, have no local Neovim or shell runtime. CI is then
+the only execution environment, and every run is slow and expensive.
+
+- Do not push a fix to learn what happens. Read the code, trace the path, and
+  write the root-cause sentence before changing anything.
+- Use the failing test's existing output. If it is not enough, add assertions
+  that print expected vs actual, the relevant options, filetype, versions, and
+  fold state. Keep them as assertions in the regression test; remove temporary
+  probes before review.
+- Batch related questions into one run. One run should answer the whole
+  hypothesis, not one assertion at a time.
+- Change one variable per run. Do not combine a fixture fix, a mapping change,
+  and a version bump.
+- After two failed CI runs on the same symptom, stop. Record the diagnosis,
+  ruled-out layers, and the next question in the issue/PR, then hand off. Ask for
+  a local reproduction or a targeted maintainer check.
+- Never claim local verification. Report “not run locally” and cite the exact
+  run and SHA.
+- Prefer a test that fails with a precise message over one that fails on a line
+  number.
+
 ## Worked example — #89/#90
 
 The test failed at a line position. Two attempts added lifecycle machinery.
