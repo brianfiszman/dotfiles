@@ -202,8 +202,14 @@ local function reindent_and_edit(key)
     end
 
     restore_source_cursor(source_cursor, key .. " scheduled dispatch")
-    print(("[scope-indent] execute native %s count=%d cursor=%s"):format(
-      key, count, vim.inspect(vim.api.nvim_win_get_cursor(winid))))
+    local saved_indentexpr = vim.bo.indentexpr
+    -- The Treesitter indentexpr can reposition the native open-line target
+    -- while Neovim computes indentation for the newly created blank line.
+    -- We already computed the source prefix, so suspend only this expression
+    -- while creating the line; restore it in the second InsertEnter callback.
+    vim.bo.indentexpr = ""
+    print(("[scope-indent] execute native %s count=%d cursor=%s indentexpr=%q"):format(
+      key, count, vim.inspect(vim.api.nvim_win_get_cursor(winid)), saved_indentexpr))
     vim.cmd.normal({
       args = { keys },
       bang = true,
@@ -225,7 +231,8 @@ local function reindent_and_edit(key)
         vim.api.nvim_buf_set_lines(bufnr, cursor[1] - 1, cursor[1], false, {
           source_indent .. body,
         })
-        print(("[scope-indent] applied prefix for %s row=%d indent=%d line=%q"):format(
+        vim.bo.indentexpr = saved_indentexpr
+        print(("[scope-indent] applied prefix and restored indentexpr for %s row=%d indent=%d line=%q"):format(
           key, cursor[1], vim.fn.indent(cursor[1]), vim.api.nvim_get_current_line()))
 
         -- startinsert! finalizes its cursor placement after InsertEnter. Move
