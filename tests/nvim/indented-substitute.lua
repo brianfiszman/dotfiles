@@ -165,7 +165,6 @@ local function finish()
   print("PASS: deterministic S, o, O and counted 2S preserve computed indentation")
   print("PASS: real Lua Treesitter indentation is preserved by S")
   print("PASS: real TypeScript Treesitter indentation is preserved by o and O")
-  probe_named_on_key_handlers()
   -- This is a standalone disposable Neovim process; exit directly after all
   -- deferred input callbacks and assertions have completed.
   os.exit(0, true)
@@ -428,6 +427,7 @@ end
 
 local function run_typescript_o()
   probe_native_typescript_open_variants()
+  probe_named_on_key_handlers()
   local expected = setup_typescript_buffer()
   press("o", "i", "TypeScript o with Treesitter indentation", function()
     wait_for_current_line_indent(expected, 3, "TypeScript o with Treesitter indentation", function()
