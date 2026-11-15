@@ -76,3 +76,25 @@ assertion group so phase logs explain what ran.
 See also:
 - [`ci-failure-fingerprints.md`](ci-failure-fingerprints.md)
 - [`.agents/skills/neovim-headless-testing/SKILL.md`](../../.agents/skills/neovim-headless-testing/SKILL.md)
+
+
+## Mason Tool Installer and Lazy startup ordering
+
+The Mason Tool Installer plugin's internal `VimEnter` hook is unsafe when the
+plugin is a Lazy dependency that is itself loaded during the `VimEnter` event.
+The plugin script can register and execute that hook before Lazy calls the
+plugin's `config()`; `run_on_start()` then sees the default empty
+`ensure_installed` table and returns without provisioning the configured CLI.
+Symptoms: startup waits for `dotfiles_treesitter_ready`, but no
+`tree-sitter-cli` package appears in `mason.log`.
+
+Set `run_on_start = false`, call `mason-tool-installer.setup(opts)`, and
+schedule `check_install(false)` after setup. The Treesitter config must
+register its `MasonToolsUpdateCompleted` listener before the scheduled check
+runs. This makes the first CLI install deterministic even when Lazy loads the
+dependency during `VimEnter`.
+
+A cold-install integration test must allow the complete first-run parser
+provisioning window, not a warm-start deadline. Use the test's 20-minute parser
+install timeout and a 30-minute startup phase deadline within the 60-minute
+workflow job.
