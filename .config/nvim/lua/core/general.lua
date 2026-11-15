@@ -107,6 +107,10 @@ vim.g.cmp_enabled = true
 -- Reindent the current scope, then use Neovim's native editing command.
 -- The temporary indentexpr override lets autoindent copy the computed prefix
 -- from the source line; restore the original engine before the user can type.
+local scope_indent_group = vim.api.nvim_create_augroup("DotfilesScopeIndent", {
+  clear = false,
+})
+
 local function reindent_and_edit(key)
   local count = vim.v.count1
   local reindent_count = key == "S" and count or 1
@@ -116,21 +120,55 @@ local function reindent_and_edit(key)
     bang = true,
   })
 
-  local keys
   if key == "S" then
     -- The native change-line command preserves the indentation computed above.
-    keys = ("%dS"):format(count)
-  else
-    -- Open the line natively, then reindent that new blank line with the active
-    -- buffer engine before returning to Insert mode.
-    keys = key .. "<C-o>=="
+    local keys = vim.api.nvim_replace_termcodes(
+      ("%dS"):format(count),
+      true,
+      false,
+      true
+    )
+    vim.api.nvim_feedkeys(keys, "int", false)
+    return
   end
 
-  vim.api.nvim_feedkeys(
-    vim.api.nvim_replace_termcodes(keys, true, false, true),
-    "int",
-    false
+  local bufnr = vim.api.nvim_get_current_buf()
+  local source_line = vim.api.nvim_get_current_line()
+  local source_indent = source_line:match("^%s*") or ""
+
+  -- Native o/O may create a line using a filetype indentexpr that evaluates an
+  -- empty line differently from its source line. Once native editing enters
+  -- Insert mode, replace only leading whitespace with the source line's exact
+  -- reindented prefix; any native comment leader or other line content remains.
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    group = scope_indent_group,
+    buffer = bufnr,
+    once = true,
+    callback = function()
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      local line = vim.api.nvim_get_current_line()
+      local old_indent = line:match("^%s*") or ""
+      local body = line:sub(#old_indent + 1)
+      local body_column = math.max(cursor[2] - #old_indent, 0)
+
+      vim.api.nvim_buf_set_lines(0, cursor[1] - 1, cursor[1], false, {
+        source_indent .. body,
+      })
+      vim.api.nvim_win_set_cursor(0, {
+        cursor[1],
+        #source_indent + body_column,
+      })
+    end,
+    desc = "Apply the reindented source prefix to a newly opened line",
+  })
+
+  local keys = vim.api.nvim_replace_termcodes(
+    ("%d%s"):format(count, key),
+    true,
+    false,
+    true
   )
+  vim.api.nvim_feedkeys(keys, "int", false)
 end
 
 vim.keymap.set("n", "S", function()
