@@ -40,41 +40,34 @@ Temporary shims must be required by latest stable and have a removal condition.
 1. Read `AGENTS.md` and this skill.
 2. Inspect the current branch, worktree, and relevant open PR.
 3. Read the actual configuration files involved, not only the README or issue.
-4. Inspect `lazy-lock.json` before reasoning about installed versions or upstream
-   APIs.
-5. Trace the startup, loading, or keybinding path far enough to understand who
-   owns the behavior and when it runs.
+4. Inspect `lazy-lock.json` before reasoning about installed versions or upstream APIs.
+5. Trace the startup, loading, or keybinding path far enough to understand who owns the behavior and when it runs.
 6. Check existing issues and PRs before opening new work.
 
-Do not call something a bug because a pattern looks unusual. For example,
-lazy.nvim accepts both individual and valid list-style specs; a grouped spec is
-not inherently invalid. Confirm the contract and reproduce the failure first.
+Do not call something a bug because a pattern looks unusual: lazy.nvim accepts
+both individual and valid list-style specs. Confirm the contract and reproduce it.
 
 ## Diagnosis and evidence
 
 For each proposed fix, record:
 
 - The user-visible problem.
-- The evidence: code path, reproducible failure, upstream contract, or measured
-  behavior.
+- The evidence: code path, reproducible failure, upstream contract, or measured behavior.
 - The smallest relevant scope.
 - The behavior that should change and the behavior that must not regress.
 - The validation level that can actually be performed.
 
-Do not turn an unverified suspicion into a functional issue. When diagnosis is
-uncertain, timebox an investigation or mark the uncertainty explicitly. Follow
-`.agents/skills/diagnostic-experiments/SKILL.md` when a failure resists the first
-attempt.
+Do not turn an unverified suspicion into a functional issue. Timebox uncertain
+diagnoses and follow `.agents/skills/diagnostic-experiments/SKILL.md` when a
+failure resists the first attempt.
 For `:checkhealth` triage, external tool/provider provisioning, and local-versus-CI dependency drift, follow `.agents/skills/neovim-dependency-management/SKILL.md`.
 
 ## Review every change as code
 
 - Read the full diff, not just the title, issue, commit message, or summary.
 - Inspect surrounding code and the configuration still active outside the diff.
-- Look for accidental comments, literal escape sequences, malformed Lua tables,
-  overwritten options, duplicate setup calls, and stale names.
-- Check that environment-specific branches do not silently change interactive
-  behavior.
+- Look for accidental comments, literal escape sequences, malformed Lua tables, overwritten options, duplicate setup calls, and stale names.
+- Check that environment-specific branches do not silently change interactive behavior.
 - Verify test-only conditions are scoped and reset; do not leave a CI variable
   active for normal startup.
 - Compare the final files with the issue's acceptance criteria. Unique does not
