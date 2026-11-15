@@ -118,6 +118,13 @@ for _, fixture in ipairs(fixtures) do
 end
 
 -- Exercise Neovim's native incremental selection through the configured keys.
+local function feed_keys(keys)
+  local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
+  -- "m" honors user mappings, "t" behaves like typed input, and "x" drains
+  -- the input queue before this assertion script continues.
+  vim.api.nvim_feedkeys(termcodes, "mtx", false)
+end
+
 local selection_file = vim.fn.tempname() .. ".lua"
 temp_files[#temp_files + 1] = selection_file
 assert(vim.fn.writefile({ "local value = { nested = true }" }, selection_file) == 0)
@@ -142,11 +149,11 @@ local function wait_for_visual(label)
   end, 10), label .. " did not enter characterwise Visual mode (mode=" .. vim.fn.mode() .. ")")
 end
 
-assert(vim.api.nvim_input(" V") > 0, "Could not queue the <leader>V selection mapping")
+feed_keys(" V")
 wait_for_visual("Initial Treesitter selection")
 local first = selection_range()
 
-assert(vim.api.nvim_input(" V") > 0, "Could not queue the parent-selection mapping")
+feed_keys(" V")
 wait_for_visual("Parent-node expansion")
 local parent = selection_range()
 assert(parent[1] < first[1] or parent[2] < first[2]
@@ -154,14 +161,14 @@ assert(parent[1] < first[1] or parent[2] < first[2]
   ("<leader>V did not expand the selection: first=%s parent=%s"):format(vim.inspect(first), vim.inspect(parent)))
 print("PASS: <leader>V expands the native Treesitter parent selection")
 
-assert(vim.api.nvim_input("<BS>") > 0, "Could not queue the child-selection mapping")
+feed_keys("<BS>")
 wait_for_visual("Child-node contraction")
 local child = selection_range()
 assert(child[1] > parent[1] or child[2] > parent[2]
     or child[3] < parent[3] or child[4] < parent[4],
   ("<BS> did not contract the selection: parent=%s child=%s"):format(vim.inspect(parent), vim.inspect(child)))
 print("PASS: <BS> contracts to the native Treesitter child selection")
-vim.api.nvim_input("<Esc>")
+feed_keys("<Esc>")
 
 -- nvim-ts-autotag is configured through its standalone API and must work for
 -- HTML, JSX and TSX rather than relying on the removed configs extension.
@@ -178,7 +185,7 @@ for _, fixture in ipairs(tag_fixtures) do
   vim.cmd("enew!")
   vim.cmd("edit " .. vim.fn.fnameescape(filename))
   assert_equal(fixture.filetype, vim.bo.filetype, fixture.filetype .. " autotag fixture filetype")
-  assert(vim.api.nvim_input("i<div>") > 0, "Could not queue opening tag input")
+  feed_keys("i<div>")
   assert(vim.wait(3000, function()
     return vim.api.nvim_get_current_line() == "<div></div>"
   end, 10), fixture.filetype .. " did not auto-close the HTML tag; got "
