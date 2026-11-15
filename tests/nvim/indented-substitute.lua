@@ -329,6 +329,94 @@ local function probe_feedkeys_native_open()
     vim.inspect(cursor), #lines, vim.fn.mode(), vim.inspect(lines)))
 end
 
+local function probe_filetype_handler_groups()
+  local handlers = vim.api.nvim_get_autocmds({ event = "FileType" })
+  local candidates = {
+    "ts_context_commentstring",
+    "NvimTreesitter-highlight",
+    "NvimTreesitter-incremental_selection",
+    "NvimTreesitter-indent",
+    "_luasnip_lazy_load",
+    "ColorizerSetup",
+    "nvim.lsp.enable",
+    "NvimTreesitter-autotag",
+    "autopairs_buf",
+  }
+
+  local function open_with_current_handlers(label)
+    vim.cmd("enew!")
+    vim.bo.buftype = ""
+    vim.bo.bufhidden = "wipe"
+    vim.bo.expandtab = true
+    vim.bo.shiftwidth = 2
+    vim.bo.tabstop = 2
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+      "const options = {",
+      "enabled: true,",
+      "};",
+    })
+    vim.cmd("setfiletype typescript")
+    vim.bo.indentexpr = ""
+    vim.bo.indentkeys = ""
+    vim.bo.formatoptions = ""
+    vim.bo.comments = ""
+    vim.bo.commentstring = ""
+    vim.bo.autoindent = false
+    vim.bo.smartindent = false
+    vim.bo.cindent = false
+    vim.bo.lisp = false
+    vim.api.nvim_win_set_cursor(0, { 2, 0 })
+    vim.cmd("noautocmd normal! o")
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    print(("[scope-indent-group-probe] %s cursor=%s line_count=%d buffer=%s"):format(
+      label, vim.inspect(cursor), #lines, vim.inspect(lines)))
+    return cursor[1]
+  end
+
+  open_with_current_handlers("all FileType handlers enabled")
+  for _, candidate in ipairs(candidates) do
+    local removed = {}
+    for _, autocmd in ipairs(handlers) do
+      if autocmd.group_name == candidate and autocmd.id then
+        vim.api.nvim_del_autocmd(autocmd.id)
+        removed[#removed + 1] = autocmd
+      end
+    end
+
+    if #removed > 0 then
+      open_with_current_handlers(candidate .. " disabled")
+      for _, autocmd in ipairs(removed) do
+        local opts = {
+          group = autocmd.group,
+          pattern = autocmd.pattern,
+        }
+        if autocmd.buffer and autocmd.buffer > 0 then
+          opts.buffer = autocmd.buffer
+          opts.pattern = nil
+        end
+        if autocmd.desc then
+          opts.desc = autocmd.desc
+        end
+        if autocmd.once then
+          opts.once = true
+        end
+        if autocmd.nested then
+          opts.nested = true
+        end
+        if autocmd.callback then
+          opts.callback = autocmd.callback
+        elseif autocmd.command and autocmd.command ~= "" then
+          opts.command = autocmd.command
+        end
+        vim.api.nvim_create_autocmd(autocmd.event, opts)
+      end
+    else
+      print("[scope-indent-group-probe] no removable handlers for " .. candidate)
+    end
+  end
+end
+
 local function probe_typescript_without_filetype_autocmds()
   vim.cmd("enew!")
   vim.bo.buftype = ""
@@ -476,6 +564,7 @@ local function probe_native_typescript_open_variants()
 end
 
 local function run_typescript_o()
+  probe_filetype_handler_groups()
   probe_native_typescript_open_variants()
   probe_named_on_key_handlers()
   local expected = setup_typescript_buffer()
