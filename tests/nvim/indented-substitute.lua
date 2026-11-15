@@ -142,7 +142,8 @@ local function setup_typescript_buffer()
   parser:parse()
   vim.api.nvim_win_set_cursor(0, { 2, 0 })
   print("[indented-substitute] TypeScript source reset before mapped action: "
-    .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)))
+    .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))
+    .. "; cursor=" .. vim.inspect(vim.api.nvim_win_get_cursor(0)))
   return expected
 end
 
@@ -151,9 +152,13 @@ local run_typescript_O
 local function run_typescript_o()
   local expected = setup_typescript_buffer()
   press("o", "i", "TypeScript o with Treesitter indentation", function()
-    print("[indented-substitute] TypeScript o result: autoindent="
-      .. tostring(vim.bo.autoindent) .. " source="
-      .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)))
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local expr_indent = vim.fn["nvim_treesitter#indent"]()
+    print("[indented-substitute] TypeScript o result: cursor=" .. vim.inspect(cursor)
+      .. " current=" .. vim.inspect(vim.api.nvim_get_current_line())
+      .. " expr_indent=" .. tostring(expr_indent)
+      .. " autoindent=" .. tostring(vim.bo.autoindent)
+      .. " source=" .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)))
     leave_insert("TypeScript o", function()
       run_typescript_O()
     end)
@@ -163,9 +168,13 @@ end
 run_typescript_O = function()
   local expected = setup_typescript_buffer()
   press("O", "i", "TypeScript O with Treesitter indentation", function()
-    print("[indented-substitute] TypeScript O result: autoindent="
-      .. tostring(vim.bo.autoindent) .. " source="
-      .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)))
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local expr_indent = vim.fn["nvim_treesitter#indent"]()
+    print("[indented-substitute] TypeScript O result: cursor=" .. vim.inspect(cursor)
+      .. " current=" .. vim.inspect(vim.api.nvim_get_current_line())
+      .. " expr_indent=" .. tostring(expr_indent)
+      .. " autoindent=" .. tostring(vim.bo.autoindent)
+      .. " source=" .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)))
     leave_insert("TypeScript O", finish)
   end)
 end
