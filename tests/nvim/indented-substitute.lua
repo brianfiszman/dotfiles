@@ -177,16 +177,20 @@ end
 
 local run_typescript_O
 
-local function probe_native_typescript_open(label, formatoptions, indentexpr, keys)
+local function probe_native_typescript_open(label, formatoptions, indentexpr, keys, clear_filetype)
   setup_typescript_buffer()
+  if clear_filetype then
+    vim.bo.filetype = ""
+  end
   vim.bo.formatoptions = formatoptions
   vim.bo.indentexpr = indentexpr
   local before = {
     cursor = vim.api.nvim_win_get_cursor(0),
     lines = vim.api.nvim_buf_get_lines(0, 0, -1, false),
   }
-  print(("[scope-indent-probe] before %s cursor=%s line_count=%d formatoptions=%q indentexpr=%q"):format(
-    label, vim.inspect(before.cursor), #before.lines, vim.bo.formatoptions, vim.bo.indentexpr))
+  print(("[scope-indent-probe] before %s filetype=%q cursor=%s line_count=%d formatoptions=%q indentexpr=%q"):format(
+    label, vim.bo.filetype, vim.inspect(before.cursor), #before.lines,
+    vim.bo.formatoptions, vim.bo.indentexpr))
   vim.cmd.normal({ args = { keys }, bang = true })
   local after_cursor = vim.api.nvim_win_get_cursor(0)
   local after_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
@@ -195,12 +199,28 @@ local function probe_native_typescript_open(label, formatoptions, indentexpr, ke
     vim.inspect(after_lines)))
 end
 
+local function probe_feedkeys_native_open()
+  setup_typescript_buffer()
+  vim.bo.indentexpr = ""
+  print(("[scope-indent-probe] before feedkeys native o filetype=%q cursor=%s line_count=%d formatoptions=%q"):format(
+    vim.bo.filetype, vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0), vim.bo.formatoptions))
+  local keys = vim.api.nvim_replace_termcodes("o", true, false, true)
+  vim.api.nvim_feedkeys(keys, "ntx", false)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  print(("[scope-indent-probe] after feedkeys native o cursor=%s line_count=%d mode=%s buffer=%s"):format(
+    vim.inspect(cursor), #lines, vim.fn.mode(), vim.inspect(lines)))
+end
+
 local function probe_native_typescript_open_variants()
   probe_native_typescript_open("no-count, indentexpr disabled", "jcroql", "", "o")
   probe_native_typescript_open("count-one, indentexpr disabled", "jcroql", "", "1o")
   probe_native_typescript_open("no-count, formatoptions without o", "jcrql", "", "o")
   probe_native_typescript_open("no-count, formatoptions empty", "", "", "o")
   probe_native_typescript_open("no-count, Treesitter indentexpr active", "jcroql", "nvim_treesitter#indent()", "o")
+  probe_native_typescript_open("no-count, no TypeScript filetype", "tcqj", "", "o", true)
+  probe_feedkeys_native_open()
 end
 
 local function run_typescript_o()
