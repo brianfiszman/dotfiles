@@ -111,27 +111,22 @@ local scope_indent_group = vim.api.nvim_create_augroup("DotfilesScopeIndent", {
   clear = false,
 })
 
-local function reindent_current_line(lnum)
+local function get_source_indent(lnum)
   local indentexpr = vim.bo.indentexpr
   if indentexpr == "nvim_treesitter#indent()" then
-    print(("[scope-indent] before get_indent row=%d cursor=%s"):format(
-      lnum, vim.inspect(vim.api.nvim_win_get_cursor(0))))
+    local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
+    local existing_indent = line:match("^%s*") or ""
     local ok, indent = pcall(function()
       return require("nvim-treesitter.indent").get_indent(lnum)
     end)
-    print(("[scope-indent] after get_indent ok=%s indent=%s cursor=%s"):format(
-      tostring(ok), tostring(indent), vim.inspect(vim.api.nvim_win_get_cursor(0))))
     if ok and type(indent) == "number" and indent >= 0 then
-      local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
-      local old_indent = line:match("^%s*") or ""
-      local body = line:sub(#old_indent + 1)
-      vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, {
-        string.rep(" ", indent) .. body,
-      })
-      print(("[scope-indent] after set_lines row=%d cursor=%s"):format(
-        lnum, vim.inspect(vim.api.nvim_win_get_cursor(0))))
+      -- Do not rewrite the source line here. Changing it triggers another
+      -- parser update before native o/O has consumed the current cursor.
       return string.rep(" ", indent)
     end
+    -- Treesitter returns -1 for @indent.auto (for example, comment lines):
+    -- retain the source prefix and let native autoindent preserve it.
+    return existing_indent
   end
 
   -- Other indentation engines retain Neovim's native == behavior.
@@ -147,8 +142,6 @@ local function reindent_and_edit(key)
   local count = vim.v.count1
   local source_cursor = vim.api.nvim_win_get_cursor(0)
   local source_row = source_cursor[1]
-  local source_line_before = vim.api.nvim_get_current_line()
-  local source_old_indent = source_line_before:match("^%s*") or ""
   local source_indent
 
   if key == "S" then
@@ -167,16 +160,7 @@ local function reindent_and_edit(key)
   end
 
   local bufnr = vim.api.nvim_get_current_buf()
-  source_indent = reindent_current_line(source_row)
-
-  -- Rewriting the source line preserves its row, but restore its exact cursor
-  -- offset in case the indentation width changed.
-  local current_line = vim.api.nvim_buf_get_lines(0, source_row - 1, source_row, false)[1] or ""
-  local new_indent = current_line:match("^%s*") or ""
-  vim.api.nvim_win_set_cursor(0, {
-    source_row,
-    #new_indent + math.max(source_cursor[2] - #source_old_indent, 0),
-  })
+  source_indent = get_source_indent(source_row)
 
   -- Native o/O can let an indentexpr produce a different prefix on the new
   -- blank line. Preserve any comment leader/body, replacing only its leading
