@@ -1,31 +1,34 @@
 # Agent execution state
 
-_Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
+_Last updated: 2026-11-15 (America/Argentina/Buenos_Aires)_
 
 ## Current task — issue #89: scope-aware indentation for S, o and O
 
 - **Repository:** `brianfiszman/dotfiles`.
-- **Issue:** [#89 — Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89).
-- **PR / branch:** [#90](https://github.com/brianfiszman/dotfiles/pull/90), `fix/indented-substitute-43` → `master`. PR #90 remains Draft; no merge is authorized.
+- **Issue / PR:** [#89](https://github.com/brianfiszman/dotfiles/issues/89) / [#90](https://github.com/brianfiszman/dotfiles/pull/90), branch `fix/indented-substitute-43` → `master`.
 - **Base:** `7857e8774471d4a756190e73d563ea4f537782d5`.
-- **Latest tested implementation/test head:** `6c30e1d870c3341a1b3355b45976ee4fe66b9b68`, run [#43669430111](https://github.com/brianfiszman/dotfiles/actions/runs/43669430111), conclusion **failure**. A subsequent documentation-only skill update is commit `b7fb512f316006fed68ed960f9eb79c27e912cf2`; it does not change the implementation/test behavior. Re-read live PR head and Actions state before continuing.
-- **Latest verified diagnosis:** full clean preparation, pinned toolchain, locked plugin restore/build hooks, and normal startup passed. The behavior test confirms deterministic `S`, `o`, `O`, counted `2S`, and real Lua Treesitter `S`. In the TypeScript scenario the provider returned the expected two-space prefix, and the `InsertEnter` callback applied it, but the callback observed cursor row 4 while the expected open-below row was 3. The failure exits quickly with a useful trace; it is no longer a five-minute timeout. Artifact: [14144020492](https://github.com/brianfiszman/dotfiles/actions/runs/43669430111/artifacts/14144020492).
-- **Current likely next diagnostic:** snapshot the source cursor before calling the Treesitter indent provider, record it immediately after the provider returns, explicitly restore the snapshot before feeding native `o/O`, and log the final `InsertEnter` row. Do not claim this is the cause until exact-head CI confirms it.
+- **Live PR state at checkpoint:** PR #90 is open, Draft, and unmerged. No merge authorization exists.
+- **Latest implementation/test head inspected:** `198ccdd907206399d9b4db87d35bb9610c2b5d6e`; exact-head workflow [#43672262947](https://github.com/brianfiszman/dotfiles/actions/runs/43672262947) failed in the behavior phase. The docs-only skill update `94b18c617fa59cf04d1029a659a3295cf2b044be` is now the branch head; it does not change production behavior. Re-read live PR and CI after every subsequent update.
+- **Validated portions of run #43672262947:** clean preparation, pinned toolchain, locked plugin restore/build hooks, and normal startup passed. The behavior log confirms deterministic `S`, `o`, `O`, counted `2S`, and Lua Treesitter `S` pass.
+- **Current failing behavior:** TypeScript Treesitter `o` calculates and applies the correct two-space prefix, but the new line is row 4 instead of the expected row 3. The artifact [14145260788](https://github.com/brianfiszman/dotfiles/actions/runs/43672262947/artifacts/14145260788) shows the current path: calculate source indentation, schedule dispatch, run `:normal! o` with `indentexpr` temporarily disabled, receive `InsertEnter`, apply the prefix, restore `indentexpr`, and call `:startinsert!`. The observed callback row is still 4. This proves the prefix calculation is not the failing part; the line-creation / Insert-mode lifecycle is.
+- **Do not overstate the root cause:** the suspected interaction between `:normal! o`, the first InsertEnter/InsertLeave cycle, and explicit `:startinsert!` has not yet been isolated. The existing code comments assume that two-entry sequence, but the logs have not proved which command inserts/selects the unexpected fourth row.
+- **Next diagnostic:** add temporary, scoped event tracing before the native open command. Count and log every `InsertEnter`/`InsertLeave` with mode, cursor row/column, line count, current line and `indentexpr`; snapshot immediately before/after `:normal! o`, before/after `:startinsert!`, and once the event loop settles. Compare (a) a minimal fixed-indentexpr fixture and (b) real TypeScript Treesitter. Also compare native `:normal! o` without an explicit `:startinsert!`. Do not add another cursor/line workaround until this proves where row 4 is introduced.
 - **Indentation ownership:** `core/general.lua` configures native autoindent and filetype indentation. `treesitter.lua` enables nvim-treesitter indentation; at pinned revision `85168f15808d89b0222313652b9d2777eda3cb08`, it attaches `nvim_treesitter#indent()` only when the parser language has an `indents` query. Lua has a dedicated query; TypeScript inherits ECMA. Indent-blankline and mini.indentscope are visual guides, not indentation providers.
 - **Current implementation scope:** Normal-mode `S`, `o`, and `O` mappings live in `.config/nvim/lua/core/general.lua`; the async regression is `tests/nvim/indented-substitute.lua` and is invoked by `scripts/test-nvim-headless.sh`. The test uses real `nvim_input()`, deferred callbacks, and bounded waits; its final callback exits via `os.exit(0, true)`, and assertion failures via `os.exit(1, true)`.
-- **Skill improvement:** updated `.agents/skills/neovim-maintenance/SKILL.md` in `b7fb512` with separate phases for indentation calculation, native line opening, final row/content assertions, cursor-anchor preservation, and async test termination. Use this guidance on future mapping iterations.
+- **Skill improvement:** `.agents/skills/neovim-maintenance/SKILL.md` already had the parser-backed mapping playbook from `b7fb512`. Extended it in `94b18c6` with a concrete diagnostic protocol for `:normal!` / InsertEnter / InsertLeave / `:startinsert!` boundaries, event counts, snapshots, and minimal fixed-vs-parser provider comparisons. Do not create a duplicate skill.
 - **Definition of done:** deterministic and real Lua/TypeScript parser-backed tests pass on the exact code/test head; full isolated install, locked plugin restore/build hooks, normal startup and behavior suite pass; full diff reviewed; interactive macOS validation reported separately as unverified.
-- **Manual limitation:** still verify mappings in real Lua and TypeScript project buffers in the maintainer's interactive macOS Neovim session.
-- **Merge:** no merge authorization has been given for PR #90. Do not merge without Brian's explicit instruction.
+- **Manual limitation:** verify mappings in real Lua and TypeScript project buffers on the maintainer's macOS Neovim session after CI passes.
+- **Merge:** keep PR #90 Draft. No merge without Brian's explicit instruction.
 
 ## Next concrete actions
 
-1. In `reindent_and_edit()`, restore the original source cursor immediately after the parser indentation provider returns and before registering/feeding the native `o/O`; add trace output for source cursor before/after provider and cursor at InsertEnter.
-2. Run the exact-head workflow; inspect `indented-substitute.log` for deterministic, Lua, TypeScript `o`, and TypeScript `O` PASS markers and final row/column/indent.
-3. If the row is still wrong, isolate the native key dispatch from the provider call with a minimal headless reproducer; do not stack another workaround onto the current callback without proving which operation moves the cursor.
-4. Review the full PR diff against issue #89 and retain the macOS manual-validation caveat.
-5. Keep PR #90 Draft. Merge requires Brian's explicit authorization.
+1. Instrument the actual InsertEnter/InsertLeave lifecycle around `:normal! o` and `:startinsert!` using a temporary scoped trace; record event counts and row/line-count changes.
+2. Add a minimal fixed-indentexpr reproduction and compare it with the real TypeScript Treesitter case. Remove the tracing once the responsible transition is proven.
+3. Apply the smallest production correction only after the reproducer identifies where row 4 is created or selected.
+4. Re-run the exact-head workflow and inspect `indented-substitute.log` for deterministic, Lua, TypeScript `o`, and TypeScript `O` PASS markers plus the final row/column/indent.
+5. Re-review PR #90's complete diff and preserve the manual macOS validation caveat. Keep the PR Draft and unmerged.
 
+---
 ## Completed predecessor — PR #92 / Issue #91
 
 - PR [#92](https://github.com/brianfiszman/dotfiles/pull/92) was squash-merged into `master` on 2026-11-14 as [`7857e8774471d4a756190e73d563ea4f537782d5`](https://github.com/brianfiszman/dotfiles/commit/7857e8774471d4a756190e73d563ea4f537782d5).
