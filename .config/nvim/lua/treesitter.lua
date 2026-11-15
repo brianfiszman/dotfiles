@@ -102,7 +102,7 @@ local function update_parsers()
     local major, minor, patch = (version_result.stdout or ""):match("(%d+)%.(%d+)%.(%d+)")
     assert(major, "Could not parse tree-sitter version: " .. (version_result.stdout or ""))
     local version_number = tonumber(major) * 1000000 + tonumber(minor) * 1000 + tonumber(patch)
-    assert(version_number >= 1000000 * 0 + 26000 + 1,
+    assert(version_number >= 26001,
       "tree-sitter-cli 0.26.1 or newer is required; found " .. vim.trim(version_result.stdout))
 
     local treesitter = require("nvim-treesitter")
@@ -169,6 +169,9 @@ local M = {
     "mason-org/mason.nvim",
     {
       "WhoIsSethDaniel/mason-tool-installer.nvim",
+      config = function(_, opts)
+        require("mason-tool-installer").setup(opts)
+      end,
       opts = {
         ensure_installed = { "tree-sitter-cli" },
         auto_update = true,
