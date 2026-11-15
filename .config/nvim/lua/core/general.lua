@@ -215,11 +215,27 @@ local function reindent_and_edit(key)
     false,
     true
   )
-  print(("[scope-indent] queue native %s count=%d from source cursor=%s source_indent=%q"):format(
+  local winid = vim.api.nvim_get_current_win()
+  print(("[scope-indent] schedule native %s count=%d from source cursor=%s source_indent=%q"):format(
     key, count, vim.inspect(vim.api.nvim_win_get_cursor(0)), source_indent))
-  -- Append after the active mapping input has been consumed. Prepending with
-  -- the feedkeys "i" flag can make the new command run against a later cursor.
-  vim.api.nvim_feedkeys(keys, "nt", false)
+
+  -- The current Normal-mode mapping must finish before the native open command
+  -- is inserted into typeahead. Dispatching synchronously from this callback
+  -- can let the original mapped input and the synthetic key interact.
+  vim.schedule(function()
+    if not vim.api.nvim_win_is_valid(winid)
+      or vim.api.nvim_get_current_win() ~= winid
+      or vim.api.nvim_win_get_buf(winid) ~= bufnr
+    then
+      print(("[scope-indent] skipped scheduled %s: source window/buffer changed"):format(key))
+      return
+    end
+
+    restore_source_cursor(source_cursor, key .. " scheduled dispatch")
+    print(("[scope-indent] dispatch native %s count=%d cursor=%s"):format(
+      key, count, vim.inspect(vim.api.nvim_win_get_cursor(winid))))
+    vim.api.nvim_feedkeys(keys, "nt", false)
+  end)
 end
 
 vim.keymap.set("n", "S", function()
