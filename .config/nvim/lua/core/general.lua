@@ -114,10 +114,19 @@ local scope_indent_group = vim.api.nvim_create_augroup("DotfilesScopeIndent", {
 local function reindent_and_edit(key)
   local count = vim.v.count1
   local reindent_count = key == "S" and count or 1
+  local source_cursor = vim.api.nvim_win_get_cursor(0)
 
   vim.cmd.normal({
     args = { ("%d=="):format(reindent_count) },
     bang = true,
+  })
+
+  -- Some indentexpr implementations adjust the cursor while reindenting.
+  -- Keep the edit anchored to the line where the user invoked S/o/O.
+  local source_line = vim.api.nvim_get_current_line()
+  vim.api.nvim_win_set_cursor(0, {
+    source_cursor[1],
+    math.min(source_cursor[2], #source_line),
   })
 
   if key == "S" then
