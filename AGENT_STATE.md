@@ -7,32 +7,31 @@ state updates land through a dedicated docs change. Keep this file at 40 lines o
 
 ## Current focus
 
-- **Repository:** `brianfiszman/dotfiles`; PRs #95 and #98 are merged.
-- **Functional fix:** [PR #95](https://github.com/brianfiszman/dotfiles/pull/95),
-  Neovim 0.12 legacy Treesitter compatibility; merge commit `f5b2a1f`.
-- **Dependency guidance:** [PR #98](https://github.com/brianfiszman/dotfiles/pull/98),
-  dependency triage, optional setup paths, skills, README, backlog, and worklog.
+- **Repository:** `brianfiszman/dotfiles`; PR #100 is merged.
+- **Merge:** [PR #100](https://github.com/brianfiszman/dotfiles/pull/100),
+  commit `d48b73fe874b20a6d4bfd9aba2e976f1af748f2e`; issue #99 is closed.
+- **Policy:** target latest stable Neovim/plugin APIs; no older-version
+  compatibility by default. See the Neovim maintenance skill.
 
 ## Verified evidence
 
-- PR #95 workflow
-  [#43749144164](https://github.com/brianfiszman/dotfiles/actions/runs/43749144164)
-  passed Neovim 0.11.3 and 0.12.6, including pre-existing checkout repair.
-- PR #98 latest-base workflow
-  [#43752267360](https://github.com/brianfiszman/dotfiles/actions/runs/43752267360)
-  passed all four jobs on a branch based on the merged #95 commit.
-- The local Mac's active config revision and installed Treesitter SHA/patch state
-  remain unverified; CI does not establish them.
+- PR #100 exact head `e8ebac969ba0c22a27563ef11e96e36ff9284453` passed
+  [workflow #43763594502](https://github.com/brianfiszman/dotfiles/actions/runs/43763594502):
+  all four jobs, including isolated Neovim 0.11.3 and 0.12.6 coverage.
+- Latest stable Neovim is 0.12.6. The current `nvim-treesitter` `main`
+  branch is a breaking rewrite requiring Neovim 0.12+, `tree-sitter-cli`
+  0.26.1+, and a C compiler.
+- No local Mac installation or plugin checkout was changed by the assistant.
 
 ## Pending
 
-- Issue [#66](https://github.com/brianfiszman/dotfiles/issues/66): optional,
-  explicit Python provider setup and verification.
-- Issue [#97](https://github.com/brianfiszman/dotfiles/issues/97): optional
-  Tree-sitter CLI installation through Mason.
-- No files or dependencies have been installed on the local Mac.
+- Issue #44: migrate from frozen legacy Treesitter API to current upstream API;
+  reassess and absorb the CLI work in #97.
+- Issue #89: verify its JS/TS indentation behavior against the current supported
+  Treesitter API; do not preserve a legacy branch just for older Neovim.
+- Issue #66: optional Python provider provisioning remains separate.
 
 ## Next action
 
-- Prioritize #66 or #97 only when useful; neither blocks ordinary Lua editing
-  or the CI-validated JavaScript/TypeScript indentation fix.
+- Inspect every currently used Treesitter feature and design a tested migration
+  to upstream `main` on latest stable Neovim. Keep only latest stable in CI.
