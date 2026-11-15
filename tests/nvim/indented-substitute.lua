@@ -356,8 +356,9 @@ local function probe_minimal_child_typescript_open(label, enable_filetype_indent
   })
   local exit_code = vim.v.shell_error
   vim.fn.delete(child_script)
+  local output_text = tostring(output):gsub("\\n", " | ")
   print(("[scope-indent-child] %s exit=%d output=%s"):format(
-    label, exit_code, vim.inspect(output:gsub("\\n", " | "))))
+    label, exit_code, vim.inspect(output_text)))
   assert(exit_code == 0, "minimal child Neovim probe failed: " .. output)
 end
 
