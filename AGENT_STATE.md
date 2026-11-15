@@ -11,26 +11,23 @@ branches must not edit this file. Keep this checkpoint at 40 lines or fewer.
 - **Issue #89:** reopened after Brian reported JS/TS `S`, `o`, and `O`
   entering at column 0 after the initial implementation was merged.
 - **Functional PR #95:** Draft, branch `fix/89-js-ts-indent`, head
-  `db4e497cd5ac283399eb2b6e660085e3feb9d034`. Test-only; no runtime change.
+  `be848d54895a1d0022c83c5c12bd14b106b7171c`. Test-only; no runtime change.
 
 ## Verified evidence
 
-- Exact-head full integration [#43735275124](https://github.com/brianfiszman/dotfiles/actions/runs/43735275124)
-  passed on `db4e497`: install, plugin restore, normal startup, and all
-  headless behavior tests completed successfully.
-- Home React passed all six `S`/`o`/`O` cases in JSX and TSX; the log
-  confirms `javascriptreact → javascript` and `typescriptreact → tsx`.
-- The test covers JS/TS blocks and objects, Lua, JSON, YAML, counted `2S`,
-  and closed-fold behavior. Neovim 0.11.3; Treesitter lock
+- Exact-head full integration [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275)
+  passed on `be848d5`: install, plugin restore, normal startup, all headless tests.
+- Actual Home React source passed `S`, `o`, and `O` as `.js`, `.jsx`,
+  and `.tsx`; JS route is `javascript → javascript`, React route
+  `javascriptreact → javascript`, TSX route `typescriptreact → tsx`.
+- Dedicated `.ts` interface and object fixtures passed with parser
+  `typescript`. Neovim 0.11.3; Treesitter lock
   `85168f15808d89b0222313652b9d2777eda3cb08`.
-- User confirmed affected files include `.js` and `.ts`; JSX/TSX are
-  suspected but not yet confirmed locally. The actual Home component is now
-  also tested as `.js` in current functional head `be848d5`; run
-  [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275)
-  is pending exact-head validation. Intermediate watchdog head `9ae8ea0` is superseded.
+- Remaining gap: exact local key/cursor context and local Neovim version to
+  reproduce Brian's column-zero report. No runtime change made.
 
 ## Pending
 
-- Obtain Brian's actual file extension, failing key/cursor line, and local Neovim version.
-- Reproduce the local column-zero behavior before proposing runtime changes.
-- Keep PR #95 Draft; no runtime workaround, interactive macOS verification, or merge authorization before evidence.
+- Obtain the failing key (`S`, `o`, or `O`), cursor line/context, and local Neovim version.
+- Reproduce locally before any runtime workaround.
+- Keep both PRs Draft; no merge authorization.
