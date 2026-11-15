@@ -225,13 +225,26 @@ local function reindent_and_edit(key)
         vim.api.nvim_buf_set_lines(bufnr, cursor[1] - 1, cursor[1], false, {
           source_indent .. body,
         })
-        vim.api.nvim_win_set_cursor(winid, {
-          cursor[1],
-          #source_indent + body_column,
-        })
-        print(("[scope-indent] applied prefix for %s row=%d column=%d indent=%d line=%q"):format(
-          key, cursor[1], vim.api.nvim_win_get_cursor(winid)[2],
-          vim.fn.indent(cursor[1]), vim.api.nvim_get_current_line()))
+        print(("[scope-indent] applied prefix for %s row=%d indent=%d line=%q"):format(
+          key, cursor[1], vim.fn.indent(cursor[1]), vim.api.nvim_get_current_line()))
+
+        -- startinsert! finalizes its cursor placement after InsertEnter. Move
+        -- to the end of the restored prefix after that command has completed.
+        vim.schedule(function()
+          if not vim.api.nvim_win_is_valid(winid)
+            or vim.api.nvim_get_current_win() ~= winid
+            or vim.api.nvim_win_get_buf(winid) ~= bufnr
+            or vim.fn.mode():sub(1, 1) ~= "i"
+          then
+            return
+          end
+          local current = vim.api.nvim_win_get_cursor(winid)
+          local current_line = vim.api.nvim_get_current_line()
+          local indent = current_line:match("^%s*") or ""
+          vim.api.nvim_win_set_cursor(winid, { current[1], #indent })
+          print(("[scope-indent] positioned cursor for %s row=%d column=%d line=%q"):format(
+            key, current[1], vim.api.nvim_win_get_cursor(winid)[2], current_line))
+        end)
       end,
       desc = "Apply the source indentation after native open and Insert restart",
     })
