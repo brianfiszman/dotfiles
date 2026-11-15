@@ -238,6 +238,9 @@ local function reindent_and_edit(key)
       args = { keys },
       bang = true,
     })
+    -- :normal! executes native o/O but returns to Normal mode when its command
+    -- ends. Re-enter Insert at the end of the newly opened, indented line.
+    vim.cmd("startinsert!")
   end)
 end
 
