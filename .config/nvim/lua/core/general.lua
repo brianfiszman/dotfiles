@@ -115,6 +115,7 @@ local function reindent_and_edit(key)
   local count = vim.v.count1
   local reindent_count = key == "S" and count or 1
   local source_cursor = vim.api.nvim_win_get_cursor(0)
+  print(("[scope-indent] key=%s before== cursor=%s"):format(key, vim.inspect(source_cursor)))
 
   vim.cmd.normal({
     args = { ("%d=="):format(reindent_count) },
@@ -124,10 +125,14 @@ local function reindent_and_edit(key)
   -- Some indentexpr implementations adjust the cursor while reindenting.
   -- Keep the edit anchored to the line where the user invoked S/o/O.
   local source_line = vim.api.nvim_get_current_line()
+  print(("[scope-indent] key=%s after== cursor=%s line=%s"):format(
+    key, vim.inspect(vim.api.nvim_win_get_cursor(0)), vim.inspect(source_line)))
   vim.api.nvim_win_set_cursor(0, {
     source_cursor[1],
     math.min(source_cursor[2], #source_line),
   })
+  print(("[scope-indent] key=%s restored cursor=%s"):format(
+    key, vim.inspect(vim.api.nvim_win_get_cursor(0))))
 
   if key == "S" then
     -- The native change-line command preserves the indentation computed above.
@@ -156,6 +161,8 @@ local function reindent_and_edit(key)
     callback = function()
       local cursor = vim.api.nvim_win_get_cursor(0)
       local line = vim.api.nvim_get_current_line()
+      print(("[scope-indent] InsertEnter key=%s cursor=%s line=%s"):format(
+        key, vim.inspect(cursor), vim.inspect(line)))
       local old_indent = line:match("^%s*") or ""
       local body = line:sub(#old_indent + 1)
       local body_column = math.max(cursor[2] - #old_indent, 0)
