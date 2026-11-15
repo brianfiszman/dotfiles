@@ -10,31 +10,31 @@ authorization to continue paused work. Keep this file at 40 lines or fewer.
 
 - **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `7857e87`.
 - **Functional PR:** [#93](https://github.com/brianfiszman/dotfiles/pull/93)
-  `fix/89-scope-indent`, Draft, head `77b0dad`, issue [#89](https://github.com/brianfiszman/dotfiles/issues/89).
-  Adds scope-aware `S`, `o`, `O` and a 244-line regression test. Awaiting Brian's
-  explicit review and merge decision. **No merge authorization.**
-- **Docs PR:** [#94](https://github.com/brianfiszman/dotfiles/pull/94) — state/worklog budgets, skill trims,
-  diagnostic-experiment protocol, ADRs, incident records. **No merge authorization.**
-- **Closed predecessor:** [#90](https://github.com/brianfiszman/dotfiles/pull/90)
-  closed as superseded; archive branch `archive/indented-substitute-43` at `85f1ec7`.
+  `fix/89-scope-indent`, Draft, head `a1c58a5`, issue
+  [#89](https://github.com/brianfiszman/dotfiles/issues/89). Scope-aware
+  `S`/`o`/`O`, a 268-line test, and CI wiring. **No merge authorization.**
+- **Docs PR:** [#94](https://github.com/brianfiszman/dotfiles/pull/94)
+  `docs/agent-memory-hygiene`, Draft, evidence head `7fdd89e`. State/worklog
+  budgets, skill trims, active-artifact checks. **No merge authorization.**
+- **Closed predecessor:** #90, superseded; archive `archive/indented-substitute-43` (`85f1ec7`).
+
 ## Verified evidence
 
-- #93 full PR run [#43723717327](https://github.com/brianfiszman/dotfiles/actions/runs/43723717327)
-  on `77b0dad`: decision, fast checks, and fresh-install/headless integration all
-  passed; integration job took 1m28s.
-- Local pinned Neovim 0.11.3 with the committed `lazy-lock.json`: `S`, `o`, `O`,
-  `2S`, Lua `S`, and TypeScript `o`/`O` passed; exit 0.
-- Root cause of the #90 failure: the test fixture inherited `foldmethod=syntax`,
-  so the source line was in a closed fold and native `o` opened at row 4 while
-  the test expected row 3. Test-fixture bug, not a production regression.
+- #93 PR run [#43727447409](https://github.com/brianfiszman/dotfiles/actions/runs/43727447409)
+  on `a1c58a5`: decision, fast checks, and integration passed; the startup log
+  ran `indented-substitute` with closed-fold `o` at row 4.
+- #94 run [#43727665222](https://github.com/brianfiszman/dotfiles/actions/runs/43727665222)
+  on `7fdd89e`: decision, fast checks, and integration passed; skills triggered it.
+- Negative control: removing the `foldclosed()` guard makes the closed-fold
+  scenario fail; the guard passes. Local pinned Neovim 0.11.3 exited 0.
+- #90 root cause: fixture inherited `foldmethod=syntax`; the source line was in
+  a closed fold, so native `o` opened row 4 while the test expected row 3.
+
 ## Pending and not authorized
 
-- #93 stays Draft until Brian decides. Do not mark it Ready or merge it.
-- #89 stays open until #93 merges and its acceptance criteria are verified.
-- Cold-path `workflow_dispatch` and scheduled `master` runs remain unverified for
-  the post-#92 workflow.
+- #93 and #94 stay Draft until Brian decides. Do not mark Ready or merge.
+- #89 stays open until #93 merges; interactive macOS QA remains owner work.
 
 ## Next action
 
-Brian reviews #93. If approved, merge it, verify the post-merge `master` run and
-close #89. Then review the docs PR separately.
+Brian reviews #93, then #94. If approved, merge and verify post-merge `master`.
