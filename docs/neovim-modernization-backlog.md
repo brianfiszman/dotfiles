@@ -13,7 +13,7 @@ underlying fix.
 
 ## P1 — Make everyday editing predictable
 
-- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — initial `feedkeys` tests exposed two harness issues (implicit Escape, then synchronous Insert-mode wait); the non-blocking `nvim_input()` correction is under exact-head CI validation. Treesitter ownership is documented; manual Lua/TypeScript macOS verification remains required.
+- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — the prior green run did not execute the regression test because the reconstructed PR tree omitted both the production mapping and runner invocation; both are restored, and exact-head CI must include `indented-substitute.log` with behavior markers.
 
 
 - [#32 Stop automatically unlinking snippets when the cursor is idle](https://github.com/brianfiszman/dotfiles/issues/32)

@@ -494,3 +494,13 @@ headless sequence, before any other DAP test populates the registry.
   is reported through the normal test process and log scanner. Print trace/pass
   markers before and after input transitions so a timeout identifies the last
   action reached instead of leaving an empty behavior log.
+
+## Preserve functional files when rebuilding a PR tree
+
+When creating a Git tree from the base branch to preserve a merge base, include
+all existing branch-only functional files—not just the newest documentation or
+test edits. After moving the ref, compare the PR head against the exact base and
+verify that both implementation files and their test-runner wiring remain in the
+diff. A green workflow is not evidence for a feature when its test is absent
+from the executed script or its behavior log is missing from the artifact.
+

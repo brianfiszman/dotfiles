@@ -645,3 +645,21 @@ here rather than copying it.
 - Keep the production mappings unchanged until the corrected test proves
   there is a real behavior defect. Run the exact PR-head integration again.
 
+---
+
+## 2026-11-14 — Restore omitted mapping and regression runner in PR tree (#89)
+
+- Reviewed the successful run [#43662471154](https://github.com/brianfiszman/dotfiles/actions/runs/43662471154)
+  and its artifact [14140428859](https://github.com/brianfiszman/dotfiles/actions/runs/43662471154/artifacts/14140428859).
+  The workflow was green, but the artifact contained no `indented-substitute.log`.
+- Compared PR head `1fa61d3` with `master`: the branch tree reconstruction had
+  accidentally omitted both `.config/nvim/lua/core/general.lua` mapping changes
+  and the `scripts/test-nvim-headless.sh` invocation. Therefore run #43662471154
+  did not validate issue #89 and must not be reported as feature validation.
+- Recovered the exact mapping block and test-runner insertion from previous
+  branch snapshot `7f030b0`, retained the new non-blocking `nvim_input()`
+  test helper, and restored both files into the next tree.
+- New acceptance check: the PR diff must explicitly include production mapping,
+  behavior-test file, and runner wiring; the exact-head artifact must contain
+  `indented-substitute.log` with PASS markers. No merge or sign-off until then.
+

@@ -104,3 +104,27 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
+-- Reindent the current scope, then let Neovim execute its native editing
+-- command. Returning keys keeps the Insert-mode transition in the input loop.
+vim.keymap.set("n", "S", function()
+  local count = vim.v.count1
+  return ("<Cmd>normal! %d==<CR>%dcc"):format(count, count)
+end, {
+  desc = "Reindent and replace line(s)",
+  expr = true,
+  silent = true,
+})
+
+for key, description in pairs({
+  o = "Reindent and open line below",
+  O = "Reindent and open line above",
+}) do
+  vim.keymap.set("n", key, function()
+    local count = vim.v.count1
+    return ("<Cmd>normal! ==<CR>%d%s"):format(count, key)
+  end, {
+    desc = description,
+    expr = true,
+    silent = true,
+  })
+end
