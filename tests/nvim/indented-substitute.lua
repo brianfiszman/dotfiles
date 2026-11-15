@@ -1,4 +1,6 @@
 -- Regression test for scope-aware indentation when replacing/opening lines.
+-- Use non-blocking nvim_input and bounded event-loop waits: synchronous
+-- feedkeys(..., 'x!') can remain in the input loop while Insert mode is active.
 -- Use a deterministic indentexpr so assertions do not depend on parser versions.
 _G.DotfilesTestIndent = function()
   return 4
@@ -13,14 +15,26 @@ vim.bo.tabstop = 2
 vim.bo.autoindent = true
 vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
 
+local function wait_for_mode(expected, description)
+  local reached = vim.wait(1500, function()
+    return vim.fn.mode():sub(1, 1) == expected
+  end, 10)
+  assert(reached, description .. " did not reach mode " .. expected
+    .. " (current mode: " .. vim.fn.mode() .. ")")
+end
+
 local function press_and_wait_for_insert(keys, description)
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx!", false)
-  assert(vim.fn.mode():sub(1, 1) == "i", description .. " must enter Insert mode")
+  print("[indented-substitute] queueing " .. description)
+  local queued = vim.api.nvim_input(keys)
+  assert(queued > 0, description .. " input was not queued")
+  wait_for_mode("i", description)
+  print("[indented-substitute] " .. description .. " entered Insert mode")
 end
 
 local function leave_insert()
-  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
-  assert(vim.fn.mode():sub(1, 1) == "n", "Escape must return to Normal mode")
+  local queued = vim.api.nvim_input("<Esc>")
+  assert(queued > 0, "Escape input was not queued")
+  wait_for_mode("n", "Escape")
 end
 
 local function assert_current_line_indent(expected, description)

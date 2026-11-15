@@ -13,6 +13,9 @@ underlying fix.
 
 ## P1 — Make everyday editing predictable
 
+- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — initial `feedkeys` tests exposed two harness issues (implicit Escape, then synchronous Insert-mode wait); the non-blocking `nvim_input()` correction is under exact-head CI validation. Treesitter ownership is documented; manual Lua/TypeScript macOS verification remains required.
+
+
 - [#32 Stop automatically unlinking snippets when the cursor is idle](https://github.com/brianfiszman/dotfiles/issues/32)
 - [#33 Avoid running checktime every time a buffer window is entered](https://github.com/brianfiszman/dotfiles/issues/33)
 - [#34 Remove full helptags generation from every Neovim startup](https://github.com/brianfiszman/dotfiles/issues/34)

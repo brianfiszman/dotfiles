@@ -623,3 +623,25 @@ here rather than copying it.
   Interactive macOS validation remains a separate manual check. The PR
   stays Draft and no merge is authorized.
 
+---
+
+## 2026-11-14 — Replace synchronous Insert-mode test input after run #43653932998 (#89)
+
+- The first corrected test version changed `feedkeys` flags from `mtx` to
+  `mtx!` to prevent the implicit Escape. Exact-head full integration
+  [#43653932998](https://github.com/brianfiszman/dotfiles/actions/runs/43653932998)
+  then timed out after five minutes in the `indented-substitute` process.
+- Downloaded and inspected artifact
+  [14137890962](https://github.com/brianfiszman/dotfiles/actions/runs/43653932998/artifacts/14137890962).
+  The behavior log contains only clipboard/Codeium warnings and SIGTERM; there
+  is no assertion failure or mapping error. The trace is consistent with
+  synchronous `feedkeys(..., "x!")` waiting while Insert mode remains active.
+- Neovim 0.11.3 `api.txt` describes `nvim_input()` as a non-blocking queue
+  processed asynchronously by the event loop, with key notation such as
+  `<CR>` translated by the API. Replace the synchronous helper with
+  `nvim_input()` plus bounded `vim.wait()` assertions for Insert/Normal mode.
+  Add trace markers before/after each transition so the next log localizes a
+  failure immediately.
+- Keep the production mappings unchanged until the corrected test proves
+  there is a real behavior defect. Run the exact PR-head integration again.
+

@@ -484,9 +484,13 @@ headless sequence, before any other DAP test populates the registry.
   replacing/opening a line, run the native `==` operator before the native
   `S`, `o`, or `O` action and preserve the user's count.
 - In headless tests, `nvim_feedkeys(..., "x", ...)` sends an implicit Escape at
-  end-of-typeahead if the editor remains in Insert mode. Use `"x!"` when
-  the test must assert the editor is still in Insert mode; use plain `"x"` when
-  deliberately finishing the action and returning to Normal mode.
+  end-of-typeahead if the editor remains in Insert mode. Avoid synchronous
+  `feedkeys(..., "x!")` to assert an active Insert-mode transition: it can keep
+  execution in the input loop until more input arrives. Queue actual user keys
+  with non-blocking `vim.api.nvim_input()`, then use a bounded `vim.wait()`
+  predicate to assert the expected mode. Use key notation such as `"<Esc>"`
+  directly with `nvim_input()`; it translates keycodes itself.
 - Invoke behavioral Lua files directly with `+luafile` so an assertion failure
-  is reported through the normal test process and log scanner; avoid a wrapper
-  that reports an error but leaves Neovim waiting on the input queue.
+  is reported through the normal test process and log scanner. Print trace/pass
+  markers before and after input transitions so a timeout identifies the last
+  action reached instead of leaving an empty behavior log.
