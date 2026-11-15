@@ -214,8 +214,8 @@ local function reindent_and_edit(key)
     false,
     true
   )
-  print(("[scope-indent] queue native %s from source cursor=%s source_indent=%q"):format(
-    key, vim.inspect(vim.api.nvim_win_get_cursor(0)), source_indent))
+  print(("[scope-indent] queue native %s count=%d from source cursor=%s source_indent=%q"):format(
+    key, count, vim.inspect(vim.api.nvim_win_get_cursor(0)), source_indent))
   -- Append after the active mapping input has been consumed. Prepending with
   -- the feedkeys "i" flag can make the new command run against a later cursor.
   vim.api.nvim_feedkeys(keys, "nt", false)
