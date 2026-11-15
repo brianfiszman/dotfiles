@@ -21,6 +21,31 @@ plugin/LSP/tool trigger. Report the level actually reached.
 - Restore locked plugins; do not silently upgrade them.
 - Keep test-only environment flags unset for the normal-startup phase.
 
+## Local-versus-CI dependency diagnosis
+
+A green CI run is not proof that the maintainer's Mac has the tested plugin
+checkout or patch. When local behavior differs:
+
+1. Record `nvim --version`, `:echo stdpath("config")`, and
+   `:echo stdpath("data")` from the failing Neovim process.
+2. Read the committed `lazy-lock.json` entry, then inspect the actual local
+   plugin checkout with `git -C <plugin-dir> rev-parse HEAD`.
+3. Check `git -C <plugin-dir> diff -- <relevant-file>` and verify the expected
+   compatibility patch/function exists in the installed checkout.
+4. Check the active Neovim PATH with `vim.fn.executable("<tool>")`; do not
+   assume the interactive shell PATH is inherited.
+5. For Treesitter, record parser ABI, installed parser path, and the relevant
+   query/indent feature. A missing optional CLI does not mean the parser is
+   missing.
+6. Capture this state before `:Lazy update`, `:TSUpdate`, reinstall, or
+   manual edits. Those actions can erase the original mismatch.
+
+The lockfile describes the intended revision; it is not an inventory of local
+installed files. A clean-install CI pass validates its exact branch/head and
+isolated XDG environment only. Follow
+`.agents/skills/neovim-dependency-management/SKILL.md` for package/provider
+classification and safe installation paths.
+
 ## Test shape
 
 - Prefer one Lua test file invoked with a single `+luafile` command.
@@ -120,6 +145,24 @@ workspace for LSP and Treesitter tests.
   because a server may not emit it for an already-clean buffer.
 - A LuaLS `--check` run is diagnostic, not a substitute for the Neovim client
   test.
+
+## Existing plugin checkout regressions
+
+When a startup patch is added to an existing lazy.nvim plugin spec, test more
+than the clean-install build hook. In the isolated workspace:
+
+1. Restore the locked plugin and verify the install/update build hook applies
+   the patch.
+2. Reverse the patch in that disposable checkout while keeping its Git revision
+   fixed.
+3. Start Neovim through the normal config path and verify the startup `init`
+   hook reapplies the patch before plugin modules load.
+4. Verify exact plugin SHA, patch presence, and the relevant user-visible
+   behavior after startup.
+
+This catches the case where CI's fresh install works but a maintainer's existing
+plugin directory never ran the newly-added build function. Do not reverse or
+patch a maintainer's real plugin checkout as part of CI.
 
 ## Logs and artifacts
 

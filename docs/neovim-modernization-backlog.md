@@ -10,8 +10,8 @@ independently testable behavior.
 
 - [#31](https://github.com/brianfiszman/dotfiles/issues/31) — make lazy.nvim
   bootstrap failures clear; missing-Git and failed-clone paths still need tests.
-- [#66](https://github.com/brianfiszman/dotfiles/issues/66) — exclude the
-  committed Python virtualenv; Python provider health needs a runtime check.
+- [#66](https://github.com/brianfiszman/dotfiles/issues/66) — keep the Python
+  provider optional and provision/verify its machine-local pynvim environment.
 
 ## Open — P1: predictable everyday editing
 
@@ -33,9 +33,7 @@ independently testable behavior.
   Shift-Tab once.
 - [#69](https://github.com/brianfiszman/dotfiles/issues/69) — activate Codeium on
   Insert mode; empty-buffer deferral is validated, first activation is not.
-- [#89](https://github.com/brianfiszman/dotfiles/issues/89) — scope-aware `S`,
-  `o`, and `O`; implemented in Draft PR
-  [#93](https://github.com/brianfiszman/dotfiles/pull/93), unmerged.
+
 
 ## Open — P1: reliable language and navigation tools
 
@@ -45,12 +43,28 @@ independently testable behavior.
   debugging, and search tools only when used (parent).
 - [#44](https://github.com/brianfiszman/dotfiles/issues/44) — pin the Treesitter
   API and make parser updates predictable.
+- [#97](https://github.com/brianfiszman/dotfiles/issues/97) — install the
+  optional Tree-sitter CLI through Mason when grammar regeneration is needed.
 - [#45](https://github.com/brianfiszman/dotfiles/issues/45) — make shell, font,
   and clipboard settings portable.
 - [#76](https://github.com/brianfiszman/dotfiles/issues/76) — load Telescope on
   the first picker action.
 
 ## Recently completed
+
+- Legacy Treesitter compatibility on Neovim 0.12 — merged in
+  [PR #95](https://github.com/brianfiszman/dotfiles/pull/95) as commit
+  [`f5b2a1f`](https://github.com/brianfiszman/dotfiles/commit/f5b2a1ff7d8f0277ad33e50b64e9e9f99b34186f).
+  Exact PR head `e61e0cafd41443cf4082f7c12ca60177cf90597d` passed workflow
+  [#43749144164](https://github.com/brianfiszman/dotfiles/actions/runs/43749144164)
+  on Neovim 0.11.3 and 0.12.6, including the pre-existing-checkout startup
+  patch regression test.
+
+
+
+- [#89](https://github.com/brianfiszman/dotfiles/issues/89) — scope-aware
+  `S`, `o`, and `O`, merged in PR
+  [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`).
 
 - [#91](https://github.com/brianfiszman/dotfiles/issues/91) — Neovim CI feedback
   optimization, merged as PR
@@ -84,6 +98,7 @@ verified evidence, blockers, and next action. Do not infer status from this file
 - Actions validation: [`github-actions-validation`](../.agents/skills/github-actions-validation/SKILL.md)
 - Execution continuity: [`execution-continuity`](../.agents/skills/execution-continuity/SKILL.md)
 - Agent memory hygiene: [`agent-memory-hygiene`](../.agents/skills/agent-memory-hygiene/SKILL.md)
+- Dependency triage: [`neovim-dependency-management`](../.agents/skills/neovim-dependency-management/SKILL.md)
 
 Testing is part of every functional issue's scope and estimate. Define observable
 acceptance scenarios and the automated unit/integration/end-to-end checks before

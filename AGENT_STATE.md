@@ -3,38 +3,38 @@
 _Last updated: 2026-11-15 (America/Argentina/Buenos_Aires)_
 
 Canonical copy lives on `master`. Functional branches must not edit this file;
-state updates land through a dedicated docs PR. A branch-local copy is not
-authorization to continue paused work. Keep this file at 40 lines or fewer.
+state updates land through a dedicated docs PR. Keep this file at 40 lines or fewer.
 
 ## Current focus
 
-- **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `e5d7fb5`.
-- **Merged fix:** [#93](https://github.com/brianfiszman/dotfiles/pull/93)
-  `fix/89-scope-indent` at `e5d7fb5`; issue
-  [#89](https://github.com/brianfiszman/dotfiles/issues/89) closed. Scope-aware
-  `S`/`o`/`O`, the 268-line test, and CI wiring are on `master`.
-- **Docs PR:** [#94](https://github.com/brianfiszman/dotfiles/pull/94)
-  `docs/agent-memory-hygiene`, evidence head `9ff6c50`, merge approved.
-  State/worklog budgets, skill trims, active-artifact checks.
+- **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `f5b2a1f`.
+- **Merged fix:** [PR #95](https://github.com/brianfiszman/dotfiles/pull/95),
+  `fix/89-js-ts-indent`, squash commit `f5b2a1f`.
+- **Docs PR:** [#98](https://github.com/brianfiszman/dotfiles/pull/98),
+  `docs/neovim-dependency-management`; dependency triage, README, backlog,
+  and skills only.
 
 ## Verified evidence
 
-- #93 PR run [#43727447409](https://github.com/brianfiszman/dotfiles/actions/runs/43727447409)
-  on `a1c58a5` and post-merge `master` run
-  [#43728164912](https://github.com/brianfiszman/dotfiles/actions/runs/43728164912):
-  both passed full integration; startup ran `indented-substitute` with
-  closed-fold `o` at row 4.
-- Earlier #93 head `77b0dad` is historical for that test: CI wiring was missing.
-- #94 skill run [#43727665222](https://github.com/brianfiszman/dotfiles/actions/runs/43727665222)
-  on `7fdd89e`: full integration passed.
-- #94 docs-only run [#43727962621](https://github.com/brianfiszman/dotfiles/actions/runs/43727962621)
-  on `9ff6c50`: fast checks passed; integration skipped and reused `7fdd89e`.
+- PR #95 workflow
+  [#43749144164](https://github.com/brianfiszman/dotfiles/actions/runs/43749144164)
+  passed both Neovim versions and the simulated pre-existing checkout test.
+- Health report: JS/TS/TSX parsers are installed; the `tree-sitter` CLI is
+  optional for `:TSInstallFromGrammar`; Python provider auto-detection fails
+  because `pynvim-python` is missing.
+- Git satisfies Diffview; Composer/PHP/Julia, Perl, and Mercurial are optional
+  for unused features. Existing `vim.pack` data needs inventory, not deletion.
 
 ## Pending
 
-- #94 awaits its final docs-only run and merge.
-- Interactive macOS QA for the new key behavior remains owner work.
+- PR #98 contains documentation/skills/state updates and must pass CI against
+  the current master after PR #95.
+- Local installed Treesitter SHA/patch state is unverified; CI does not prove it.
+- Issues [#66](https://github.com/brianfiszman/dotfiles/issues/66) and
+  [#97](https://github.com/brianfiszman/dotfiles/issues/97) track optional
+  Python-provider and Mason CLI setup paths.
 
 ## Next action
 
-Verify the final #94 run, merge it, and confirm `master` state.
+- Complete latest-base validation and review of docs PR #98; then prioritize
+  issue #66 or #97 separately.
