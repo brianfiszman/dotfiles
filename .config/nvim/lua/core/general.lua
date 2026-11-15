@@ -104,3 +104,50 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
+-- `S`, `o` and `O` seed the new line from the source line's existing
+-- whitespace. Reindent the source line with the buffer's configured indent
+-- engine first, otherwise a line whose indentation is missing or stale makes
+-- the edit start at column 0. Keep the built-in command native: feed it
+-- without remapping so Neovim still owns Insert mode and the count semantics.
+-- Do not use `:normal` here: it does not run the full open-line path, so an
+-- active indentexpr is skipped for the new line.
+local function reindent_source_lines(first, last)
+  local view = vim.fn.winsaveview()
+  for lnum = first, last do
+    -- A closed fold hides its lines, and native open-line commands work on
+    -- the fold boundary. Leave that behavior untouched.
+    if vim.fn.foldclosed(lnum) == -1 then
+      vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+      vim.cmd.normal({ args = { "==" }, bang = true })
+    end
+  end
+  vim.fn.winrestview(view)
+end
+
+local function edit_at_scope_indent(key)
+  local count = vim.v.count1
+  local line = vim.fn.line(".")
+  local last = key == "S" and math.min(line + count - 1, vim.fn.line("$")) or line
+  reindent_source_lines(line, last)
+  vim.api.nvim_feedkeys(("%d%s"):format(count, key), "n", false)
+end
+
+vim.keymap.set("n", "S", function()
+  edit_at_scope_indent("S")
+end, {
+  desc = "Reindent and replace line(s)",
+  silent = true,
+})
+
+for key, description in pairs({
+  o = "Reindent and open line below",
+  O = "Reindent and open line above",
+}) do
+  vim.keymap.set("n", key, function()
+    edit_at_scope_indent(key)
+  end, {
+    desc = description,
+    silent = true,
+  })
+end
+
