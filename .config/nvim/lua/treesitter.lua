@@ -110,8 +110,8 @@ end
 
 local M = {
   'nvim-treesitter/nvim-treesitter',
-  -- This legacy API is intentionally frozen until its migration is separately tested.
-  pin = true,
+  -- Freeze the legacy API at the exact revision covered by the compatibility adapter.
+  commit = legacy_treesitter_commit,
   dependencies = {
     -- Additional text objects for treesitter
     "nvim-treesitter/nvim-treesitter-textobjects",

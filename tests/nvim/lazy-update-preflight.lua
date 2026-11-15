@@ -1,8 +1,8 @@
 -- Exercise the actual LazyUpdatePre/LazyUpdate events against Git checkout collisions.
 local config = require("lazy.core.config")
 local treesitter = config.plugins["nvim-treesitter"]
-assert(treesitter and treesitter.pin == true,
-  "legacy nvim-treesitter must remain pinned until its API migration is validated")
+assert(treesitter and treesitter.commit == expected_commit,
+  "legacy nvim-treesitter must stay on the exact commit covered by the compatibility adapter")
 
 local root = vim.fn.tempname() .. "-lazy-update-preflight"
 local repo = root .. "/plugin"

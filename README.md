@@ -139,9 +139,9 @@ installation work.
 ### Existing Treesitter installations on Neovim 0.12
 
 The compatibility layer is restricted to the legacy `nvim-treesitter` revision
-pinned in `lazy-lock.json`. Its plugin spec is also marked `pin = true`, so
-`:Lazy update` does not silently advance this API-dependent plugin before a
-separately tested migration. It adapts query capture lists in memory, so it does
+pinned in `lazy-lock.json`. Its plugin spec also declares the exact compatible
+commit, so `:Lazy update` does not silently advance this API-dependent plugin
+before a separately tested migration. It adapts query capture lists in memory, so it does
 not leave modifications in the plugin's Git checkout.
 
 When moving from the previous dotfiles revision, the next normal startup
