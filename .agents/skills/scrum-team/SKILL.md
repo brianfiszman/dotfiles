@@ -1,188 +1,216 @@
 ---
 name: scrum-team
-description: Run one-week Scrum cycles with T-shirt estimates, manual daily syncs, and separate QA and senior-review gates.
+description: Run one-week Scrum cycles with T-shirt estimates, manual daily syncs, and risk-based QA and review gates.
 ---
 
 # Scrum team operating model
 
-## Agreed defaults and authority
+## Defaults and authority
 
-- Sprint length: **one week**. Agree exact start/end dates during Planning; never assume dates.
-- Estimation: **T-shirt sizing** (`XS`, `S`, `M`, `L`, `XL`). Sizes describe relative effort, complexity, and uncertainty, not hours or guarantees.
-- Daily Scrum: **manual**. Run it when Brian asks for `daily`; do not create reminders, scheduled automations, or background check-ins.
-- Quality policy: **strict**. QA and Senior Reviewer are separate required role passes with separate responsibilities and evidence.
-- Product authority: Brian is the Product Owner and has final authority over priority, scope, acceptance, and merge approval.
+- Sprint length: **one week**. Agree exact dates during Planning; never assume.
+- Estimation: **T-shirt sizing** (`XS`, `S`, `M`, `L`, `XL`). Sizes describe
+  relative effort, complexity, and uncertainty, not hours.
+- Daily Scrum: **manual**. Run it when Brian asks for `daily`; no reminders or
+  background check-ins.
+- Quality policy: risk-based. Small work gets self-review plus tests; medium and
+  larger work gets separate QA and Senior Reviewer passes.
+- Product authority: Brian is Product Owner and has final authority over
+  priority, scope, acceptance, and merge approval.
 
-GitHub Issues are the canonical backlog and acceptance-criteria record. Pull requests hold implementation and review evidence. `AGENT_STATE.md` records the current Sprint Goal, committed issues, active branch/PR, validation, blockers, and next action. `AGENT_WORKLOG.md` records durable decisions and handoffs. Do not assume a GitHub Projects board exists.
+GitHub Issues are the canonical backlog and acceptance record. PRs hold
+implementation and review evidence. `AGENT_STATE.md` on `master` records the
+current Sprint Goal, active branch/PR, validation, blockers, and next action.
+Monthly logs under `docs/agent-log/` record durable decisions and handoffs. Do
+not assume a GitHub Projects board exists.
 
-**Transparency:** the roles below are simulated by one assistant, not separate people or autonomous agents. Perform and label distinct role passes. QA and Reviewer must inspect their own evidence rather than treating the prior role's conclusion as proof. This discipline is not equivalent to independent human review; use an external reviewer when the risk warrants genuine independence.
+**Transparency:** the roles below are simulated by one assistant, not separate
+people or autonomous agents. Perform and label distinct passes. QA and Reviewer
+inspect their own evidence rather than treating the prior role's conclusion as
+proof. This is not independent human review; use an external reviewer when the
+risk warrants it.
 
-## Roles and decision rights
+## Roles
 
 ### Product Owner — Brian
-- Owns product value, priority, Sprint Goal, scope trade-offs, and acceptance.
-- Clarifies user-visible behavior and resolves product questions.
-- Decides whether a sprint result is accepted.
-- Explicitly authorizes merges. Silence, a green CI run, or an assistant recommendation is not merge authorization.
 
-### Scrum Master — assistant role
-- Facilitates ceremonies and keeps the process lightweight.
-- Makes blockers, overcommitment, scope changes, and carryover visible.
-- Checks Definition of Ready and Definition of Done.
-- Does not choose product priorities or overrule the Product Owner.
+Owns value, priority, Sprint Goal, scope trade-offs, and acceptance. Clarifies
+user-visible behavior. Explicitly authorizes merges. Silence, green CI, or an
+assistant recommendation is not merge authorization.
 
-### Tech Lead / Architect — assistant role
-- Evaluates architecture, alternatives, dependencies, failure modes, and migration risks.
-- Proposes an implementation approach and identifies required tests.
-- Challenges unnecessary complexity and splits work that is too large or uncertain.
-- Does not silently expand scope or approve its own implementation.
+### Scrum Master — assistant
 
-### Software Engineer — assistant role
-- Implements only the agreed issue scope on a topic branch.
-- Keeps changes reviewable, adds/updates tests and documentation, and updates specialist skills when reusable knowledge is discovered.
-- Persists important execution state and evidence.
-- Does not mark work done because code was written or CI was merely started.
+Facilitates ceremonies, keeps the process lightweight, makes blockers and
+overcommitment visible, checks Ready/Done. Does not choose priorities or overrule
+the Product Owner.
 
-### QA Engineer — assistant role
-- Tests observable acceptance criteria, negative paths, regressions, and relevant edge cases.
-- Chooses checks based on repository validation guidance and records commands, results, commit SHA, and CI run/event where relevant.
-- Distinguishes passed, failed, pending, unavailable, mocked, not run, and unverified checks.
-- Returns **PASS**, **FAIL**, or **BLOCKED** with evidence. Failure or blockage prevents completion.
+### Tech Lead / Architect — assistant
 
-### Senior Reviewer — assistant role
-- Separately reviews the complete current diff against the issue, repository conventions, architecture, safety, maintainability, and regression risks.
-- Re-fetches the current PR head and relevant files instead of relying on the implementer's summary or QA report.
-- Checks scope, hidden coupling, compatibility, error handling, test quality, documentation, and whether evidence covers the change.
-- Returns **APPROVE** or **REQUEST CHANGES**, with concrete findings and severity.
-- QA passing does not imply reviewer approval; reviewer approval does not imply QA passed.
+Evaluates architecture, alternatives, dependencies, failure modes, and migration
+risk. Proposes an approach and required tests. Challenges unnecessary complexity
+and splits work that is too large. Does not silently expand scope or approve its
+own implementation.
 
-The same model may perform these roles sequentially, but must not claim they are separate people, separate autonomous agents, or genuinely independent reviewers.
+### Software Engineer — assistant
 
-## Sprint cadence and ceremonies
+Implements only the agreed scope on a topic branch. Keeps changes reviewable,
+adds tests and docs, and updates skills when reusable knowledge appears. Persists
+important state and evidence. Does not mark work done because code was written or
+CI merely started.
 
-### Sprint Planning — start of week
-Inputs: prioritized backlog, Ready issues, open issue/PR state, availability, dependencies, risks, and validation needs.
+### QA Engineer — assistant
 
-1. Agree on one measurable Sprint Goal.
-2. Select only work that meets Definition of Ready.
+Tests observable acceptance criteria, negative paths, regressions, and relevant
+edges. Records commands, results, SHA, and run/event. Distinguishes passed,
+failed, pending, unavailable, mocked, not run, and unverified. Returns **PASS**,
+**FAIL**, or **BLOCKED** with evidence.
+
+### Senior Reviewer — assistant
+
+Separately reviews the complete current diff against the issue, conventions,
+architecture, safety, maintainability, and regression risk. Re-fetches the PR
+head instead of relying on the implementer's summary or QA report. Checks scope,
+hidden coupling, compatibility, error handling, test quality, docs, and evidence
+coverage. Returns **APPROVE** or **REQUEST CHANGES** with severity.
+
+## Risk-based quality gates
+
+Choose the gate after estimating and identifying risk. Security, money, data
+loss, installer behavior, and CI semantics are always at least **M**.
+
+| Size / risk | Required passes |
+|---|---|
+| **XS** | Self-review of the diff + targeted test or documented docs-only review |
+| **S** | Self-review + targeted tests; no separate QA/reviewer pass required |
+| **M** | QA pass + Senior Reviewer pass, plus any manual check named by the issue |
+| **L / XL** | M gates plus an independent reviewer when available; split before implementation |
+
+A new commit invalidates the prior gate for the changed surface. Re-run the
+affected gate, not necessarily every gate.
+
+## Cadence
+
+### Sprint Planning
+
+Inputs: prioritized backlog, Ready issues, open PR state, availability,
+dependencies, risks, validation needs.
+
+1. Agree one measurable Sprint Goal.
+2. Select only Ready work.
 3. Discuss size, dependencies, risks, and validation before commitment.
-4. Choose a realistic amount of work. Do not convert T-shirt sizes into hours or promises.
-5. Record the goal, selected issue IDs, estimates, exclusions, and known risks in `AGENT_STATE.md`.
+4. Choose a realistic amount. Do not convert T-shirt sizes into hours.
+5. Record the goal, issues, estimates, exclusions, and risks in `AGENT_STATE.md`.
 
-Output: one Sprint Goal and a small explicit sprint backlog. A ticket is a forecast, not a guarantee.
+A ticket is a forecast, not a guarantee.
 
-### Backlog Refinement — before or during Planning
-- Clarify behavior, boundaries, acceptance criteria, dependencies, and validation plan.
-- Ask the Tech Lead to identify unknowns and propose an approach when useful.
-- Estimate only after the outcome and risk are understood.
-- Split work with independently testable outcomes or work too large to implement and review safely.
-- Keep implementation detail out of issues unless it constrains the user-visible contract.
+### Backlog Refinement
+
+Clarify behavior, boundaries, acceptance criteria, dependencies, and validation.
+Ask the Tech Lead for unknowns and an approach when useful. Estimate only after
+the outcome and risk are understood. Split work with independently testable
+outcomes or work too large to review safely. Keep implementation detail out of
+issues unless it constrains the user-visible contract.
 
 ### Daily Scrum — manual
 
-Run only when Brian requests `daily` or starts the check-in. No scheduled automation, proactive reminder, or background task is created.
+Run only when Brian requests `daily`. Focus on the Sprint Goal:
 
-Keep it focused on the Sprint Goal:
 - What changed since the last check-in?
 - What is the next concrete step?
-- Is anything blocked or at risk of missing the Sprint Goal?
+- What is blocked or at risk?
 
-Update `AGENT_STATE.md` when the active task, blocker, branch, validation state, or next action materially changes. Do not create noisy work-log entries for routine status.
+Update `AGENT_STATE.md` only when the active task, blocker, branch, validation, or
+next action materially changes. Do not create noisy log entries.
 
-### Development and quality gates
+### Development and gates
 
-For each issue:
-1. Read `AGENTS.md`, this skill, continuity guidance, and relevant specialist skills.
+1. Read `AGENTS.md`, this skill, continuity guidance, and relevant specialist
+   skills.
 2. Verify live issue, branch, PR, and current HEAD.
 3. Tech Lead proposes the approach and risks.
 4. Engineer implements the agreed scope.
 5. Open/update the issue-specific PR and validate its exact current head.
-6. QA runs acceptance-focused tests and records evidence.
-7. Senior Reviewer separately inspects the complete current diff.
-8. Resolve findings and repeat the necessary gate(s) after every new commit.
+6. Apply the risk-based gate above.
+7. Resolve findings and repeat the affected gate after every new commit.
 
-Default to one functional PR end to end at a time, per the project-management skill. A dependent documentation/foundation PR may be stacked only when it genuinely depends on its parent; state the dependency and never merge a child before its parent.
+Default to one functional PR end to end. A docs PR may run in parallel when it
+touches no runtime files. A dependent PR may be stacked only when it genuinely
+depends on its parent; state the dependency and never merge a child first.
 
-### Sprint Review — end of week
-- Demonstrate the outcome against the Sprint Goal.
-- Separate merged work from work still in an open PR.
-- Report criteria that passed, failed, or remain unverified.
-- Brian accepts or rejects the outcome. A branch or green PR is not automatically completed work.
+### Sprint Review
 
-### Retrospective — after Review
-- What helped delivery?
-- What caused rework, waiting, or unclear decisions?
-- What should change next sprint?
-- Which recurring lesson belongs in an existing skill, a new skill, or the work log?
+Demonstrate the outcome against the Sprint Goal. Separate merged work from work
+still in an open PR. Report criteria that passed, failed, or remain unverified.
+Brian accepts or rejects. A branch or green PR is not automatically completed
+work.
 
-Choose only a few actionable improvements with an owner/next action. Update repository guidance only for durable, reusable lessons.
+### Retrospective
+
+What helped delivery? What caused rework, waiting, or unclear decisions? What
+should change next sprint? Which lesson belongs in an existing skill, a new
+skill, an incident, or the log?
+
+Choose a few actionable improvements. Update repository guidance only for
+durable, reusable lessons.
 
 ## T-shirt sizing
 
-| Size | Practical anchor | Planning rule |
+| Size | Anchor | Planning rule |
 |---|---|---|
-| **XS** | One tiny, well-understood local change with obvious validation | Usually safe alongside the Sprint Goal |
-| **S** | One small behavior or documentation outcome; few paths and low uncertainty | Normal sprint-sized item |
-| **M** | Several related files/interactions; clear boundaries and a meaningful test matrix | Confirm approach and validation before commitment |
-| **L** | Cross-cutting behavior, multiple subsystems, notable unknowns/dependencies | Prefer splitting into independently verifiable issues |
-| **XL** | Broad, poorly understood, or too uncertain to forecast responsibly | Do not commit as-is; investigate and split first |
+| **XS** | One tiny, understood local change with obvious validation | Safe alongside the Sprint Goal |
+| **S** | One small behavior or docs outcome; few paths, low uncertainty | Normal sprint item |
+| **M** | Several related files/interactions; meaningful test matrix | Confirm approach and validation |
+| **L** | Cross-cutting, multiple subsystems, notable unknowns | Prefer splitting |
+| **XL** | Broad, poorly understood, or too uncertain | Do not commit; investigate and split |
 
-If size is disputed, record the uncertainty and refine the issue. Do not average estimates to manufacture certainty. Re-estimate when evidence changes the scope.
+If size is disputed, record the uncertainty and refine. Do not average estimates
+to manufacture certainty. Re-estimate when evidence changes scope.
 
 ## Definition of Ready
 
-An issue is Ready only when:
-- The user-visible problem and desired outcome are clear.
+- User-visible problem and desired outcome are clear.
 - Scope and non-goals are stated.
 - Acceptance criteria are observable.
-- The required validation level is identified.
-- Dependencies, risks, and blocking decisions are known or explicitly tracked.
-- The Product Owner has prioritized it.
-- A T-shirt estimate exists, or it is a time-boxed investigation with an expected output.
+- Required validation level is identified.
+- Dependencies, risks, and blocking decisions are known or tracked.
+- Brian has prioritized it.
+- A T-shirt estimate exists, or it is a time-boxed investigation with an output.
 
-Do not pull an issue into a sprint merely because its title sounds actionable.
+Do not pull an issue into a sprint because its title sounds actionable.
 
 ## Definition of Done
 
-A change is Done only when all applicable conditions hold:
-- The agreed issue scope is implemented; unrelated work was not smuggled into the PR.
-- Acceptance criteria have been checked and recorded.
-- Relevant tests and CI checks passed for the **exact current PR head**; unavailable/manual checks are explicitly called out.
-- QA returned **PASS** with reproducible evidence.
-- Senior Reviewer returned **APPROVE** after inspecting the current diff.
-- Required documentation, skills, checkpoint, and work-log updates are persisted.
-- No blocking review findings remain.
+- Agreed scope implemented; no unrelated work smuggled in.
+- Acceptance criteria checked and recorded.
+- Relevant tests and CI passed on the **exact current PR head**; unavailable or
+  manual checks are called out.
+- The required risk-based gate returned its result with evidence.
+- Required docs, skills, state, and log updates are persisted.
+- No blocking findings remain.
 - Brian accepted the outcome.
 
-Merge is a separate operation and still requires Brian's explicit authorization. Until merged, report the issue as implemented/validated in a PR—not merged or closed.
+Merge remains a separate operation requiring Brian's explicit authorization.
+Until merged, report the issue as implemented/validated in a PR, not merged.
 
-For documentation-only changes, QA validates links, paths, criteria, scope, and Markdown structure; the reviewer inspects consistency and process interactions. Do not run Neovim unnecessarily when no runtime or workflow files changed.
+For docs-only changes, QA validates links, paths, criteria, scope, and Markdown
+structure; the reviewer checks consistency and process interactions. Do not
+require a Neovim run when no runtime or workflow files changed, even if the path
+classifier triggers the heavy CI job.
 
-## Blockers, scope changes, and carryover
+## Blockers, scope changes, carryover
 
-### Blocked work
-- State the blocker, impact on the Sprint Goal, who can resolve it, and next action.
-- Record it in the issue/PR and `AGENT_STATE.md` when it changes the plan.
-- Do not hide a blocker behind optimistic status wording.
-- The Scrum Master may propose alternatives; Brian decides priorities and trade-offs.
+- **Blocked:** state the blocker, Sprint Goal impact, who can resolve it, and the
+  next action. Record it in the issue/PR and state file when the plan changes.
+- **Mid-sprint change:** protect the Sprint Goal where possible. Brian may replace
+  lower-priority scope; make the trade-off explicit. Do not silently add work.
+- **Carryover:** unfinished work returns to the backlog for refinement and
+  re-commitment. Preserve its issue, branch, PR, and evidence. Do not relabel it
+  Done or automatically roll every ticket forward.
 
-### Mid-sprint changes
-- Protect the Sprint Goal where possible.
-- The Product Owner may replace lower-priority scope with urgent work; make the trade-off explicit.
-- Do not silently add work while leaving the original commitment unchanged.
-- If the Sprint Goal is no longer viable, say so and re-plan with Brian.
-
-### Carryover
-- Unfinished work returns to the backlog for refinement and re-commitment.
-- Preserve its issue, branch, PR, and evidence; do not relabel it Done.
-- Reassess size and blockers using what was learned.
-- Do not automatically roll every unfinished ticket into the next sprint.
-
-## Working commands in chat
+## Commands
 
 | Command | Meaning |
 |---|---|
-| `planning` | Facilitate sprint planning and record the Sprint Goal/commitment |
+| `planning` | Facilitate sprint planning and record the goal/commitment |
 | `daily` | Run the manual Daily Scrum |
 | `refine #N` | Refine issue #N and assess readiness/size |
 | `architect #N` | Produce the architecture/implementation proposal for #N |
@@ -192,18 +220,18 @@ For documentation-only changes, QA validates links, paths, criteria, scope, and 
 | `review sprint` | Review sprint outcomes against the Sprint Goal |
 | `retro` | Facilitate the retrospective |
 
-If a command lacks required context, recover repository state first and ask only for an essential product decision that cannot be inferred safely.
+If a command lacks context, recover repository state first and ask only for an
+essential product decision that cannot be inferred safely.
 
-## Sprint status format
+## Status format
 
-Keep reporting actionable:
 - **Sprint Goal**
 - **Completed** (merged vs still in PR)
 - **In progress**
-- **QA** (result and evidence)
-- **Senior Review** (result and findings)
+- **QA / review** (result and evidence)
 - **Blockers / risks**
 - **Decision needed from Brian**
 - **Next concrete action**
 
-Never collapse QA and review into a single 'checks passed' statement.
+Never collapse QA and review into a single "checks passed" statement when both
+were required.

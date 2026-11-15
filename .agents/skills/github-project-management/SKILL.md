@@ -7,318 +7,264 @@ description: Manage this repository's GitHub backlog, branches, and pull request
 
 ## Goal
 
-Keep project work understandable, traceable, and continuous across separate
-sessions and agents. GitHub and the repository are the durable project record;
-conversation history is context, not the source of truth.
+Keep project work understandable, traceable, and continuous across sessions and
+agents. GitHub and the repository are the durable project record; conversation
+history is context, not the source of truth.
 
 ## Recover the current state first
 
-Before creating, closing, editing, or implementing project work:
+Before creating, closing, editing, or implementing work:
 
-1. Inspect the current repository state and branch when local access is available.
+1. Inspect the repository state and branch when local access is available.
 2. Read `AGENTS.md` and the skill relevant to the task.
 3. Inspect the epic and its linked functional issues.
-4. Search relevant open and recently closed issues. Read their bodies, labels,
-   state reasons, and comments when they affect the decision.
-5. Inspect open PRs and recently closed PRs that touch the same area. Check
-   their base/head branches, head commits, changed files, and review context.
-6. Confirm branch heads before writing. Do not rely on a SHA or status remembered
-   from an earlier execution.
+4. Search open and recently closed issues. Read bodies, labels, state reasons,
+   and comments that affect the decision.
+5. Inspect open and recently closed PRs touching the same area. Check base/head
+   branches, head commits, changed files, and review context.
+6. Confirm branch heads before writing. Do not rely on a remembered SHA.
 
-Do not assume a previous artifact is absent because it is not in the current
+Do not assume an artifact is absent because it is not in the current
 conversation. Search before creating anything.
 
 ## Functional issue design
 
-An issue should describe a behavior or outcome that the maintainer can recognize,
-not just an implementation task.
-
-Include:
+An issue should describe a behavior the maintainer can recognize, not just an
+implementation task. Include:
 
 - **Current behavior:** what happens now.
 - **Expected behavior:** what should happen instead.
 - **Why it matters:** the user-visible consequence.
-- **Scope:** likely affected areas, without over-prescribing the implementation.
+- **Scope:** likely affected areas, without over-prescribing implementation.
 - **Acceptance criteria:** observable conditions that determine completion.
-- **Validation:** the checks needed and whether they are static, automated,
-  headless, full integration, or manual.
+- **Validation:** static, automated, headless, full integration, or manual.
 
 Create separate issues only when the behaviors can be implemented and verified
-independently. Keep closely related work together when splitting it would make
-the backlog harder to understand.
+independently. Keep closely related work together when splitting makes the
+backlog harder to understand.
 
 Before creating an issue:
 
 - Search by behavior and outcome, not only exact title words.
-- Check closed issues too; they may contain a previous fix, rejection, or
-  duplicate relationship.
-- Reuse or update an existing issue when it tracks the same result.
+- Check closed issues; they may contain a previous fix, rejection, or duplicate.
+- Reuse or update an existing issue that tracks the same result.
 - Create a new issue only for a genuinely distinct outcome.
-- Close an issue as duplicate or not planned only when the relationship or
-  reasoning is clear and documented.
+- Close as duplicate or not planned only when the relationship is documented.
 
-Use plain language in titles and descriptions. Avoid vague tickets such as
-"improve config" or overly implementation-specific titles that hide the
-behavior being fixed.
+Use plain language. Avoid vague tickets such as "improve config" or
+implementation-specific titles that hide the behavior.
 
-### Mandatory testing in every task
+### Testing in every task
 
-Testing must be included when an issue is created or refined; it is not a follow-up task by default and must be included in the estimate and Definition of Done.
+Testing is included when an issue is created or refined; it is not a follow-up
+task and belongs in the estimate and Definition of Done.
 
 Every functional issue must:
-- Describe the observable user-facing scenarios that prove the desired behavior, including relevant negative, edge, and regression cases.
-- Name the automated validation required: unit tests for isolated logic, integration tests for real component boundaries, and end-to-end tests when a complete user workflow crosses multiple components.
-- For editor/configuration work, prefer automated local-like tests using a real headless Neovim process, the actual configuration, and the real event/plugin/LSP/tool integration. Assert the same behavior the maintainer would exercise locally. A mock, syntax check, module-loaded flag, or startup-only assertion is not sufficient when real behavior can be exercised.
-- Identify focused tests and the broader regression/integration suite that must run. Required checks must be wired to explicit PR/path CI triggers; moving checks to scheduled/manual execution must preserve coverage and document the trigger.
-- State exact manual verification only for behavior that cannot reasonably be automated. Manual checks supplement, rather than replace, feasible automation.
 
-An issue is not complete because the code compiles or the implementation appears correct. It is complete when the required automated behavioral tests exist and pass on the exact change, CI checks pass, and the handoff accurately records passed, failed, skipped, mocked, and unverified coverage. Pure documentation-only changes may use diff/Markdown review when they do not change behavior.
+- Describe observable scenarios, including negative, edge, and regression cases.
+- Name the automated validation: unit, integration, or end-to-end as appropriate.
+- For editor work, prefer real headless Neovim tests with the actual
+  configuration and real event/plugin/LSP/tool integration.
+- Identify focused tests and the broader regression suite. Required checks must
+  be wired to explicit PR/path triggers.
+- State exact manual steps only for behavior that cannot reasonably be automated.
+
+An issue is not complete because code compiles. It is complete when the required
+behavioral tests exist and pass on the exact change, CI passes, and the handoff
+records passed, failed, skipped, mocked, and unverified coverage. Docs-only
+changes may use diff/Markdown review.
 
 ## Branch and pull request workflow
+
+Classify the PR before opening it:
+
+| Type | Scope | Parallel allowed |
+|---|---|---|
+| **Functional** | Runtime behavior, tests, workflow, installer | One at a time |
+| **Docs** | `docs/**`, `AGENTS.md`, state, worklogs, skills | Yes, if it touches no runtime files |
+| **Maintenance** | Tooling, CI refactor, dependency update | Treat as functional for WIP limits |
 
 - Use a focused topic branch for a coherent piece of work.
 - Keep the default branch unchanged until a reviewed PR is merged.
 - Link the functional issue from the branch/PR where practical.
-- Keep PR scope aligned with its issue or clearly explain when it covers a
-  small, cohesive foundation spanning several issues.
-- Do not merge a PR unless the user explicitly asks for the merge.
+- Keep PR scope aligned with its issue, or explain a small cohesive foundation.
+- Do not merge a PR unless Brian explicitly asks for the merge.
 - Do not delete a branch merely because its PR is closed. First establish that
   its unique work is no longer needed.
+- Do not mix state/worklog edits into a functional PR. They belong in a docs PR.
 
-## Stacked pull requests and scope control
+## Stacked pull requests
 
 Do not grow an infrastructure/foundation PR with unrelated functional work just
 because the same files are involved.
 
 - Prefer a separate topic branch and PR for an independently testable issue.
-- If the new change genuinely depends on an unmerged PR, create a **stacked PR**
-  whose base is the parent PR's branch. State the dependency in the child PR and
-  keep the child diff limited to its own issue.
-- Do not create a stacked PR merely for convenience when the work can target the
-  default branch independently.
-- Never merge the child before its parent. After the parent merges, retarget the
-  child PR to the default branch, refresh its diff, and validate it against the
-  resulting base.
-- Record parent/child PR links in the issue and backlog so another session does
-  not mistake the dependency for a duplicate PR.
-- Keep the parent branch stable while a child PR is being prepared; re-check its
-  head SHA before branching and before opening the child PR.
+- If the change genuinely depends on an unmerged PR, create a stacked PR whose
+  base is the parent branch. State the dependency and keep the child diff limited
+  to its issue.
+- Do not stack merely for convenience when the work can target the default branch.
+- Never merge the child before the parent. After the parent merges, retarget the
+  child to the default branch and validate against the resulting base.
+- Record parent/child links in the issue and backlog.
+- Keep the parent branch stable while preparing a child; re-check its head before
+  branching and before opening the child.
 
-## One-PR-at-a-time delivery cadence
-
-Default to completing one functional PR end to end before starting the next:
+## One-functional-PR cadence
 
 1. Finish the current issue scope; do not expand it with unrelated backlog work.
-2. Review the complete diff and verify the latest PR head with the required checks.
-3. Merge the PR only after the user has authorized the merge and the exact head is clean.
-4. After the merge, reconcile the default branch and close only issues whose
-   acceptance criteria are satisfied by the merged code and validation.
-5. Update the canonical backlog with the merge commit, validation run, completed
-   issues, remaining verification, and the next ticket.
-6. Only then continue with the next PR/branch.
+2. Review the complete diff and verify the latest PR head with required checks.
+3. Merge only after Brian authorizes it and the exact head is clean.
+4. After merge, reconcile the default branch and close only issues satisfied by
+   the merged code and validation.
+5. Update the backlog with the merge commit, validation run, completed issues, and
+   next ticket.
+6. Only then start the next functional PR.
 
 Preserve branches for dependent or unrelated work, but do not keep multiple
-functional PRs in flight merely because their branches already exist. Before
-reusing a branch created before a squash merge, compare its unique diff against
-the old PR head and the new default branch. Port only the reviewed unique work
-onto a clean branch from the current default branch; do not carry the old PR
-history into a new PR.
+functional PRs in flight merely because the branches exist. Before reusing a
+branch created before a squash merge, compare its unique diff against the old PR
+head and the new default branch. Port only reviewed unique work onto a clean
+branch; do not carry old PR history forward.
 
 Do not close an issue because a branch contains a candidate implementation.
-Issue closure follows merge plus acceptance evidence, not branch status.
+Closure follows merge plus acceptance evidence.
 
-## Pull request overlap and duplicate audit
+## Duplicate and overlap audit
 
-Similar titles, descriptions, or goals do not prove that two PRs contain the
-same work. Before declaring PRs duplicates or choosing one as canonical:
+Similar titles or goals do not prove two PRs contain the same work. Before
+declaring duplicates or choosing a canonical PR:
 
-1. Fetch metadata for both PRs: state, draft status, base branch/SHA, head
-   branch/SHA, merge status, and commit counts.
-2. Compare each head against its base and compare the two candidate branches
-   directly. Inspect merge base, ahead/behind counts, and whether histories
-   diverge.
+1. Fetch metadata: state, Draft status, base/head branch and SHA, merge status,
+   commit counts.
+2. Compare each head against its base and compare the branches directly. Inspect
+   merge base, ahead/behind, and divergence.
 3. List changed files for each PR.
-4. Inspect the actual patches or file contents. Filenames and PR summaries alone
-   are insufficient.
-5. Identify:
-   - changes present in both PRs;
-   - changes present only in candidate A;
-   - changes present only in candidate B;
-   - conflicting implementations of the same behavior;
-   - changes that belong to separate functional issues.
-6. Choose a canonical PR based on scope, correctness, reviewability, and current
-   project direction, not merely commit count or which PR is newer.
-7. Before closing the other PR, decide what happens to every unique change:
-   preserve its branch for later review, port it to the canonical branch, or
-   explicitly reject it with a reason.
-8. Document the decision in the affected PRs and the parent epic or tracking
-   issue. State clearly which work was not merged or incorporated.
+4. Inspect actual patches or file contents. Filenames and summaries are not
+   enough.
+5. Identify shared changes, unique changes in each candidate, conflicting
+   implementations, and changes belonging to separate issues.
+6. Choose canonical based on scope, correctness, reviewability, and project
+   direction, not commit count or recency.
+7. Before closing the other PR, decide every unique change: preserve the branch,
+   port it, or reject it with a reason.
+8. Document the decision in both PRs and the parent epic/issue. State what was not
+   merged.
 
-Never describe a change as incorporated unless the target branch actually
-contains it. Closing a PR is not the same as merging it, and preserving a branch
-does not mean its changes have been accepted.
+Never describe a change as incorporated unless the target branch contains it.
+Closing a PR is not merging it; preserving a branch is not accepting its changes.
 
-## Review and classify preserved work
+## Classify preserved work
 
-A change that exists only on a preserved branch is **unreviewed work**, not
-automatically approved work. Do not port every unique diff merely to avoid
-losing it.
+A change that exists only on a preserved branch is **unreviewed work**. Do not
+port every unique diff merely to avoid losing it. Compare the patch with the
+relevant issue's expected behavior and acceptance criteria.
 
-For each unique change, compare the actual patch with the relevant issue's
-expected behavior and acceptance criteria. Check the surrounding implementation
-and whether the change introduces a separate behavior or broadens scope.
-
-Assign exactly one working disposition:
+Assign exactly one disposition:
 
 | Disposition | Meaning | Next action |
 |---|---|---|
-| **Accept and port** | The change is correct, needed, and meets an existing issue's criteria | Port it and validate it on the canonical branch |
-| **Track separately** | The change may be useful but is outside the current PR/issue scope | Link an existing issue or create one if the outcome is genuinely new |
-| **Investigate** | The evidence is incomplete or behavior is uncertain | Reproduce, inspect upstream contracts, or ask for targeted validation |
-| **Reject** | The change is incorrect, harmful, or conflicts with the intended behavior | Do not port it; record the technical reason |
-| **Already covered** | The canonical branch already provides the same behavior | Do not port duplicate implementation |
+| **Accept and port** | Correct, needed, meets an existing issue | Port and validate on the canonical branch |
+| **Track separately** | May be useful but outside current scope | Link or create an issue for the outcome |
+| **Investigate** | Evidence incomplete or behavior uncertain | Reproduce, inspect upstream, or ask for targeted validation |
+| **Reject** | Incorrect, harmful, or conflicts with intended behavior | Do not port; record the technical reason |
+| **Already covered** | Canonical branch already provides the behavior | Do not port a duplicate |
 
-For each preserved change, record its file/path, intended behavior, disposition,
-reason, and destination (issue or PR). Reassess the disposition if new evidence
-appears.
+For each change, record file/path, intended behavior, disposition, reason, and
+destination. Keep these distinctions explicit:
 
-Keep these distinctions explicit:
+- **Unique:** a diff exists in one branch.
+- **Useful:** a benefit is substantiated.
+- **Correct:** matches the contract and introduces no regression.
+- **Accepted:** deliberately selected.
+- **Ported:** actually present in the destination branch.
 
-- **Unique** means only that a diff exists in one branch.
-- **Useful** means there is a substantiated benefit.
-- **Correct** means the implementation matches the relevant contract and does
-  not introduce regressions.
-- **Accepted** means it was deliberately selected for the project.
-- **Ported** means it is actually present in the destination branch.
-
-Never infer one of these states from another.
+Never infer one state from another.
 
 ## Execution continuity
 
-At the end of a meaningful work session, leave durable state:
+At the end of a meaningful session:
 
-- Update the issue/PR description or add a concise comment when a decision,
-  blocker, or handoff would otherwise exist only in conversation.
-- Keep the epic and functional backlog aligned with the actual state.
-- Record the canonical PR and any preserved branches when work is consolidated.
-- Record the disposition of unique changes so they are not silently forgotten
-  or accidentally treated as approved.
-- Distinguish completed changes from proposed changes and unverified work.
-- Identify the next concrete action without claiming it has already happened.
+- Update the issue/PR with decisions, blockers, or handoffs that would otherwise
+  exist only in conversation.
+- Keep the epic and backlog aligned with actual state.
+- Record the canonical PR and preserved branches when consolidating.
+- Record dispositions so unique work is not silently forgotten or treated as
+  approved.
+- Distinguish completed, proposed, and unverified work.
+- State the next concrete action without claiming it happened.
 
 Do not create a status issue or extra documentation file when an existing epic,
 issue, PR, or backlog is the right place.
 
 ## Parent issues and independently testable work
 
-Use a parent/tracking issue when one user goal contains several independently
-implementable behaviors, but do not force those behaviors into one oversized
-acceptance checklist.
+Use a parent/tracking issue when one goal contains several independently
+implementable behaviors, but do not force them into one oversized checklist.
 
-- Search open and closed issues before splitting. Preserve prior decisions and
-  closed-duplicate relationships; do not reopen a superseded issue merely
-  because it contains useful wording.
-- Create one child issue per independently testable user-visible behavior.
-  Give each child its own scope, acceptance criteria, and validation plan.
-- Keep the parent issue as coordination only: link its children, describe the
-  shared goal and boundaries, and state when the parent can close.
-- Avoid duplicating the full child acceptance criteria in the parent. Changes
-  should be tracked and closed on the child; the parent closes after all children
-  are merged and validated.
-- When splitting an existing issue, update its body and the functional backlog
-  in the same work session. Preserve its existing intent; do not silently drop
-  scope that is still valuable.
-- Do not create a second umbrella for the same outcome. Link older duplicate
-  issues as historical decisions instead.
+- Search open and closed issues before splitting. Preserve prior decisions.
+- Create one child issue per independently testable user-visible behavior, with
+  its own scope, criteria, and validation.
+- Keep the parent for coordination: link children, describe the shared goal and
+  boundaries, state when it can close.
+- Do not duplicate full child criteria in the parent. Track and close on the
+  child; close the parent after all children are merged and validated.
+- When splitting an existing issue, update its body and the backlog in the same
+  session. Do not silently drop valuable scope.
+- Do not create a second umbrella for the same outcome.
 
-Example in this repository: issue #43 now coordinates three distinct work
-streams—Neotest (#74), DAP (#75), and Telescope (#76). Older #18 and #63 remain
-closed as duplicates of #43. DAP Run with Args (#40) remains a separate bug and
-must not be merged into the DAP lazy-loading ticket.
+## Backlog status and sequencing
 
-## Backlog status and issue sequencing
+Keep implementation, validation, merge, and closure separate:
 
-Keep implementation, validation, merge, and issue closure as separate states:
+- **Planned:** no implementation started.
+- **In progress:** actively being changed or investigated.
+- **Implemented in PR:** candidate fix exists; not merged.
+- **Validated in PR:** exact PR head passed required checks; issue still open.
+- **Merged:** default branch contains the accepted change.
+- **Closed:** only after merged implementation or an explicit documented decision
+  satisfies the issue.
 
-- **Planned:** no implementation has started.
-- **In progress:** work is actively being changed or investigated.
-- **Implemented in PR:** the branch contains a candidate fix, but it is not merged.
-- **Validated in PR:** the exact PR head has passed the required checks; the issue still remains open until merge.
-- **Merged:** the default branch contains the accepted change.
-- **Closed:** close only after the merged implementation or an explicit documented decision satisfies the issue.
+For the backlog, add a short handoff only when several issues share a still-open
+PR. Link the exact PR head and validation run, identify the next issue, and state
+what remains unverified. Do not mark items complete because the branch contains
+code for them. After each merge, reconcile issues and backlog against the default
+branch.
 
-For the functional backlog, add a short handoff section when several issues are
-implemented in one still-open PR. Link the exact PR head and validation run,
-identify which issue is next, and state what remains unverified. Do not mark
-items complete merely because the current branch contains code for them.
-After each merge, reconcile the issues and backlog against the default branch.
-
-When selecting the next issue, prefer a small, independently testable behavior
-that is already understood over broad cleanup. Do not create a new issue when an
-existing open ticket already describes the desired user-visible outcome.
+Prefer a small, understood, independently testable behavior over broad cleanup.
 
 ## Validation and status accuracy
 
-Use precise status language:
+Use precise labels: **not run**, **unavailable**, **mocked**, **passed**,
+**failed**, **pending**.
 
-- **Not run:** no execution took place.
-- **Unavailable:** the environment could not perform the check.
-- **Mocked:** a substitute or stub exercised orchestration, not the real service.
-- **Passed:** the actual check ran and succeeded.
-- **Failed:** the actual check ran and failed.
-- **Pending:** a required check has not yet produced a result.
-
-A missing CI run is not a passing run and is not necessarily a failing run.
-A successful static check does not prove runtime behavior. Report the exact
-commit and validation level when those details matter.
+A missing CI run is not passing and is not necessarily failing. A successful
+static check does not prove runtime behavior. Report the exact commit and
+validation level when they matter.
 
 ## Completion report
 
-Summarize work in terms the maintainer can act on:
-
-1. What changed, with links to the relevant issues, commits, or PRs.
-2. What was deliberately not changed or preserved for later, including the
-   disposition of unique branch work.
+1. What changed, with links to issues, commits, or PRs.
+2. What was deliberately not changed or preserved, including dispositions.
 3. Which checks actually ran and their results.
 4. What remains unverified or blocked.
-5. The next concrete step, if one is needed.
+5. The next concrete step.
 
-Do not claim that work is complete merely because files or GitHub artifacts
-were created. Verify their final state after writing.
+Do not claim work is complete because files or GitHub artifacts were created.
+Verify their final state after writing.
 
+## Actions evidence
 
-## GitHub Actions evidence and handoff
-
-When a PR's readiness or a CI failure is part of the decision, follow
+When PR readiness or a CI failure affects the decision, follow
 `.agents/skills/github-actions-validation/SKILL.md` and:
 
 - Anchor every status to the exact current PR head SHA.
-- Inspect workflow runs by event. A PR-triggered run does not prove that the
-  corresponding push-triggered run exists or passed.
-- Treat integration output as a potentially filtered view. In this repository,
-  `fetch_commit_workflow_runs` returned only `pull_request` runs and omitted
-  `push` runs; never infer "no run" from that helper alone.
-- Read job steps and failure logs. If the job is still running and logs are not
-  available yet, report pending rather than inventing a cause.
-- Record the incident, mitigation commit, exact run IDs, and unresolved status
-  in the relevant skill and existing issue/PR. Do not open a new issue just to
-  store an execution transcript when the existing functional issue already
-  describes the outcome.
-- A documentation-only commit can move the PR head without triggering a
-  path-filtered runtime workflow. State which code SHA the runtime result
-  actually covers, and separately review the later documentation diff.
+- Inspect runs by event. A PR run does not prove a push run exists or passed.
+- Treat connector output as potentially filtered; cross-check run listings.
+- Read job steps and logs. If a job is running and logs are unavailable, report
+  pending rather than inventing a cause.
+- A docs commit can move the PR head without triggering a path-filtered runtime
+  workflow. State which code SHA the runtime result covers and review the docs
+  diff separately.
 
-
-## Incident fingerprint — closed PR #67 recovery (2026-11-13)
-
-When PR #67 (`chore/neovim-setup-and-ci`) was closed in favor of PR #71, the branch was preserved but its unique runtime changes were not all carried forward. The recovery audit established these rules:
-
-- Compare the complete per-file patch of the closed PR with the canonical PR branch; do not infer completeness from overlapping file names or similar PR descriptions.
-- Classify each unique change explicitly: port, keep as separate backlog work, reject with evidence, or record as an intentional omission.
-- In this incident, the Neovim 0.11 version guard and removal of unconditional `helptags ALL` were valid and were ported into PR #71. The latter also received a manual repair instruction in README.
-- The CI-only mutations of plugin specs, plugin config callbacks, native build hooks, and Treesitter parser updates were intentionally rejected. They weakened the test by skipping real build behavior; PR #71 instead restores locked plugins and starts the normal config without CI-only plugin mutations.
-- The proposed grouped lazy.nvim spec rewrite was rejected because inspection of the exact locked lazy.nvim revision proved the existing grouped form valid; issue #68 was closed as not planned.
-- Old tickets #46–#65 were duplicates/superseded by canonical issues #26–#45, not completed work. Issue #66 remained open for Python provider runtime validation.
-- An optional installer convenience flag (`--sync-plugins`) was not carried forward because first launch already installs plugins and no separate user requirement was established. Record such omissions rather than silently treating them as equivalent.
-
-Never close a competing PR until every unique file-level change and every ticket it introduced has an explicit disposition.
+Historical disposition example:
+[`docs/incidents/pr67-recovery.md`](../../../docs/incidents/pr67-recovery.md).

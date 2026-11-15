@@ -1,92 +1,40 @@
 # Agent execution state
 
-_Last updated: 2026-11-14 (America/Argentina/Buenos_Aires)_
+_Last updated: 2026-11-15 (America/Argentina/Buenos_Aires)_
 
-## Current task
+Canonical copy lives on `master`. Functional branches must not edit this file;
+state updates land through a dedicated docs PR. A branch-local copy is not
+authorization to continue paused work. Keep this file at 40 lines or fewer.
 
-- **Repository:** `brianfiszman/dotfiles`.
-- **Sprint:** Sprint 2, 2026-11-14 through 2026-11-20. Current focus: reduce Neovim CI feedback time without weakening clean-install or behavioral coverage.
-- **Issue:** [#91 — Reduce Neovim workflow feedback time without weakening coverage](https://github.com/brianfiszman/dotfiles/issues/91), open and in progress under Epic #16.
-- **Branch / base:** `feat/ci-feedback-91` → `master`, created from merge commit `9e43312f2afa523e658ed583b4f48bebffb98568` (PR #88).
-- **Implemented:** first optimization slice is in [PR #92](https://github.com/brianfiszman/dotfiles/pull/92), now Ready for review, open and unmerged. It includes runner-provisioning optimization, independent fast checks, fail-open PR delta gating, and cancellation-safe integration gating. Issue #91 remains open/in progress.
-- **Latest validated implementation/test head:** Code/test head `1e0875fe48732548e78c14e162c2118d47c74a66` passed full PR run [#43643868247](https://github.com/brianfiszman/dotfiles/actions/runs/43643868247): 19/19 fast tests; full isolated install, locked plugin restore/build hooks, normal startup, complete behavior suite, and artifact upload passed. The base marker matched the live PR base, run head matched the marker head, and tested merge SHA matched the PR merge SHA. Two docs-only follow-ups (`db8eca9`, `7dee7fd`) passed [#43644267041](https://github.com/brianfiszman/dotfiles/actions/runs/43644267041) and [#43644394789](https://github.com/brianfiszman/dotfiles/actions/runs/43644394789): 19/19 fast tests each, decision success, full integration skipped-success only for docs-only deltas on the unchanged base.
-- **Manual cold-path details:** run #43634687957 used event `workflow_dispatch` and explicitly logged `workflow_dispatch always runs the cold integration path`. The fresh integration ran without plugin/Mason cache; all three jobs succeeded. Subsequent checkpoint edits are documentation-only and the live branch head in GitHub is authoritative.
-- **Initial baseline:** PR #88 run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749), head `71cd0c6`, approximately 113 seconds total: apt install ~53s, locked plugin restore/build ~26s, normal startup plus behavior suite ~27s; DAP/Mason first-use adapters ~21s within that behavior phase. Single-run observations, not a stable performance estimate.
-- **Path-filter finding and resolution:** PR #88's documentation-only checkpoint commits still triggered full integration because `pull_request.paths` evaluates the aggregate PR diff. PR #92 removes the workflow-level PR path filter and uses a fail-open commit-delta gate instead; the later docs-only run #43636243359 confirms fast checks pass and the heavy job is skipped successfully after a prior green integration.
-- **First optimization slice:** Ready-for-review PR #92 uses hosted Ubuntu 26.04 toolchains with Go 1.26.11 from the tool cache, dynamically installs only supplemental missing packages, and has an independent fast shell/lockfile job. Earlier full suite runs #43623707000 (`3766490`) and #43624095518 (`f8d3498`) validated the runner change. APT dropped from 428 packages / 116 MB / ~585 MB to 9 packages / 3.64 MB / 12.7 MB. Runner-to-artifact times: 88.95s and 82.50s versus old baseline runs at 109.02s and 135.05s; promising but not controlled due runner/region variance.
-- **Review gates:** The P1 stale-base finding is fixed: only a successful same-PR full integration with metadata matching the exact current base SHA and historical PR head can be reused. Final hardening removed editable PR-title interpolation from the run-name marker and added a contract test. Senior Reviewer re-pass: **APPROVE (simulated)** after reviewing the corrected gate, workflow, 19 tests, and full diff; no blocking findings remain. This is not an independent human review. No GitHub review is recorded.
-- **Prior functional PR:** PR #90 remains open, Draft, and explicitly paused by Brian pending a separate indentation-ownership/setup diagnosis after PR #88. Do not resume or modify PR #90 as part of #91. #91 is the currently authorized active branch; preserve the one-functional-PR cadence and do not open a second functional PR.
-- **Cold-path status:** the real manual `workflow_dispatch` cold integration passed on exact implementation/test head `f04ba78` in run #43634687957. The corrected workflow also completed a full fresh PR integration on `408d5a4` in run #43642279636 because prior baselines had no base-SHA marker. The scheduled cron event has not yet fired on the default branch and remains unverified.
+## Current focus
 
-## Completed predecessor: PR #88 / Issue #42
+- **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `7857e87`.
+- **Functional PR:** [#93](https://github.com/brianfiszman/dotfiles/pull/93)
+  `fix/89-scope-indent`, Draft, head `77b0dad`, issue [#89](https://github.com/brianfiszman/dotfiles/issues/89).
+  Adds scope-aware `S`, `o`, `O` and a 244-line regression test. Awaiting Brian's
+  explicit review and merge decision. **No merge authorization.**
+- **Docs PR:** [#94](https://github.com/brianfiszman/dotfiles/pull/94) — state/worklog budgets, skill trims,
+  diagnostic-experiment protocol, ADRs, incident records. **No merge authorization.**
+- **Closed predecessor:** [#90](https://github.com/brianfiszman/dotfiles/pull/90)
+  closed as superseded; archive branch `archive/indented-substitute-43` at `85f1ec7`.
+## Verified evidence
 
-- PR [#88](https://github.com/brianfiszman/dotfiles/pull/88) was squash-merged into `master` on 2026-11-14 as [`9e43312`](https://github.com/brianfiszman/dotfiles/commit/9e43312f2afa523e658ed583b4f48bebffb98568); issue [#42](https://github.com/brianfiszman/dotfiles/issues/42) is closed as completed.
-- Exact PR head `b08040f52aab1c4dd135ae3a5fd89d7695672ef4` passed pull-request run [#43619768631](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631). The workflow passed pinned Neovim/LuaLS setup, isolated preparation, locked plugin restore/build hooks, normal startup, the full native LSP/Lazydev/Neotest/Go/DAP behavior suite, and artifact upload.
-- All four real-LuaLS markers passed: Telescope completion, Neovim API completion, hover for valid Telescope usage, and zero diagnostics for the final valid buffer. Logs artifact [`14122899940`](https://github.com/brianfiszman/dotfiles/actions/runs/43619768631/artifacts/14122899940).
-- QA PASS and Senior Reviewer APPROVE were simulated sequential role passes by one assistant, not independent human reviews. A local macOS Neovim API completion/hover parity check remains optional and unverified.
+- #93 full PR run [#43723717327](https://github.com/brianfiszman/dotfiles/actions/runs/43723717327)
+  on `77b0dad`: decision, fast checks, and fresh-install/headless integration all
+  passed; integration job took 1m28s.
+- Local pinned Neovim 0.11.3 with the committed `lazy-lock.json`: `S`, `o`, `O`,
+  `2S`, Lua `S`, and TypeScript `o`/`O` passed; exit 0.
+- Root cause of the #90 failure: the test fixture inherited `foldmethod=syntax`,
+  so the source line was in a closed fold and native `o` opened at row 4 while
+  the test expected row 3. Test-fixture bug, not a production regression.
+## Pending and not authorized
 
-## Completed predecessor: PR #87 / Issue #41
+- #93 stays Draft until Brian decides. Do not mark it Ready or merge it.
+- #89 stays open until #93 merges and its acceptance criteria are verified.
+- Cold-path `workflow_dispatch` and scheduled `master` runs remain unverified for
+  the post-#92 workflow.
 
-- PR #87 was squash-merged as `a74368456f9c829197aa7569d6cf720b1bc7d9d5`; issue #41 is closed as completed.
-- Exact PR-head run [#43604418747](https://github.com/brianfiszman/dotfiles/actions/runs/43604418747) passed; post-merge push run [#43604690496](https://github.com/brianfiszman/dotfiles/actions/runs/43604690496) passed all steps including real locked plugin restore/build and normal startup.
-- The original JS/TS ESLint diagnostic reappearing after edit/undo was not reproduced locally. Removing duplicate ESLint publishers removed a credible source but did not prove the exact race resolved; retain as a separate manual follow-up if it recurs.
+## Next action
 
-## Completed LSP implementation decisions (PRs #87 and #88)
-
-- Native LSP from #41 remains: `vim.lsp.config()` / `vim.lsp.enable()`, Mason-LSPConfig `automatic_enable = false`, native `ts_ls`, one configured ESLint diagnostics owner, Conform Ctrl+F.
-- **Lazydev:** separate root plugin spec `folke/lazydev.nvim` with `ft = "lua"`; not a dependency of the eagerly loaded LSP plugin.
-- Lazydev enables native LSP and nvim-cmp integrations. The five plugin API libraries previously exposed by Neodev remain: `neotest`, `nvim-dap-ui`, `nvim-treesitter`, `plenary.nvim`, and `telescope.nvim`.
-- **LuaLS:** explicit LuaJIT runtime, strict module resolution (`runtime.pathStrict = true`), `?.lua` / `?/init.lua` paths, `vim` diagnostics global, function-call snippet completion, Neovim runtime and config Lua libraries. Workspace library paths are a string list so Lazydev can append plugin paths without mixing map/list shapes.
-- The separate jsonls `.luarc.json` / `.luarc.jsonc` schema remains unchanged.
-- Neodev setup and dependency are removed; `lazy-lock.json` removes `neodev.nvim` and pins Lazydev at `ff2cbcba459b637ec3fd165a2be59b7bbaeedf0d`.
-- nvim-cmp includes Lazydev source at `group_index = 0`.
-
-## Validation
-
-| Check | Status | Evidence |
-|---|---|---|
-| No active Neodev setup/dependency/lock entry | passed | Current diff; LSP/native plugin specs and lockfile inspected; headless assertions confirm the retired module/spec remain unloaded |
-| Lazydev remains unloaded outside Lua filetypes and loads on Lua | passed | Dedicated `tests/nvim/lazydev-lazy-loading.lua` in exact-head run #43617823749 |
-| `:LazyDev` command registers on Lua filetype | passed | Dedicated Lazydev test, run #43617823749 |
-| Five plugin API libraries retained | passed | Dedicated Lazydev test, run #43606193476 |
-| Native LSP + nvim-cmp integrations | passed | Dedicated Lazydev test, run #43617823749; scheduled cmp registration is explicitly awaited |
-| LuaLS settings and jsonls schema preservation | passed | Headless assertions, run #43617823749 |
-| Full isolated preparation and lockfile validation | passed | Run [#43606193476](https://github.com/brianfiszman/dotfiles/actions/runs/43606193476), pull_request event, exact PR head `f472500d8bd79da0ad6eae559291e4fdc7aed745` |
-| Locked plugin restore/build hooks | passed | Run #43606193476 |
-| Normal Neovim startup | passed | Run #43606193476 |
-| Native LSP, Lazydev, Neotest, Go, and DAP behavior scenarios | passed | Run #43606193476; logs show the expected PASS markers |
-| Real LuaLS completion for `telescope.builtin.find_files` | passed | Exact-head run [#43617823749](https://github.com/brianfiszman/dotfiles/actions/runs/43617823749); log prints the expected completion PASS marker |
-| Real LuaLS completion for `vim.api.nvim_create_autocmd` | passed | Exact-head run #43617823749; request uses a narrow typed prefix and LuaLS returns the method signature |
-| Hover after valid edit and clean LuaLS diagnostics | passed | Exact-head run #43617284555; hover resolves `builtin.find_files`, then the final valid buffer has zero diagnostics |
-| Full isolated preparation, pinned LuaLS install, lockfile validation, plugin restore/build, normal startup, and behavior suite | passed | Run #43617823749, pull_request event, exact PR head `71cd0c6ddc5e4e00ec0dfa6b5a696649c9cce4b0`; every job step succeeded and logs artifact uploaded |
-| Local Telescope API completion/type resolution | partially verified | Brian confirmed `require("telescope.builtin")` and `builtin.find_files` resolve without errors in the interactive Neovim session |
-| QA | PASS (simulated) | Rechecked issue #42 acceptance criteria, full PR diff, new real-LuaLS tests, and exact-head CI evidence |
-| Senior Reviewer | APPROVE (simulated) | Re-reviewed implementation, workflow, runner wiring, test, lockfile, README, skill, and checkpoint updates; no blocking finding. Not an independent human review. |
-| Local Neovim API completion and hover on macOS | unverified locally | Both APIs and hover are now exercised in exact-head CI; a local Mac session remains an optional environment-parity check |
-| PR #88 merge | not authorized | Requires Brian's explicit approval |
-
-### Earlier CI attempts and correction
-
-- Runs #43605503484, #43605709646, and #43606069295 were cancelled when newer commits superseded their heads. #436055/#436057 were cancelled before full validation; #436060 completed restore but was cancelled before startup.
-- Run [#43605876070](https://github.com/brianfiszman/dotfiles/actions/runs/43605876070) on predecessor source SHA `43fb08c` passed restore and normal startup, then failed on a test-only assumption that lazy.nvim always stores `ft` as an array. The actual valid spec retains `ft = "lua"` as a string. The test was corrected to accept either string or list; the exact current-head run #43606193476 passed.
-
-## Next concrete actions
-
-1. Await Brian's explicit merge authorization. PR #92 is open, Ready for review, mergeable, and unmerged; no merge is authorized.
-2. After merge, verify the new `push.paths` triggers on `master` (including `scripts/ci/**` and `tests/ci/**`) and observe the scheduled cold run on the default branch.
-3. Keep plugin/Mason caching and behavior-suite parallelization deferred until configured build hooks on cache hits and mutable XDG/Mason isolation are proven.
-4. Keep PR #90 Draft/paused for its separate indentation-ownership/setup diagnosis; do not mix it into #91.
-
-## Scope boundaries
-
-- Current Sprint 2 functional item: #91, estimate M; the first runner/fast-check/delta-gating slice is implemented and cold-path validated in Ready-for-review PR #92 on `feat/ci-feedback-91`. Broader plugin/Mason cache and safe behavior parallelization remain deferred investigation; issue #91 is not complete.
-- #44 (Treesitter API/branch migration), #76 (Telescope lazy-loading), #40 (Run with Args), and broad plugin inventory/update remain outside this PR.
-- No bulk plugin update.
-- PR #83 remains open/unmerged as a historical Sprint 1 planning checkpoint.
-
-## Continuity rules
-
-- Live GitHub PR, branch, issue, and Actions state are authoritative.
-- Validate exact code/test HEAD and workflow event; later documentation-only commits can still trigger PR workflows when the aggregate PR diff matches path filters.
-- Keep `AGENT_WORKLOG.md` append-only.
-- Specialist skills: `.agents/skills/neovim-maintenance/SKILL.md`, `.agents/skills/github-actions-validation/SKILL.md`, `.agents/skills/execution-continuity/SKILL.md`, `.agents/skills/scrum-team/SKILL.md`.
+Brian reviews #93. If approved, merge it, verify the post-merge `master` run and
+close #89. Then review the docs PR separately.
