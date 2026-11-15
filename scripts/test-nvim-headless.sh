@@ -5,7 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN:-nvim}"
 PHASE="${1:-all}"
 NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-20m}"
-NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-5m}"
+NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-30m}"
 NVIM_TREESITTER_TIMEOUT="${NVIM_TREESITTER_TIMEOUT:-20m}"
 VIM_ERROR_CODE_PATTERN='E[0-9]{3,4}:'
 
@@ -273,6 +273,7 @@ startup() {
     "+lua assert(#vim.api.nvim_get_runtime_file('parser/norg_meta.so', true) > 0, 'Neorg norg_meta parser is missing from runtimepath')"
     "+lua assert(pcall(vim.treesitter.language.add, 'norg'), 'Neorg norg parser could not be loaded')"
     "+lua assert(pcall(vim.treesitter.language.add, 'norg_meta'), 'Neorg norg_meta parser could not be loaded')"
+    "+lua assert(vim.wait(20 * 60 * 1000, function() return vim.g.dotfiles_treesitter_ready == true or vim.g.dotfiles_treesitter_error ~= nil end, 100), 'Mason did not finish current Treesitter setup'); assert(vim.g.dotfiles_treesitter_error == nil, 'Treesitter setup failed: ' .. tostring(vim.g.dotfiles_treesitter_error))"
   )
 
   startup_checks+=("+qa!")
