@@ -89,6 +89,8 @@ local function finish()
   vim.cmd("qa!")
 end
 
+local run_typescript_O
+
 local function run_typescript_o()
   vim.cmd("enew!")
   vim.bo.buftype = ""
@@ -119,7 +121,7 @@ local function run_typescript_o()
   end)
 end
 
-function run_typescript_O()
+run_typescript_O = function()
   vim.cmd("enew!")
   vim.bo.buftype = ""
   vim.bo.bufhidden = "wipe"
