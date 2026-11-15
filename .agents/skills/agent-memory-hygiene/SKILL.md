@@ -81,6 +81,8 @@ ADR instead, and leave a link.
 Run before committing a docs or memory change:
 
 - [ ] No stale SHA, run ID, PR number, or branch name presented as current.
+- [ ] Closed or superseded artifacts are labeled historical and link to their
+      replacement.
 - [ ] No contradiction between `AGENTS.md`, the state file, and the skills.
 - [ ] No branch-local state presented as authorization.
 - [ ] State is 40 lines or fewer and has an explicit next action.

@@ -35,12 +35,26 @@ does not copy their procedures.
    review threads, and relevant workflow runs.
 5. Compare the checkpoint with live state. Verify whether the PR is open, merged,
    or closed; whether the issue is open; whether the branch advanced; and whether
-   the cited run tested the exact current SHA and event.
+   the cited run tested the exact current SHA and event. If the PR is closed or
+   superseded, follow its disposition link and treat the replacement as active.
 6. Read the actual diff for the active task. A title, summary, checkpoint, or
    prior agent's statement is not evidence.
 7. Reconcile stale fields before acting. Preserve unmerged branch work. Never
    assume an operation completed because the interrupted session attempted it.
 8. Continue from the next concrete action only after the state is verified.
+
+## Active artifact resolution
+
+A run describes the artifact it actually tested, not whichever PR is convenient:
+
+- A closed or merged PR is historical. Follow its disposition/replacement link;
+  never report its runs as the active branch's current status.
+- Use the active PR's `headRefName` and `headRefOid`. Archive branches, aliases,
+  and similarly named branches are not active merely because they still exist.
+- Match every run's `head_sha` to the active head. Older runs are historical
+  evidence; a green run does not cover commits added afterward.
+- If GitHub state or run data is unreachable, label it **Unavailable** and stop.
+  Do not infer current status from a local branch, an older run, or memory.
 
 ## Evidence labels
 
@@ -129,8 +143,9 @@ the pointer in `AGENT_WORKLOG.md`, and leave older months untouched. See
 ## Recovery checklist
 
 - [ ] Remote branch ref and exact HEAD are known.
+- [ ] The active issue/PR is open, or its replacement is identified.
 - [ ] The `master` checkpoint matches live state, or its stale fields are noted.
 - [ ] The current monthly log and relevant issue/PR have been read.
 - [ ] No unmerged unique work or newer commits were overlooked.
-- [ ] CI claims match the exact SHA, event, and observed job result.
+- [ ] CI claims match the exact active head, event, and observed job result.
 - [ ] The next action is explicit and does not repeat completed work.

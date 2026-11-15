@@ -12,6 +12,21 @@ probe, or try another fix. It applies to editor behavior, CI, installers, and
 scripted workflows. It is especially important after one fix attempt already
 failed.
 
+## Confirm the active artifact
+
+Before stating the observation:
+
+- Confirm the issue/PR is open and record the active branch and head SHA.
+- If it is closed or superseded, follow its disposition/replacement link. Its
+  runs describe the old artifact, not current behavior.
+- Match the run's `head_sha` to the active head. An archive branch, alias
+  branch, or older run is historical evidence.
+- If GitHub cannot be reached, label the state **Unavailable** and stop. Do not
+  substitute memory or a stale checkpoint.
+
+Diagnosing a superseded artifact produces a confident fix for a bug that is no
+longer active.
+
 ## Hard limits
 
 - **Two attempts per symptom.** If two changes do not explain or fix the same
@@ -57,6 +72,8 @@ Go down this list before building anything:
 - Changing the test expectation to match unexplained behavior.
 - Treating a test failure as proof about production without isolating the
   fixture.
+- Diagnosing a closed/superseded PR, an archive branch, or an old head as if it
+  were the active artifact.
 - Running the full integration suite repeatedly while the failing layer is still
   unknown.
 - Stacking fixes: each new patch makes it harder to know which change mattered.
@@ -104,3 +121,8 @@ correctly opened at row 4. The production mapping was not broken.
 
 Lesson: prove the fixture's starting state before changing the implementation.
 See `docs/incidents/2026-11-14-pr90-fold-test-failure.md`.
+
+After #90 was closed and replaced by #93, a follow-up diagnosis cited #90's
+failing run on `85f1ec7` as proof that current CI was broken. #93's active head
+`77b0dad` had its own green run. The cited failure was historical evidence for a
+closed PR. Resolve the active artifact before interpreting any run.

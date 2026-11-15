@@ -27,6 +27,18 @@ normal configuration, and report exactly what was proved.
 A commit may have both push and pull-request runs. Do not treat one as a
 substitute for the other.
 
+## Resolve the active artifact first
+
+- An open PR is the active artifact. If it is closed, merged, or superseded,
+  follow its disposition link to the replacement. Never present the old PR's
+  runs as the current branch's status.
+- Use the active PR's `headRefName` and `headRefOid`. Archive branches, aliases,
+  and similarly named branches are historical even when they still exist.
+- Match each run's `head_sha` to the active head. A run for an older head is
+  historical evidence; a green run does not cover commits added afterward.
+- If PR or run state cannot be fetched, report **Unavailable**. Do not infer
+  current status from a local branch, an older run, or another agent's summary.
+
 ## Discover runs without blind spots
 
 - Do not assume a connector helper returns every run. Some integrations filter by
@@ -136,6 +148,8 @@ useful log files.
 Report at minimum:
 
 - PR and exact SHA validated.
+- The active artifact check: open PR, head SHA, and why any older run is
+  historical rather than current.
 - Run IDs and events checked.
 - The failing/passing job and relevant step.
 - Whether validation reached plugin restore, normal startup, and behavior
