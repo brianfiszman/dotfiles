@@ -188,7 +188,7 @@ local function scope_indent_local_options()
     expandtab = vim.bo.expandtab,
     copyindent = vim.bo.copyindent,
     preserveindent = vim.bo.preserveindent,
-    smarttab = vim.bo.smarttab,
+    smarttab = vim.o.smarttab,
     shiftwidth = vim.bo.shiftwidth,
     softtabstop = vim.bo.softtabstop,
     tabstop = vim.bo.tabstop,
