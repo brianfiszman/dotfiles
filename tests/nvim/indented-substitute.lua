@@ -97,7 +97,9 @@ local function finish()
   print("PASS: deterministic S, o, O and counted 2S preserve computed indentation")
   print("PASS: real Lua Treesitter indentation is preserved by S")
   print("DIAGNOSTIC ONLY: real TypeScript Treesitter o/O state captured; behavior assertions are intentionally pending this diagnosis")
-  vim.cmd("qa!")
+  -- This is a standalone disposable Neovim process; avoid Ex command handling
+  -- inside a deferred callback and terminate the successful diagnostic run.
+  os.exit(0, true)
 end
 
 local function setup_typescript_buffer()
