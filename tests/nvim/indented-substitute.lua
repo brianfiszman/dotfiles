@@ -361,7 +361,7 @@ run_home_tsx_open_above = function()
 end
 
 run_home_js_open_above = function()
-  home_react_case("javascript", "<Countdown countdownTo=", "O", 8, 8, run_closed_fold_control)
+  home_react_case("javascript", "<Countdown countdownTo=", "O", 8, 8, run_typescript_open_above)
 end
 
 run_home_js_substitute = function()
@@ -516,10 +516,14 @@ run_typescript_open_above = function()
     "};",
   }, { 2, 0 })
   assert_stale_source(2, "enabled: true,", "TypeScript object O")
+  local computed_indent = require("nvim-treesitter.indent").get_indent(2)
+  assert(computed_indent == 2,
+    ("TypeScript object indentexpr expected 2, got %s (%s)"):format(
+      tostring(computed_indent), buffer_state()))
   press("O", "TypeScript object O", function()
     assert_insert(2, 2, "TypeScript object O")
     assert_source_reindented(3, 2, "enabled: true,", "TypeScript object O")
-    leave_insert("TypeScript object O", run_javascript_substitute)
+    leave_insert("TypeScript object O", run_closed_fold_control)
   end)
 end
 
@@ -578,7 +582,7 @@ local function run_lua_substitute()
   assert(vim.fn.indent(2) == 0, "Lua fixture must start with stale indentation (" .. buffer_state() .. ")")
   press("S", "Lua S", function()
     assert_insert(2, 2, "Lua S")
-    leave_insert("Lua S", run_typescript_open_above)
+    leave_insert("Lua S", run_javascript_substitute)
   end)
 end
 
