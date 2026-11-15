@@ -13,7 +13,7 @@ underlying fix.
 
 ## P1 — Make everyday editing predictable
 
-- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — exact run #43663087456 proved deterministic `S/o/O/2S` and Lua Treesitter `S` pass; TypeScript `o` entered Insert but the test's fixed two-column expectation was wrong or incomplete. The next test derives expected indentation from the real `indentexpr`.
+- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — latest exact run [#43669430111](https://github.com/brianfiszman/dotfiles/actions/runs/43669430111) confirms deterministic `S/o/O/2S` and Lua Treesitter `S` pass. TypeScript's provider computes the expected two-space prefix, but the `InsertEnter` callback observes row 4 instead of the expected row 3. The remaining issue is source/target cursor anchoring, not the expected indentation value. PR #90 remains Draft; fix and re-run exact-head integration before sign-off.
 
 
 - [#32 Stop automatically unlinking snippets when the cursor is idle](https://github.com/brianfiszman/dotfiles/issues/32)
