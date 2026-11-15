@@ -26,6 +26,28 @@ on another machine.
   documentation when they are needed to make the setup safer or close a
   validation gap. Do not treat those files as off-limits.
 
+## Version and compatibility policy
+
+The default target is the latest stable Neovim release and the current
+upstream-supported API/branch of each plugin and integration.
+
+- Do not preserve support for older Neovim or plugin releases by default.
+- Do not add legacy fallbacks, compatibility shims, or old-version CI matrix
+  entries solely for backward compatibility. Migrate configuration to the
+  current supported API instead of freezing an obsolete branch.
+- Keep the CI runtime matrix on the latest stable release by default. Add the
+  latest nightly only when it provides useful early warning; do not test older
+  releases unless the maintainer explicitly asks for that support.
+- Exact commit pins remain appropriate for reproducibility, but they must pin
+  the chosen current API, not keep an obsolete branch alive indefinitely.
+- A temporary compatibility shim is acceptable only when it is necessary for
+  the latest stable release, no supported upstream API can replace it yet, and
+  the issue records a concrete removal/migration condition.
+- Before changing a major plugin branch, inspect its current upstream migration
+  guide and every feature the configuration actually uses. Treat a breaking
+  rewrite as a migration, not a routine lockfile refresh.
+- State the upstream version/revision and Neovim version used for validation.
+
 ## Start by recovering the real state
 
 1. Read `AGENTS.md` and this skill.
