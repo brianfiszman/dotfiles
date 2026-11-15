@@ -254,7 +254,7 @@ restore_plugins() {
   nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
   local -a restore_checks=("+Lazy! restore")
   if [[ "$nvim_version" == v0.12.* ]]; then
-    restore_checks+=("+lua assert(type(package.preload['nvim-treesitter.query_predicates']) == 'function', 'fresh-install build hook did not register the in-memory Treesitter adapter')")
+    restore_checks+=("+lua assert(type(package.preload['nvim-treesitter.query_predicates']) == 'function', 'Treesitter adapter was not preloaded before Lazy installed/loaded plugins')")
   fi
   restore_checks+=("+qa!")
   run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
