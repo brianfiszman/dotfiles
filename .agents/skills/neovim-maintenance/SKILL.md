@@ -28,25 +28,12 @@ on another machine.
 
 ## Version and compatibility policy
 
-The default target is the latest stable Neovim release and the current
-upstream-supported API/branch of each plugin and integration.
-
-- Do not preserve support for older Neovim or plugin releases by default.
-- Do not add legacy fallbacks, compatibility shims, or old-version CI matrix
-  entries solely for backward compatibility. Migrate configuration to the
-  current supported API instead of freezing an obsolete branch.
-- Keep the CI runtime matrix on the latest stable release by default. Add the
-  latest nightly only when it provides useful early warning; do not test older
-  releases unless the maintainer explicitly asks for that support.
-- Exact commit pins remain appropriate for reproducibility, but they must pin
-  the chosen current API, not keep an obsolete branch alive indefinitely.
-- A temporary compatibility shim is acceptable only when it is necessary for
-  the latest stable release, no supported upstream API can replace it yet, and
-  the issue records a concrete removal/migration condition.
-- Before changing a major plugin branch, inspect its current upstream migration
-  guide and every feature the configuration actually uses. Treat a breaking
-  rewrite as a migration, not a routine lockfile refresh.
-- State the upstream version/revision and Neovim version used for validation.
+Target the latest stable Neovim and current upstream-supported plugin APIs.
+Do not maintain older-version support, legacy branches, or compatibility
+fallbacks solely for backward compatibility; migrate forward instead. CI
+targets latest stable by default, with nightly optional and older versions only
+on explicit request. Exact pins are for reproducibility, not obsolete APIs.
+Temporary shims must be required by latest stable and have a removal condition.
 
 ## Start by recovering the real state
 
