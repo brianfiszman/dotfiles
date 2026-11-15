@@ -196,8 +196,9 @@ local function reindent_and_edit(key)
       vim.api.nvim_buf_set_lines(0, cursor[1] - 1, cursor[1], false, {
         source_indent .. body,
       })
-      print(("[scope-indent] InsertEnter before prefix cursor=%s current=%s source_indent=%q"):format(
-        vim.inspect(cursor), vim.inspect(line), source_indent))
+      print(("[scope-indent] InsertEnter before prefix cursor=%s current=%s source_indent=%q lines=%s"):format(
+        vim.inspect(cursor), vim.inspect(line), source_indent,
+        vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
       vim.api.nvim_win_set_cursor(0, {
         cursor[1],
         #source_indent + body_column,
