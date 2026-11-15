@@ -6,6 +6,7 @@ NVIM_BIN="${NVIM_BIN:-nvim}"
 PHASE="${1:-all}"
 NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-20m}"
 NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-5m}"
+VIM_ERROR_CODE_PATTERN='E[0-9]{3,4}:'
 
 case "$PHASE" in
   all|prepare|restore|startup) ;;
@@ -143,7 +144,7 @@ run_nvim() {
 
   # Neovim can report Lua/Vimscript errors while still returning exit status 0.
   # The verbose trace captures messages that do not reach stdout/stderr.
-  if grep -Eiq 'Error detected while processing|E[0-9]{3}:|Error executing lua|Failed to run .*config|module .+ not found' "$log_file"; then
+  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|Failed to run .*config|module .+ not found" "$log_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
@@ -172,7 +173,7 @@ run_nvim() {
 
   if [[ "$label" == "startup" && -s "$startup_verbose_file" ]]; then
     local unexpected_vim_errors
-    unexpected_vim_errors="$(grep -E 'E[0-9]{3}:' "$startup_verbose_file" \
+    unexpected_vim_errors="$(grep -E "$VIM_ERROR_CODE_PATTERN" "$startup_verbose_file" \
       | grep -Fv 'E216: No such group or event: FileExplorer *' || true)"
     if [[ -n "$unexpected_vim_errors" ]]; then
       printf 'Error: Neovim reported Vimscript errors in its startup trace:\n%s\n' "$unexpected_vim_errors" >&2
@@ -188,6 +189,17 @@ run_nvim() {
 }
 
 prepare() {
+  printf '[prepare] Checking Vim error-code matcher...\n'
+  local matcher_fixture="$WORK_DIR/vim-error-code-matcher.log"
+  local matcher_result
+  printf 'E12: too short\nE123: three digits\nE1234: four digits\nE12345: too long\n' > "$matcher_fixture"
+  matcher_result="$(grep -E "$VIM_ERROR_CODE_PATTERN" "$matcher_fixture")"
+  [[ "$matcher_result" == "$(printf 'E123: three digits\nE1234: four digits')" ]] || {
+    printf 'Error: Vim error matcher did not recognize exactly three- and four-digit codes.\n' >&2
+    printf 'Matched: %s\n' "$matcher_result" >&2
+    return 1
+  }
+
   printf '[prepare] Checking shell syntax...\n'
   bash -n "$REPO_ROOT/install.sh"
   bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
@@ -238,13 +250,20 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "+Lazy! restore" "+qa!"
+  local nvim_version
+  nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
+  local -a restore_checks=("+Lazy! restore")
+  if [[ "$nvim_version" == v0.12.* ]]; then
+    restore_checks+=("+lua assert(type(package.preload['nvim-treesitter.query_predicates']) == 'function', 'Treesitter adapter was not preloaded before Lazy installed/loaded plugins')")
+  fi
+  restore_checks+=("+qa!")
+  run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
 }
 
 prepare_preinstalled_treesitter_compatibility_fixture() {
-  local nvim_version plugin_dir patch_file plugin_head query_file
+  local nvim_version plugin_dir patch_file plugin_head
 
   nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
   case "$nvim_version" in
@@ -254,7 +273,6 @@ prepare_preinstalled_treesitter_compatibility_fixture() {
 
   plugin_dir="$XDG_DATA_HOME/nvim/lazy/nvim-treesitter"
   patch_file="$NVIM_CONFIG/patches/nvim-treesitter-neovim-0.12.patch"
-  query_file="$plugin_dir/lua/nvim-treesitter/query_predicates.lua"
 
   [[ -d "$plugin_dir" ]] || {
     printf 'Error: restored nvim-treesitter checkout is missing: %s\n' "$plugin_dir" >&2
@@ -271,21 +289,16 @@ prepare_preinstalled_treesitter_compatibility_fixture() {
     return 1
   fi
 
-  # The restore phase proves the fresh-install build hook applied this patch.
-  # Reverse it now to model a previously installed checkout that predates the
-  # config change. Normal startup must reapply it via the plugin's init hook.
-  if ! git -C "$plugin_dir" apply --reverse --check "$patch_file"; then
-    printf 'Error: restore did not leave the compatibility patch applied; cannot prepare the preinstalled-checkout test.\n' >&2
+  # Simulate a checkout left dirty by the previous release. Normal startup
+  # must reverse this exact old patch and install the in-memory adapter without
+  # changing the plugin's tracked working tree.
+  if ! git -C "$plugin_dir" apply --check "$patch_file"; then
+    printf 'Error: pristine restored checkout cannot accept the previous compatibility patch.\n' >&2
     return 1
   fi
-  git -C "$plugin_dir" apply --reverse "$patch_file"
+  git -C "$plugin_dir" apply "$patch_file"
 
-  if grep -q 'local function get_node' "$query_file"; then
-    printf 'Error: compatibility helper remained after reversing the patch.\n' >&2
-    return 1
-  fi
-
-  printf '[startup] Reversed the patch on the restored legacy checkout to simulate an existing unpatched installation.\n'
+  printf '[startup] Applied the previous on-disk patch to simulate an existing checkout that needs migration.\n'
 }
 
 startup() {
@@ -315,6 +328,11 @@ startup() {
   startup_checks+=("+qa!")
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
+
+  printf '\n[behavior] Verifying Lazy update preflight handles generated help-tag collisions.\n'
+  run_nvim "lazy-update-preflight" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lazy-update-preflight.lua" \
+    "+qa!"
 
   printf '\n[behavior] Verifying native LSP configuration and single ownership.\n'
   run_nvim "lsp-native-setup" "$NVIM_STARTUP_TIMEOUT" \
