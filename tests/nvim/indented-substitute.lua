@@ -372,16 +372,20 @@ local function probe_typescript_autoindent_disabled()
     vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
 end
 
-local function probe_minimal_child_typescript_open(label, enable_filetype_indent, disable_indentexpr)
+local function probe_minimal_child_typescript_open(label, enable_filetype_indent, prime_with_equal, disable_indentexpr)
   local child_script = vim.fn.tempname() .. ".lua"
   local child_lines = {
     string.format('vim.cmd("filetype plugin indent %s")', enable_filetype_indent and "on" or "off"),
     'vim.cmd("enew")',
     'vim.api.nvim_buf_set_lines(0, 0, -1, false, { "const options = {", "enabled: true,", "};" })',
     'vim.cmd("setfiletype typescript")',
-    disable_indentexpr and 'vim.bo.indentexpr = ""' or '-- keep active indentexpr',
     'vim.api.nvim_win_set_cursor(0, { 2, 0 })',
+    prime_with_equal and 'vim.cmd("normal! ==")' or '-- skip source reindent',
+    prime_with_equal and 'vim.api.nvim_buf_set_lines(0, 1, 2, false, { "enabled: true," })' or '-- keep source as-is',
+    prime_with_equal and 'vim.api.nvim_win_set_cursor(0, { 2, 0 })' or '-- keep cursor as-is',
+    disable_indentexpr and 'vim.bo.indentexpr = ""' or '-- keep active indentexpr',
     'local before = vim.api.nvim_win_get_cursor(0)',
+    'print("[scope-indent-child] " .. "primed=" .. tostring(' .. tostring(prime_with_equal) .. ') .. " before o=" .. vim.inspect(before) .. " source=" .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)))',
     'vim.cmd.normal({ args = { "o" }, bang = true })',
     'print("[scope-indent-child] ' .. label .. ' before=" .. vim.inspect(before) .. " after=" .. vim.inspect(vim.api.nvim_win_get_cursor(0)) .. " lines=" .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)) .. " indentexpr=" .. vim.inspect(vim.bo.indentexpr))',
     'vim.cmd("qa!")',
@@ -404,9 +408,10 @@ local function probe_minimal_child_typescript_open(label, enable_filetype_indent
 end
 
 local function probe_minimal_neovim_runtime()
-  probe_minimal_child_typescript_open("minimal TS indent plugin on", true, false)
-  probe_minimal_child_typescript_open("minimal TS indent plugin off", false, false)
-  probe_minimal_child_typescript_open("minimal TS indentexpr cleared", true, true)
+  probe_minimal_child_typescript_open("minimal TS no-prime", true, false, false)
+  probe_minimal_child_typescript_open("minimal TS runtime == then clear indentexpr", true, true, true)
+  probe_minimal_child_typescript_open("minimal TS runtime == keep indentexpr", true, true, false)
+  probe_minimal_child_typescript_open("minimal TS indent plugin off", false, false, true)
 end
 
 local function probe_native_typescript_open_variants()
