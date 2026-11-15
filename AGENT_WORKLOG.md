@@ -718,3 +718,15 @@ here rather than copying it.
 - Updated `.agents/skills/neovim-maintenance/SKILL.md` (commit `b7fb512f316006fed68ed960f9eb79c27e912cf2`) with a dedicated playbook for parser-backed native edit mappings: separate computation/open/InsertEnter/final-assertion phases; preserve and log source cursor; assert final row/content rather than only Insert mode; keep test failure termination bounded.
 - Updated `AGENT_STATE.md` to make the exact failing head/run, current evidence, next diagnostic, skill improvement, and merge restriction explicit.
 - PR #90 remains Draft and unmerged. The full behavior suite has not passed; no review or merge sign-off is claimed.
+
+---
+
+## 2026-11-15 — Isolate native open-line Insert lifecycle (#89)
+
+- Re-read live PR #90 rather than trusting the previous checkpoint. Its implementation head was `198ccdd907206399d9b4db87d35bb9610c2b5d6e`; exact-head run [#43672262947](https://github.com/brianfiszman/dotfiles/actions/runs/43672262947) failed in the real TypeScript behavior scenario.
+- Full preparation, pinned toolchain, locked plugin restore/build hooks, and normal startup passed. The behavior log confirms deterministic `S/o/O/2S` and Lua Treesitter `S` pass.
+- The TypeScript indentation provider computed the expected two-space prefix, and the callback applied it. However, the callback was operating on row 4 when the expected open-below row was 3. Artifact [14145260788](https://github.com/brianfiszman/dotfiles/actions/runs/43672262947/artifacts/14145260788).
+- The current code calls native `:normal! o`, observes a transient Insert-mode lifecycle, registers another `InsertEnter` handler, then calls `:startinsert!`. The trace does not yet prove which transition creates or selects row 4. Do not assume the existing two-InsertEnter explanation is correct.
+- Improved `.agents/skills/neovim-maintenance/SKILL.md` in commit `94b18c6`: add a diagnostic playbook to count and snapshot each InsertEnter/InsertLeave, compare native open with and without explicit `:startinsert!`, and test fixed and parser-backed providers separately.
+- Refreshed `AGENT_STATE.md` to use the live head/run, remove duplicated next-action blocks, and make the next experiment explicit.
+- PR #90 remains Draft and unmerged; no QA/reviewer approval or merge authorization is claimed.
