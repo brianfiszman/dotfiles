@@ -184,6 +184,16 @@ local function setup_typescript_buffer()
   })
   vim.cmd("setfiletype typescript")
   assert(vim.bo.filetype == "typescript", "TypeScript fixture must set its filetype")
+  for _, autocmd in ipairs(vim.api.nvim_get_autocmds({ event = "FileType" })) do
+    local pattern = autocmd.pattern or ""
+    if pattern == "*" or pattern == "" or pattern:find("typescript", 1, true) then
+      print(("[scope-indent-filetype] group=%s id=%s pattern=%q desc=%q command=%q callback=%s buffer=%s"):format(
+        tostring(autocmd.group_name or autocmd.group),
+        tostring(autocmd.group), pattern, tostring(autocmd.desc),
+        tostring(autocmd.command), type(autocmd.callback),
+        tostring(autocmd.buffer)))
+    end
+  end
   assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
     "TypeScript must use the configured Treesitter indentexpr (got: "
       .. vim.inspect(vim.bo.indentexpr) .. ")")
