@@ -279,9 +279,9 @@ startup() {
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
 
-  printf '\\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\\n'
-  run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \\
-    "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \\
+  printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
+  run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \
     "+qa!"
 
   printf '\n[behavior] Verifying Lazy update preflight handles generated help-tag collisions.\n'
