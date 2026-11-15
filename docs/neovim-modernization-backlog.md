@@ -39,10 +39,10 @@ independently testable behavior.
   reopened after a JS/TS report. Draft follow-up
   [#95](https://github.com/brianfiszman/dotfiles/pull/95) now includes the actual
   Home React component is covered as `.js`, `.jsx`, and `.tsx`; dedicated
-  `.ts` cases remain. Current test-only head `be848d5` adds the actual Home
-  fixture under the `javascript` parser; exact-head run
-  [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275)
-  is running. No runtime fix until the local column-zero symptom is reproduced.
+  `.ts` cases remain. Test-only head `be848d5` passed exact-head full integration
+  [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275),
+  including all nine Home `S`/`o`/`O` cases. No runtime fix until the local
+  column-zero symptom is reproduced.
 
 ## Open — P1: reliable language and navigation tools
 
