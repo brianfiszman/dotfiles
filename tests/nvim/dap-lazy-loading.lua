@@ -60,8 +60,9 @@ for _, name in ipairs(package_names) do
   end
 end
 
-registry:on("package:handle", function(pkg, handle)
-  if not vim.tbl_contains(package_names, pkg.name) then
+registry:on("package:install:handle", function(handle)
+  local pkg = handle and handle.package
+  if not pkg or not vim.tbl_contains(package_names, pkg.name) then
     return
   end
   requested_packages[pkg.name] = true
@@ -83,22 +84,20 @@ end)
 -- Use Mason's terminal package events as the completion signal. Polling
 -- Package:is_installed() repeatedly scans the shared install directory and
 -- is not an appropriate async installation-completion signal.
-registry:on("package:install:success", function(pkg, handle)
+registry:on("package:install:success", function(pkg, receipt)
   if not vim.tbl_contains(package_names, pkg.name) then
     return
   end
-  install_results[pkg.name] = { status = "success", handle = handle }
+  install_results[pkg.name] = { status = "success", receipt = receipt }
   print(("PACKAGE INSTALL SUCCESS %s"):format(pkg.name))
 end)
-registry:on("package:install:failed", function(pkg, handle)
+registry:on("package:install:failed", function(pkg, result)
   if not vim.tbl_contains(package_names, pkg.name) then
     return
   end
-  local stderr = handle and handle.stdio and handle.stdio.buffers
-      and table.concat(handle.stdio.buffers.stderr or {}, "")
-    or ""
-  install_results[pkg.name] = { status = "failed", handle = handle, error = stderr }
-  print(("PACKAGE INSTALL FAILED %s: %s"):format(pkg.name, stderr:gsub("%s+$", ""):sub(1, 400)))
+  local message = tostring(result)
+  install_results[pkg.name] = { status = "failed", error = message }
+  print(("PACKAGE INSTALL FAILED %s: %s"):format(pkg.name, message:gsub("%s+$", ""):sub(1, 400)))
 end)
 
 -- Execute the actual remapped key. Neovim's headless input API does not
