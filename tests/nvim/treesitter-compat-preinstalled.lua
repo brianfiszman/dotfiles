@@ -1,5 +1,8 @@
 -- Verify migration from the previous on-disk patch to the in-memory adapter.
 local expected_commit = "85168f15808d89b0222313652b9d2777eda3cb08"
+local treesitter_spec = require("lazy.core.config").plugins["nvim-treesitter"]
+assert(treesitter_spec and treesitter_spec.pin == true,
+  "legacy nvim-treesitter must be pinned until its API migration is validated")
 local plugin_dir = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter"
 local patch = vim.fn.stdpath("config") .. "/patches/nvim-treesitter-neovim-0.12.patch"
 local query_file = "lua/nvim-treesitter/query_predicates.lua"

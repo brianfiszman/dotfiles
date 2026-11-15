@@ -110,6 +110,8 @@ end
 
 local M = {
   'nvim-treesitter/nvim-treesitter',
+  -- This legacy API is intentionally frozen until its migration is separately tested.
+  pin = true,
   dependencies = {
     -- Additional text objects for treesitter
     "nvim-treesitter/nvim-treesitter-textobjects",
