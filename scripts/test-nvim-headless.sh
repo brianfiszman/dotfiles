@@ -4,7 +4,7 @@ set -Eeuo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN:-nvim}"
 PHASE="${1:-all}"
-NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-20m}"
+NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-40m}"
 NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-30m}"
 NVIM_TREESITTER_TIMEOUT="${NVIM_TREESITTER_TIMEOUT:-20m}"
 VIM_ERROR_CODE_PATTERN='E[0-9]{3,4}:'
@@ -251,7 +251,7 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  local -a restore_checks=("+Lazy! restore" "+qa!")
+  local -a restore_checks=("+Lazy! restore" "+luafile $REPO_ROOT/tests/nvim/mason-installations-ready.lua" "+qa!")
   run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
