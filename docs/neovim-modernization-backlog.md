@@ -37,9 +37,9 @@ independently testable behavior.
   `o`, and `O`; initial implementation merged in PR
   [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`), then
   reopened after a JS/TS report. Draft follow-up
-  [#95](https://github.com/brianfiszman/dotfiles/pull/95) expands real JS/TS/JSX/TSX
-  integration coverage; exact-head CI passed, but the local symptom is not
-  reproduced and no runtime fix is included.
+  [#95](https://github.com/brianfiszman/dotfiles/pull/95) now includes the actual
+  Home React component as JSX/TSX; current exact-head CI is pending. No runtime
+  fix is included because the local column-zero symptom is not yet reproduced.
 
 ## Open — P1: reliable language and navigation tools
 
