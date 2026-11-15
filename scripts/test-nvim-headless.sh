@@ -306,6 +306,10 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/dap-neotest-trigger.lua" \
     "+qa!"
 
+  printf '\n[behavior] Comparing syntax and manual folding around JavaScript O.\n'
+  run_nvim "foldmethod-indent-diagnostic" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/foldmethod-indent-diagnostic.lua"
+
   printf '\n[behavior] Verifying scope-aware indentation for S, o and O.\n'
   # The scenario drives Neovim's main loop and exits itself. Do not append
   # +qa!: the deferred input assertions would never run.
