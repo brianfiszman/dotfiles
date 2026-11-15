@@ -34,8 +34,12 @@ independently testable behavior.
 - [#69](https://github.com/brianfiszman/dotfiles/issues/69) — activate Codeium on
   Insert mode; empty-buffer deferral is validated, first activation is not.
 - [#89](https://github.com/brianfiszman/dotfiles/issues/89) — scope-aware `S`,
-  `o`, and `O`; implemented in Draft PR
-  [#93](https://github.com/brianfiszman/dotfiles/pull/93), unmerged.
+  `o`, and `O`; initial implementation merged in PR
+  [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`), then
+  reopened after a JS/TS report. Draft follow-up
+  [#95](https://github.com/brianfiszman/dotfiles/pull/95) expands real JS/TS/JSX/TSX
+  integration coverage; exact-head CI passed, but the local symptom is not
+  reproduced and no runtime fix is included.
 
 ## Open — P1: reliable language and navigation tools
 
