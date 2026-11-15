@@ -123,7 +123,9 @@ end
 local parser_fixtures = {
   lua = { extension = ".lua", parser = "lua" },
   javascript = { extension = ".js", parser = "javascript" },
+  javascriptreact = { extension = ".jsx", parser = "javascript" },
   typescript = { extension = ".ts", parser = "typescript" },
+  typescriptreact = { extension = ".tsx", parser = "tsx" },
   json = { extension = ".json", parser = "json" },
   yaml = { extension = ".yaml", parser = "yaml" },
 }
@@ -207,6 +209,7 @@ local function finish()
   print("PASS: real Lua Treesitter indentation survives S")
   print("PASS: real TypeScript object-literal indentation supports o and O")
   print("PASS: real JavaScript block/object indentation supports S, o and O")
+  print("PASS: real JSX and TSX open-line indentation uses their configured parsers")
   print("PASS: real TypeScript interface/block/object indentation supports S, o and O")
   print("PASS: real JSON and YAML parsers preserve nested open-line indentation")
   print("PASS: a closed fold keeps native o at the fold boundary and hides the source")
@@ -222,6 +225,8 @@ local run_typescript_substitute
 local run_typescript_nested_open_below
 local run_typescript_nested_open_above
 local run_typescript_open_above
+local run_jsx_open_below
+local run_tsx_open_below
 
 local function run_closed_fold_control()
   set_buffer({ "fold head", "  stale", "fold tail" }, { 2, 0 })
@@ -242,6 +247,50 @@ local function run_closed_fold_control()
   end)
 end
 
+run_tsx_open_below = function()
+  treesitter_fixture("typescriptreact", {
+    "export default function Home() {",
+    "return (",
+    "<>",
+    "<Button",
+    "style={{",
+    "color: 'blue',",
+    "}}",
+    "/>",
+    "</>",
+    ")",
+    "}",
+  }, { 4, 0 })
+  assert_stale_source(4, "<Button", "TSX component opening")
+  press("o", "TSX component o", function()
+    assert_insert(5, 8, "TSX component o")
+    assert_source_reindented(4, 6, "<Button", "TSX component o")
+    leave_insert("TSX component o", run_yaml_control)
+  end)
+end
+
+run_jsx_open_below = function()
+  treesitter_fixture("javascriptreact", {
+    "export default function Home() {",
+    "return (",
+    "<>",
+    "<Button",
+    "style={{",
+    "color: 'blue',",
+    "}}",
+    "/>",
+    "</>",
+    ")",
+    "}",
+  }, { 4, 0 })
+  assert_stale_source(4, "<Button", "JSX component opening")
+  press("o", "JSX component o", function()
+    assert_insert(5, 8, "JSX component o")
+    assert_source_reindented(4, 6, "<Button", "JSX component o")
+    leave_insert("JSX component o", run_tsx_open_below)
+  end)
+end
+
 run_json_control = function()
   treesitter_fixture("json", {
     "{",
@@ -254,7 +303,7 @@ run_json_control = function()
   press("o", "JSON nested o", function()
     assert_insert(3, 4, "JSON nested o")
     assert_source_reindented(2, 2, '"options": {', "JSON nested o")
-    leave_insert("JSON nested o", run_closed_fold_control)
+    leave_insert("JSON nested o", run_jsx_open_below)
   end)
 end
 
