@@ -2,39 +2,37 @@
 
 _Last updated: 2026-11-15 (America/Argentina/Buenos_Aires)_
 
-Canonical copy lives on `master`. Functional branches must not edit this file;
-state updates land through a dedicated docs PR. A branch-local copy is not
-authorization to continue paused work. Keep this file at 40 lines or fewer.
+Canonical copy lives on `master`; update through a docs-only PR. Functional
+branches must not edit this file. Keep this checkpoint at 40 lines or fewer.
 
 ## Current focus
 
-- **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `e5d7fb5`.
-- **Merged fix:** [#93](https://github.com/brianfiszman/dotfiles/pull/93)
-  `fix/89-scope-indent` at `e5d7fb5`; issue
-  [#89](https://github.com/brianfiszman/dotfiles/issues/89) closed. Scope-aware
-  `S`/`o`/`O`, the 268-line test, and CI wiring are on `master`.
-- **Docs PR:** [#94](https://github.com/brianfiszman/dotfiles/pull/94)
-  `docs/agent-memory-hygiene`, evidence head `9ff6c50`, merge approved.
-  State/worklog budgets, skill trims, active-artifact checks.
+- **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `c40fc0f`.
+- **Issue #89:** reopened after Brian reported JS/TS `S`, `o`, and `O`
+  entering at column 0 after the initial implementation was merged.
+- **Functional PR #95:** Draft, branch `fix/89-js-ts-indent`, head
+  `68c4c00a18cfdf6a05960094f0fd9a2377b69a04`. Test-only; no runtime change.
 
 ## Verified evidence
 
-- #93 PR run [#43727447409](https://github.com/brianfiszman/dotfiles/actions/runs/43727447409)
-  on `a1c58a5` and post-merge `master` run
-  [#43728164912](https://github.com/brianfiszman/dotfiles/actions/runs/43728164912):
-  both passed full integration; startup ran `indented-substitute` with
-  closed-fold `o` at row 4.
-- Earlier #93 head `77b0dad` is historical for that test: CI wiring was missing.
-- #94 skill run [#43727665222](https://github.com/brianfiszman/dotfiles/actions/runs/43727665222)
-  on `7fdd89e`: full integration passed.
-- #94 docs-only run [#43727962621](https://github.com/brianfiszman/dotfiles/actions/runs/43727962621)
-  on `9ff6c50`: fast checks passed; integration skipped and reused `7fdd89e`.
+- PR run [#43732469288](https://github.com/brianfiszman/dotfiles/actions/runs/43732469288)
+  passed full isolated integration on the exact PR head above.
+- Pinned environment: Neovim 0.11.3 and nvim-treesitter
+  `85168f15808d89b0222313652b9d2777eda3cb08`.
+- Real fixtures cover JS, JSX, TS, TSX, JSON, YAML, Lua, `2S`, and closed folds.
+  React routes verified: `javascriptreact → javascript`,
+  `typescriptreact → tsx`.
+- Valid JS/TS/JSX/TSX cases pass in CI; Brian's local failing buffer is not
+  reproduced. Mason/LSP/formatters were inspected and do not own `indentexpr`.
 
 ## Pending
 
-- #94 awaits its final docs-only run and merge.
-- Interactive macOS QA for the new key behavior remains owner work.
+- Obtain a minimal local failing snippet and local Neovim/Treesitter versions.
+- Diagnose the exact parser/filetype/indentexpr path before any runtime fix.
+- Keep PR #95 Draft until the user's symptom is reproduced, fixed, and validated.
+- Interactive macOS verification is not performed by this remote environment.
 
 ## Next action
 
-Verify the final #94 run, merge it, and confirm `master` state.
+Ask for the smallest failing JS/TS buffer and local version output; do not change
+Mason, LSP, formatters, linters, or Tree-sitter queries without reproduction.
