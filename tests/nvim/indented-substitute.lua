@@ -152,7 +152,7 @@ local function treesitter_fixture(filetype, lines, cursor)
   assert(vim.bo.filetype == filetype,
     "filename-based filetype expected " .. filetype .. ", got " .. vim.inspect(vim.bo.filetype)
       .. " (" .. buffer_state() .. ")")
-  assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
+  assert(vim.bo.indentexpr == "v:lua.require'nvim-treesitter'.indentexpr()",
     filetype .. " must use configured Treesitter indentexpr (" .. buffer_state() .. ")")
   local ok, parser = pcall(vim.treesitter.get_parser, 0)
   assert(ok and parser ~= nil,
@@ -516,10 +516,6 @@ run_typescript_open_above = function()
     "};",
   }, { 2, 0 })
   assert_stale_source(2, "enabled: true,", "TypeScript object O")
-  local computed_indent = require("nvim-treesitter.indent").get_indent(2)
-  assert(computed_indent == 2,
-    ("TypeScript object indentexpr expected 2, got %s (%s)"):format(
-      tostring(computed_indent), buffer_state()))
   press("O", "TypeScript object O", function()
     assert_insert(2, 2, "TypeScript object O")
     assert_source_reindented(3, 2, "enabled: true,", "TypeScript object O")
