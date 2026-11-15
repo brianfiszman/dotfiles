@@ -169,6 +169,8 @@ local function treesitter_fixture(filetype, lines, cursor)
     filetype, current_parser_language, vim.bo.indentexpr, vim.fn.shiftwidth()))
 end
 
+local assert_source_reindented
+
 local home_react_source = {
   'import { Fragment } from "react";',
   "import {",
@@ -276,7 +278,7 @@ local function assert_stale_source(row, expected_text, description)
       description, vim.fn.indent(row), buffer_state()))
 end
 
-local function assert_source_reindented(row, expected_indent, original_text, description)
+assert_source_reindented = function(row, expected_indent, original_text, description)
   local expected = string.rep(" ", expected_indent) .. original_text
   local actual = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
   assert(vim.fn.indent(row) == expected_indent,
