@@ -170,12 +170,22 @@ local M = {
     {
       "WhoIsSethDaniel/mason-tool-installer.nvim",
       config = function(_, opts)
-        require("mason-tool-installer").setup(opts)
+        local installer = require("mason-tool-installer")
+        installer.setup(vim.tbl_deep_extend("force", opts, {
+          -- The plugin's VimEnter hook can fire before Lazy applies this
+          -- config when the dependency itself is loaded during VimEnter.
+          -- Start explicitly after setup so ensure_installed is populated and
+          -- the parent Treesitter completion listener is already registered.
+          run_on_start = false,
+        }))
+        vim.schedule(function()
+          installer.check_install(false)
+        end)
       end,
       opts = {
         ensure_installed = { "tree-sitter-cli" },
         auto_update = true,
-        run_on_start = true,
+        run_on_start = false,
         start_delay = 0,
       },
     },
