@@ -91,18 +91,22 @@ function M.setup()
   M._setup = true
 
   local group = vim.api.nvim_create_augroup("DotfilesLazyMaintenance", { clear = true })
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "LazyUpdatePre",
-    group = group,
-    callback = M.cleanup_untracked_help_tags,
-    desc = "Prepare generated untracked help tags for lazy.nvim plugin checkouts",
-  })
-  vim.api.nvim_create_autocmd("User", {
-    pattern = "LazyUpdate",
-    group = group,
-    callback = M.restore_help_tags,
-    desc = "Restore generated help tags for plugins not updated by lazy.nvim",
-  })
+  for _, event in ipairs({ "LazyUpdatePre", "LazyRestorePre" }) do
+    vim.api.nvim_create_autocmd("User", {
+      pattern = event,
+      group = group,
+      callback = M.cleanup_untracked_help_tags,
+      desc = "Prepare generated untracked help tags for lazy.nvim plugin checkouts",
+    })
+  end
+  for _, event in ipairs({ "LazyUpdate", "LazyRestore" }) do
+    vim.api.nvim_create_autocmd("User", {
+      pattern = event,
+      group = group,
+      callback = M.restore_help_tags,
+      desc = "Restore generated help tags for plugins not updated by lazy.nvim",
+    })
+  end
 end
 
 return M

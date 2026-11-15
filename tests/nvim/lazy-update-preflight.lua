@@ -83,19 +83,19 @@ vim.api.nvim_exec_autocmds("User", { pattern = "LazyUpdate", modeline = false })
 assert(read_first_line(tags_file) == "tracked upstream help tag",
   "the post-update handler changed upstream-tracked doc/tags")
 
--- Model a different installed plugin that was not updated. Its old, untracked
--- tags file must be regenerated when LazyUpdate fires.
+-- Model a different installed plugin that is not updated during restore. Its
+-- old, untracked tags file must be regenerated when LazyRestore fires.
 git({ "checkout", base })
 write(repo .. "/doc/help.txt", { "*lazy-update-test-tag* A generated help-tag fixture" })
 write(tags_file, { "old generated index" })
-vim.api.nvim_exec_autocmds("User", { pattern = "LazyUpdatePre", modeline = false })
+vim.api.nvim_exec_autocmds("User", { pattern = "LazyRestorePre", modeline = false })
 assert((vim.uv or vim.loop).fs_stat(tags_file) == nil,
-  "second LazyUpdatePre did not remove the generated untracked doc/tags")
+  "LazyRestorePre did not remove the generated untracked doc/tags")
 assert(read_first_line(keep_file) == "unrelated user file must survive",
   "second LazyUpdatePre removed an unrelated untracked file")
-vim.api.nvim_exec_autocmds("User", { pattern = "LazyUpdate", modeline = false })
+vim.api.nvim_exec_autocmds("User", { pattern = "LazyRestore", modeline = false })
 assert((vim.uv or vim.loop).fs_stat(tags_file) ~= nil,
-  "LazyUpdate did not regenerate tags for a plugin that was not updated")
+  "LazyRestore did not regenerate tags for a plugin that was not updated")
 local generated_tags = table.concat(vim.fn.readfile(tags_file), "\n")
 assert(generated_tags:find("lazy%-update%-test%-tag"),
   "regenerated tags file does not contain the fixture help tag")
