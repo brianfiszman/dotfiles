@@ -1,3 +1,5 @@
+require("core.lazy-maintenance").setup()
+
 require("lazy").setup({
   {
     'ryanoasis/powerline-extra-symbols',

@@ -238,7 +238,14 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "+Lazy! restore" "+qa!"
+  local nvim_version
+  nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
+  local -a restore_checks=("+Lazy! restore")
+  if [[ "$nvim_version" == v0.12.* ]]; then
+    restore_checks+=("+lua assert(type(package.preload['nvim-treesitter.query_predicates']) == 'function', 'fresh-install build hook did not register the in-memory Treesitter adapter')")
+  fi
+  restore_checks+=("+qa!")
+  run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
 }
@@ -271,21 +278,16 @@ prepare_preinstalled_treesitter_compatibility_fixture() {
     return 1
   fi
 
-  # The restore phase proves the fresh-install build hook applied this patch.
-  # Reverse it now to model a previously installed checkout that predates the
-  # config change. Normal startup must reapply it via the plugin's init hook.
-  if ! git -C "$plugin_dir" apply --reverse --check "$patch_file"; then
-    printf 'Error: restore did not leave the compatibility patch applied; cannot prepare the preinstalled-checkout test.\n' >&2
+  # Simulate a checkout left dirty by the previous release. Normal startup
+  # must reverse this exact old patch and install the in-memory adapter without
+  # changing the plugin's tracked working tree.
+  if ! git -C "$plugin_dir" apply --check "$patch_file"; then
+    printf 'Error: pristine restored checkout cannot accept the previous compatibility patch.\n' >&2
     return 1
   fi
-  git -C "$plugin_dir" apply --reverse "$patch_file"
+  git -C "$plugin_dir" apply "$patch_file"
 
-  if grep -q 'local function get_node' "$query_file"; then
-    printf 'Error: compatibility helper remained after reversing the patch.\n' >&2
-    return 1
-  fi
-
-  printf '[startup] Reversed the patch on the restored legacy checkout to simulate an existing unpatched installation.\n'
+  printf '[startup] Applied the previous on-disk patch to simulate an existing checkout that needs migration.\n'
 }
 
 startup() {
@@ -315,6 +317,11 @@ startup() {
   startup_checks+=("+qa!")
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
+
+  printf '\n[behavior] Verifying Lazy update preflight handles generated help-tag collisions.\n'
+  run_nvim "lazy-update-preflight" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/lazy-update-preflight.lua" \
+    "+qa!"
 
   printf '\n[behavior] Verifying native LSP configuration and single ownership.\n'
   run_nvim "lsp-native-setup" "$NVIM_STARTUP_TIMEOUT" \
