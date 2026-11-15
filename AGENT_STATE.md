@@ -15,21 +15,20 @@ branches must not edit this file. Keep this checkpoint at 40 lines or fewer.
 
 ## Verified evidence
 
-- Earlier exact-head full integration [#43732469288](https://github.com/brianfiszman/dotfiles/actions/runs/43732469288)
-  passed JS/JSX/TS/TSX, JSON, YAML, Lua, `2S`, and closed-fold controls.
-- Pinned environment: Neovim 0.11.3 and nvim-treesitter
+- Exact-head full integration [#43735275124](https://github.com/brianfiszman/dotfiles/actions/runs/43735275124)
+  passed on `db4e497`: install, plugin restore, normal startup, and all
+  headless behavior tests completed successfully.
+- Home React passed all six `S`/`o`/`O` cases in JSX and TSX; the log
+  confirms `javascriptreact → javascript` and `typescriptreact → tsx`.
+- The test covers JS/TS blocks and objects, Lua, JSON, YAML, counted `2S`,
+  and closed-fold behavior. Neovim 0.11.3; Treesitter lock
   `85168f15808d89b0222313652b9d2777eda3cb08`.
-- Home React JSX/TSX cases reached expected insert columns. Run
-  [#43733782831](https://github.com/brianfiszman/dotfiles/actions/runs/43733782831)
-  timed out because its terminal callback looped from TSX back to YAML; no
-  Home assertion failure was recorded.
-- Callback now proceeds to the closed-fold control. A watchdog is correctly
-  placed before the final test invocation. Current exact-head run
-  [#43735275124](https://github.com/brianfiszman/dotfiles/actions/runs/43735275124)
-  is pending; discard results from superseded intermediate head `9ae8ea0`.
+- Earlier Home test timeout [#43733782831](https://github.com/brianfiszman/dotfiles/actions/runs/43733782831)
+  was a test callback loop, now fixed. Intermediate invalid head `9ae8ea0`
+  and its cancelled run are superseded.
 
 ## Pending
 
-- Verify #43735275124 on exact head `db4e497cd5ac283399eb2b6e660085e3feb9d034`.
 - Obtain Brian's actual file extension, failing key/cursor line, and local Neovim version.
+- Reproduce the local column-zero behavior before proposing runtime changes.
 - Keep PR #95 Draft; no runtime workaround, interactive macOS verification, or merge authorization before evidence.
