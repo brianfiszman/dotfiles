@@ -596,11 +596,7 @@ local function run_open_below()
   end)
 end
 
-local function vim.defer_fn(function()
-  fail("indentation test sequence exceeded 60 seconds")
-end, 60000)
-
-run_deterministic_substitute()
+local function run_deterministic_substitute()
   set_buffer({ "stale", "tail" }, { 1, 0 })
   vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
   press("S", "S", function()
@@ -616,5 +612,9 @@ local lockfile = vim.json.decode(table.concat(lockfile_lines, "\n"))
 local treesitter_lock = lockfile["nvim-treesitter"] and lockfile["nvim-treesitter"].commit or "unknown"
 print(("[indented-substitute] environment: Neovim %d.%d.%d, nvim-treesitter=%s"):format(
   nvim_version.major, nvim_version.minor, nvim_version.patch, treesitter_lock))
+
+vim.defer_fn(function()
+  fail("indentation test sequence exceeded 60 seconds")
+end, 60000)
 
 run_deterministic_substitute()
