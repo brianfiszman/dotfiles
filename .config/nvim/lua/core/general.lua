@@ -138,6 +138,19 @@ local function get_source_indent(lnum)
   return line:match("^%s*") or ""
 end
 
+local function restore_source_cursor(cursor, reason)
+  local line_count = vim.api.nvim_buf_line_count(0)
+  local row = math.min(cursor[1], line_count)
+  local line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1] or ""
+  local restored = { row, math.min(cursor[2], #line) }
+  local before = vim.api.nvim_win_get_cursor(0)
+  if before[1] ~= restored[1] or before[2] ~= restored[2] then
+    print(("[scope-indent] restoring source cursor after %s: before=%s target=%s"):format(
+      reason, vim.inspect(before), vim.inspect(restored)))
+  end
+  vim.api.nvim_win_set_cursor(0, restored)
+end
+
 local function reindent_and_edit(key)
   local count = vim.v.count1
   local source_cursor = vim.api.nvim_win_get_cursor(0)
@@ -149,6 +162,7 @@ local function reindent_and_edit(key)
       args = { ("%d=="):format(count) },
       bang = true,
     })
+    restore_source_cursor(source_cursor, "S reindent")
     local keys = vim.api.nvim_replace_termcodes(
       ("%dS"):format(count),
       true,
@@ -161,6 +175,9 @@ local function reindent_and_edit(key)
 
   local bufnr = vim.api.nvim_get_current_buf()
   source_indent = get_source_indent(source_row)
+  -- Some indentation providers parse/recompute buffer state while answering
+  -- a line query. Keep native o/O anchored to the line where the user pressed it.
+  restore_source_cursor(source_cursor, key .. " indent calculation")
 
   -- Native o/O can let an indentexpr produce a different prefix on the new
   -- blank line. Preserve any comment leader/body, replacing only its leading
