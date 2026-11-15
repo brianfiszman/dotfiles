@@ -121,9 +121,9 @@ run_nvim() {
       "$label" "$time_limit" >&2
     tail -n 80 "$log_file" >&2 || true
     if [[ "$label" == "startup" ]]; then
-      printf '\\n--- Neovim startup verbose trace (last 120 lines) ---\\n' >&2
+      printf '\n--- Neovim startup verbose trace (last 120 lines) ---\n' >&2
       tail -n 120 "$startup_verbose_file" >&2 || true
-      printf '\\n--- Neovim startup timing profile (last 120 lines) ---\\n' >&2
+      printf '\n--- Neovim startup timing profile (last 120 lines) ---\n' >&2
       tail -n 120 "$startup_timing_file" >&2 || true
     fi
     return 124
@@ -257,17 +257,17 @@ prepare_preinstalled_treesitter_compatibility_fixture() {
   query_file="$plugin_dir/lua/nvim-treesitter/query_predicates.lua"
 
   [[ -d "$plugin_dir" ]] || {
-    printf 'Error: restored nvim-treesitter checkout is missing: %s\\n' "$plugin_dir" >&2
+    printf 'Error: restored nvim-treesitter checkout is missing: %s\n' "$plugin_dir" >&2
     return 1
   }
   [[ -f "$patch_file" ]] || {
-    printf 'Error: Neovim 0.12 compatibility patch is missing: %s\\n' "$patch_file" >&2
+    printf 'Error: Neovim 0.12 compatibility patch is missing: %s\n' "$patch_file" >&2
     return 1
   }
 
   plugin_head="$(git -C "$plugin_dir" rev-parse HEAD)"
   if [[ "$plugin_head" != "85168f15808d89b0222313652b9d2777eda3cb08" ]]; then
-    printf 'Error: expected locked nvim-treesitter revision, got %s\\n' "$plugin_head" >&2
+    printf 'Error: expected locked nvim-treesitter revision, got %s\n' "$plugin_head" >&2
     return 1
   fi
 
@@ -275,28 +275,28 @@ prepare_preinstalled_treesitter_compatibility_fixture() {
   # Reverse it now to model a previously installed checkout that predates the
   # config change. Normal startup must reapply it via the plugin's init hook.
   if ! git -C "$plugin_dir" apply --reverse --check "$patch_file"; then
-    printf 'Error: restore did not leave the compatibility patch applied; cannot prepare the preinstalled-checkout test.\\n' >&2
+    printf 'Error: restore did not leave the compatibility patch applied; cannot prepare the preinstalled-checkout test.\n' >&2
     return 1
   fi
   git -C "$plugin_dir" apply --reverse "$patch_file"
 
   if grep -q 'local function get_node' "$query_file"; then
-    printf 'Error: compatibility helper remained after reversing the patch.\\n' >&2
+    printf 'Error: compatibility helper remained after reversing the patch.\n' >&2
     return 1
   fi
 
-  printf '[startup] Reversed the patch on the restored legacy checkout to simulate an existing unpatched installation.\\n'
+  printf '[startup] Reversed the patch on the restored legacy checkout to simulate an existing unpatched installation.\n'
 }
 
 startup() {
   [[ -f "$RESTORE_MARKER" ]] || {
-    printf 'Error: locked plugin restore has not completed for %s\\n' "$WORK_DIR" >&2
+    printf 'Error: locked plugin restore has not completed for %s\n' "$WORK_DIR" >&2
     return 1
   }
 
   # The final process must exercise the same startup path as a normal user launch.
   unset DOTFILES_CI
-  printf '[startup] Starting the installed configuration without CI-only flags.\\n'
+  printf '[startup] Starting the installed configuration without CI-only flags.\n'
 
   local -a startup_checks=(
     "+lua assert(package.loaded['lazy'], 'lazy.nvim did not load')"
@@ -315,7 +315,6 @@ startup() {
   startup_checks+=("+qa!")
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
-
 
   printf '\n[behavior] Verifying native LSP configuration and single ownership.\n'
   run_nvim "lsp-native-setup" "$NVIM_STARTUP_TIMEOUT" \
