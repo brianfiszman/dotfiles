@@ -251,7 +251,7 @@ restore_plugins() {
 }
 
 prepare_preinstalled_treesitter_compatibility_fixture() {
-  local nvim_version plugin_dir patch_file plugin_head query_file
+  local nvim_version plugin_dir patch_file plugin_head
 
   nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
   case "$nvim_version" in
@@ -261,7 +261,6 @@ prepare_preinstalled_treesitter_compatibility_fixture() {
 
   plugin_dir="$XDG_DATA_HOME/nvim/lazy/nvim-treesitter"
   patch_file="$NVIM_CONFIG/patches/nvim-treesitter-neovim-0.12.patch"
-  query_file="$plugin_dir/lua/nvim-treesitter/query_predicates.lua"
 
   [[ -d "$plugin_dir" ]] || {
     printf 'Error: restored nvim-treesitter checkout is missing: %s\n' "$plugin_dir" >&2
