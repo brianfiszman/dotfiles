@@ -115,24 +115,11 @@ local function reindent_and_edit(key)
   local count = vim.v.count1
   local reindent_count = key == "S" and count or 1
   local source_cursor = vim.api.nvim_win_get_cursor(0)
-  print(("[scope-indent] key=%s before== cursor=%s"):format(key, vim.inspect(source_cursor)))
 
   vim.cmd.normal({
     args = { ("%d=="):format(reindent_count) },
     bang = true,
   })
-
-  -- Some indentexpr implementations adjust the cursor while reindenting.
-  -- Keep the edit anchored to the line where the user invoked S/o/O.
-  local source_line = vim.api.nvim_get_current_line()
-  print(("[scope-indent] key=%s after== cursor=%s line=%s"):format(
-    key, vim.inspect(vim.api.nvim_win_get_cursor(0)), vim.inspect(source_line)))
-  vim.api.nvim_win_set_cursor(0, {
-    source_cursor[1],
-    math.min(source_cursor[2], #source_line),
-  })
-  print(("[scope-indent] key=%s restored cursor=%s"):format(
-    key, vim.inspect(vim.api.nvim_win_get_cursor(0))))
 
   if key == "S" then
     -- The native change-line command preserves the indentation computed above.
@@ -148,12 +135,16 @@ local function reindent_and_edit(key)
 
   local bufnr = vim.api.nvim_get_current_buf()
   local source_line = vim.api.nvim_get_current_line()
+  vim.api.nvim_win_set_cursor(0, {
+    source_cursor[1],
+    math.min(source_cursor[2], #source_line),
+  })
+  source_line = vim.api.nvim_get_current_line()
   local source_indent = source_line:match("^%s*") or ""
 
-  -- Native o/O may create a line using a filetype indentexpr that evaluates an
-  -- empty line differently from its source line. Once native editing enters
-  -- Insert mode, replace only leading whitespace with the source line's exact
-  -- reindented prefix; any native comment leader or other line content remains.
+  -- Native o/O may create a line with an indentexpr result that differs from
+  -- its source line. Preserve its comment leader/content, but replace only
+  -- leading whitespace on InsertEnter with the source line's computed prefix.
   vim.api.nvim_create_autocmd("InsertEnter", {
     group = scope_indent_group,
     buffer = bufnr,
@@ -161,8 +152,6 @@ local function reindent_and_edit(key)
     callback = function()
       local cursor = vim.api.nvim_win_get_cursor(0)
       local line = vim.api.nvim_get_current_line()
-      print(("[scope-indent] InsertEnter key=%s cursor=%s line=%s"):format(
-        key, vim.inspect(cursor), vim.inspect(line)))
       local old_indent = line:match("^%s*") or ""
       local body = line:sub(#old_indent + 1)
       local body_column = math.max(cursor[2] - #old_indent, 0)
@@ -178,8 +167,15 @@ local function reindent_and_edit(key)
     desc = "Apply the reindented source prefix to a newly opened line",
   })
 
+  -- Some indentexpr implementations move the cursor while recomputing scope.
+  -- Re-anchor immediately before the native open command, not before queued
+  -- parser/indent callbacks get another chance to move it.
+  local reset_cursor = (":<C-u>call cursor(%d, %d)<CR>"):format(
+    source_cursor[1],
+    source_cursor[2] + 1
+  )
   local keys = vim.api.nvim_replace_termcodes(
-    ("%d%s"):format(count, key),
+    reset_cursor .. ("%d%s"):format(count, key),
     true,
     false,
     true
