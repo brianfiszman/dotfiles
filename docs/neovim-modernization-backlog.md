@@ -37,12 +37,13 @@ independently testable behavior.
   `o`, and `O`; initial implementation merged in PR
   [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`), then
   reopened after a JS/TS report. Draft follow-up
-  [#95](https://github.com/brianfiszman/dotfiles/pull/95) now includes the actual
-  Home React component is covered as `.js`, `.jsx`, and `.tsx`; dedicated
-  `.ts` cases remain. Test-only head `be848d5` passed exact-head full integration
-  [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275),
-  including all nine Home `S`/`o`/`O` cases. No runtime fix until the local
-  column-zero symptom is reproduced.
+  [#95](https://github.com/brianfiszman/dotfiles/pull/95) covers the Home React
+  component as `.js`, `.jsx`, and `.tsx`, plus dedicated `.ts` cases.
+  Matrix [#43738071448](https://github.com/brianfiszman/dotfiles/actions/runs/43738071448)
+  passed Neovim 0.11.3 and failed Neovim 0.12.6 at JavaScript nested-block `O`
+  (expected indent 4, got 0); earlier run #43737557010 found the same version
+  split at TypeScript object `O`. Stop after two failed 0.12.6 attempts; no
+  runtime fix until the exact local trigger and Treesitter checkout are confirmed.
 
 ## Open — P1: reliable language and navigation tools
 
