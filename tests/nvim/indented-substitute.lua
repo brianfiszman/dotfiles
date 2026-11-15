@@ -430,6 +430,54 @@ local function probe_filetype_handler_groups()
   print("[scope-indent-group-probe] only-native-row=" .. only_native_row)
 end
 
+local function probe_typescript_without_filetype_scripts()
+  local runtime_patterns = {
+    "ftplugin/typescript*",
+    "after/ftplugin/typescript*",
+    "indent/typescript*",
+    "after/indent/typescript*",
+  }
+  for _, pattern in ipairs(runtime_patterns) do
+    for _, filename in ipairs(vim.fn.globpath(vim.o.runtimepath, pattern, 0, 1)) do
+      print(("[scope-indent-runtime] pattern=%q file=%q"):format(pattern, filename))
+    end
+  end
+
+  vim.cmd("enew!")
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.tabstop = 2
+  vim.b.did_ftplugin = 1
+  vim.b.did_indent = 1
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+    "const options = {",
+    "enabled: true,",
+    "};",
+  })
+  vim.cmd("setfiletype typescript")
+  assert(vim.bo.filetype == "typescript",
+    "TypeScript fixture with ftplugins skipped must keep its filetype")
+  vim.bo.indentexpr = ""
+  vim.bo.indentkeys = ""
+  vim.bo.formatoptions = ""
+  vim.bo.comments = ""
+  vim.bo.commentstring = ""
+  vim.bo.autoindent = false
+  vim.bo.smartindent = false
+  vim.bo.cindent = false
+  vim.bo.lisp = false
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  print(("[scope-indent-runtime] skipped ftplugin=%s indent=%s options=%s"):format(
+    tostring(vim.b.did_ftplugin), tostring(vim.b.did_indent),
+    vim.inspect(scope_indent_local_options())))
+  vim.cmd("noautocmd normal! o")
+  print(("[scope-indent-runtime] after skip TS scripts cursor=%s buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
 local function probe_typescript_without_filetype_autocmds()
   vim.cmd("enew!")
   vim.bo.buftype = ""
@@ -577,6 +625,7 @@ local function probe_native_typescript_open_variants()
 end
 
 local function run_typescript_o()
+  probe_typescript_without_filetype_scripts()
   probe_filetype_handler_groups()
   probe_native_typescript_open_variants()
   probe_named_on_key_handlers()
