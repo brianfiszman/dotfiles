@@ -59,7 +59,7 @@ local function run_case(index)
 
   assert(vim.bo.filetype == "javascript",
     "expected javascript filetype, got " .. vim.inspect(vim.bo.filetype))
-  assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
+  assert(vim.bo.indentexpr == "v:lua.require'nvim-treesitter'.indentexpr()",
     "expected the configured Treesitter indentexpr, got " .. vim.inspect(vim.bo.indentexpr))
 
   local parser = vim.treesitter.get_parser(0)
@@ -78,9 +78,8 @@ local function run_case(index)
   end
   vim.api.nvim_win_set_cursor(0, { 3, 0 })
 
-  local indent_ok, computed_indent = pcall(function()
-    return require("nvim-treesitter.indent").get_indent(3)
-  end)
+  local indent_ok = vim.bo.indentexpr == "v:lua.require'nvim-treesitter'.indentexpr()"
+  local computed_indent = vim.fn.indent(3)
   local before = {
     version = vim.version().major .. "." .. vim.version().minor .. "." .. vim.version().patch,
     variant = case.label,
