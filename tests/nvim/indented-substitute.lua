@@ -354,7 +354,7 @@ local function run_closed_fold_control()
 end
 
 run_home_tsx_open_above = function()
-  home_react_case("typescriptreact", "<Countdown countdownTo=", "O", 8, 8, run_yaml_control)
+  home_react_case("typescriptreact", "<Countdown countdownTo=", "O", 8, 8, run_closed_fold_control)
 end
 
 run_home_tsx_substitute = function()
@@ -596,7 +596,11 @@ local function run_open_below()
   end)
 end
 
-local function run_deterministic_substitute()
+local function vim.defer_fn(function()
+  fail("indentation test sequence exceeded 60 seconds")
+end, 60000)
+
+run_deterministic_substitute()
   set_buffer({ "stale", "tail" }, { 1, 0 })
   vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
   press("S", "S", function()
