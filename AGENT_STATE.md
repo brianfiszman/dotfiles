@@ -10,29 +10,30 @@ branches must not edit this file. Keep this checkpoint at 40 lines or fewer.
 - **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `c40fc0f`.
 - **Issue #89:** reopened after Brian reported JS/TS `S`, `o`, and `O`
   entering at column 0 after the initial implementation was merged.
-- **Functional PR #95:** Draft, branch `fix/89-js-ts-indent`, head
-  `68c4c00a18cfdf6a05960094f0fd9a2377b69a04`. Test-only; no runtime change.
+- **Functional PR #95:** Draft, branch `fix/89-js-ts-indent`, current head
+  `e006f7448ec337e1d1435cf7f11434ae3f5f56ca`. Test-only; no runtime change.
 
 ## Verified evidence
 
-- PR run [#43732469288](https://github.com/brianfiszman/dotfiles/actions/runs/43732469288)
-  passed full isolated integration on the exact PR head above.
+- Previous exact-head full integration [#43732469288](https://github.com/brianfiszman/dotfiles/actions/runs/43732469288)
+  passed JS/JSX/TS/TSX, JSON, YAML, Lua, `2S`, and closed-fold controls.
 - Pinned environment: Neovim 0.11.3 and nvim-treesitter
   `85168f15808d89b0222313652b9d2777eda3cb08`.
-- Real fixtures cover JS, JSX, TS, TSX, JSON, YAML, Lua, `2S`, and closed folds.
-  React routes verified: `javascriptreact → javascript`,
-  `typescriptreact → tsx`.
-- Valid JS/TS/JSX/TSX cases pass in CI; Brian's local failing buffer is not
-  reproduced. Mason/LSP/formatters were inspected and do not own `indentexpr`.
+- Actual Home React component now runs as JSX and TSX; new exact-head run
+  [#43733782831](https://github.com/brianfiszman/dotfiles/actions/runs/43733782831)
+  is still in progress.
+- Initial Home fixture run failed due to a test helper's Lua lexical scope,
+  not indentation; the forward declaration is fixed in current head.
+- The first Home JSX `o` reached column 8 as expected. `S`/`O` remain unverified.
 
 ## Pending
 
-- Obtain a minimal local failing snippet and local Neovim/Treesitter versions.
-- Diagnose the exact parser/filetype/indentexpr path before any runtime fix.
-- Keep PR #95 Draft until the user's symptom is reproduced, fixed, and validated.
-- Interactive macOS verification is not performed by this remote environment.
+- Inspect #43733782831 on the exact current head; do not use the failed older run.
+- Obtain the actual file extension, failing key/cursor line, and local Neovim version.
+- Diagnose local parser/filetype/indentexpr before any runtime workaround.
+- Keep PR #95 Draft. No interactive macOS verification or merge authorization.
 
 ## Next action
 
-Ask for the smallest failing JS/TS buffer and local version output; do not change
-Mason, LSP, formatters, linters, or Tree-sitter queries without reproduction.
+Review the current exact-head test log; then ask for missing local details if CI
+still cannot reproduce the column-zero behavior.
