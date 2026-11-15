@@ -84,7 +84,6 @@ jobs:
       fail-fast: false
       matrix:
         neovim-version:
-          - v0.11.3
           - v0.12.6
     env:
       NEOVIM_VERSION: ${{ matrix.neovim-version }}
