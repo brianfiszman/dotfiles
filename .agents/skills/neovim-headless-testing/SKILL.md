@@ -156,6 +156,22 @@ The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
 - Keep parser compilation in an isolated HOME/XDG environment. Never install
   tools or modify the maintainer's real Mac from CI.
 
+## Mason package lifecycle tests
+
+Mason 2.x registry lifecycle events are:
+- `package:install:handle`: receives one `InstallHandle`; resolve the package
+  through `handle.package`.
+- `package:install:success` and `package:install:failed`: receive
+  `(Package, receipt_or_error)` after the handle closes.
+
+Register listeners before triggering installation. For tests that attach after
+an existing startup/restore operation, do one upfront `is_installed()` scan
+after listener registration to account for already-completed installs; any
+remaining work must be observed through terminal events. Wait on an in-memory
+result table, never by polling `Package:is_installed()` inside `vim.wait()`.
+Keep the wait timeout below the enclosing shell phase deadline, and report
+missing terminal events separately from explicit package-install failures.
+
 ## LSP and Treesitter assertions
 
 - Wait for the real client to attach; assert the client name and root.
