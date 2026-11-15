@@ -6,6 +6,7 @@ NVIM_BIN="${NVIM_BIN:-nvim}"
 PHASE="${1:-all}"
 NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-20m}"
 NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-5m}"
+VIM_ERROR_CODE_PATTERN='E[0-9]{3,4}:'
 
 case "$PHASE" in
   all|prepare|restore|startup) ;;
@@ -143,7 +144,7 @@ run_nvim() {
 
   # Neovim can report Lua/Vimscript errors while still returning exit status 0.
   # The verbose trace captures messages that do not reach stdout/stderr.
-  if grep -Eiq 'Error detected while processing|Error in command line|E[0-9]{3,4}:|Error executing lua|Failed to run .*config|module .+ not found' "$log_file"; then
+  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|Failed to run .*config|module .+ not found" "$log_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
@@ -172,7 +173,7 @@ run_nvim() {
 
   if [[ "$label" == "startup" && -s "$startup_verbose_file" ]]; then
     local unexpected_vim_errors
-    unexpected_vim_errors="$(grep -E 'E[0-9]{3}:' "$startup_verbose_file" \
+    unexpected_vim_errors="$(grep -E "$VIM_ERROR_CODE_PATTERN" "$startup_verbose_file" \
       | grep -Fv 'E216: No such group or event: FileExplorer *' || true)"
     if [[ -n "$unexpected_vim_errors" ]]; then
       printf 'Error: Neovim reported Vimscript errors in its startup trace:\n%s\n' "$unexpected_vim_errors" >&2
@@ -188,7 +189,18 @@ run_nvim() {
 }
 
 prepare() {
-  printf '[prepare] Checking shell syntax...\n'
+  printf '[prepare] Checking Vim error-code matcher...\\n'
+  local matcher_fixture="$WORK_DIR/vim-error-code-matcher.log"
+  local matcher_result
+  printf 'E12: too short\\nE123: three digits\\nE1234: four digits\\nE12345: too long\\n' > "$matcher_fixture"
+  matcher_result="$(grep -E "$VIM_ERROR_CODE_PATTERN" "$matcher_fixture")"
+  [[ "$matcher_result" == "$(printf 'E123: three digits\\nE1234: four digits')" ]] || {
+    printf 'Error: Vim error matcher did not recognize exactly three- and four-digit codes.\\n' >&2
+    printf 'Matched: %s\\n' "$matcher_result" >&2
+    return 1
+  }
+
+  printf '[prepare] Checking shell syntax...\\n'
   bash -n "$REPO_ROOT/install.sh"
   bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
 
