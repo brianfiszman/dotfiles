@@ -235,15 +235,21 @@ local function reindent_and_edit(key)
     print(("[scope-indent-trace] source options filetype=%q formatoptions=%q autoindent=%s smartindent=%s copyindent=%s"):format(
       vim.bo.filetype, vim.bo.formatoptions, tostring(vim.bo.autoindent),
       tostring(vim.bo.smartindent), tostring(vim.bo.copyindent)))
-    for _, autocmd in ipairs(vim.api.nvim_get_autocmds({
-      event = { "InsertEnter", "InsertLeave" },
-      buffer = bufnr,
-    })) do
-      print(("[scope-indent-trace] autocmd event=%s group=%s desc=%q pattern=%q once=%s command=%q"):format(
-        autocmd.event, tostring(autocmd.group_name or autocmd.group),
-        tostring(autocmd.desc), tostring(autocmd.pattern),
-        tostring(autocmd.once), tostring(autocmd.command)))
+    local observed_events = {
+      "InsertEnter", "InsertLeave", "TextChangedI", "CursorMovedI",
+      "BufEnter", "BufLeave",
+    }
+    local function trace_autocmds(scope, opts)
+      for _, autocmd in ipairs(vim.api.nvim_get_autocmds(opts)) do
+        print(("[scope-indent-trace] autocmd scope=%s event=%s group=%s desc=%q pattern=%q buffer=%s once=%s command=%q callback=%s"):format(
+          scope, autocmd.event, tostring(autocmd.group_name or autocmd.group),
+          tostring(autocmd.desc), tostring(autocmd.pattern),
+          tostring(autocmd.buffer), tostring(autocmd.once),
+          tostring(autocmd.command), type(autocmd.callback)))
+      end
     end
+    trace_autocmds("global", { event = observed_events })
+    trace_autocmds("buffer", { event = observed_events, buffer = bufnr })
     local saved_indentexpr = vim.bo.indentexpr
     -- The Treesitter indentexpr can reposition the native open-line target
     -- while Neovim computes indentation for the newly created blank line.
