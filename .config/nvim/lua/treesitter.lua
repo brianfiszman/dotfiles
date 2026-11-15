@@ -1,10 +1,57 @@
+local legacy_treesitter_commit = "85168f15808d89b0222313652b9d2777eda3cb08"
+local compat_patch = "patches/nvim-treesitter-neovim-0.12.patch"
+
+local function run_git(args)
+  local result = vim.system(args, { text = true }):wait()
+  if result.code ~= 0 then
+    error(table.concat({
+      "nvim-treesitter compatibility patch command failed:",
+      table.concat(args, " "),
+      result.stderr or result.stdout or "",
+    }, "\n"))
+  end
+  return result.stdout or ""
+end
+
+local function build_treesitter(plugin)
+  if vim.fn.has("nvim-0.12") == 1 then
+    local head = run_git({
+      "git", "-C", plugin.dir, "rev-parse", "HEAD",
+    }):gsub("%s+$", "")
+
+    if head ~= legacy_treesitter_commit then
+      error(("Refusing to patch unexpected nvim-treesitter revision: %s"):format(head))
+    end
+
+    local patch = vim.fn.stdpath("config") .. "/" .. compat_patch
+    local check = vim.system({
+      "git", "-C", plugin.dir, "apply", "--check", patch,
+    }, { text = true }):wait()
+
+    if check.code == 0 then
+      run_git({ "git", "-C", plugin.dir, "apply", patch })
+    else
+      local reverse = vim.system({
+        "git", "-C", plugin.dir, "apply", "--reverse", "--check", patch,
+      }, { text = true }):wait()
+
+      if reverse.code ~= 0 then
+        error(("nvim-treesitter Neovim 0.12 compatibility patch does not apply cleanly: %s"):format(
+          check.stderr or check.stdout or "unknown patch error"))
+      end
+    end
+  end
+
+  vim.cmd("TSUpdate")
+end
+
 local M = {
   'nvim-treesitter/nvim-treesitter',
   dependencies = {
     -- Additional text objects for treesitter
     "nvim-treesitter/nvim-treesitter-textobjects",
   },
-  build = ":TSUpdate",
+  build = build_treesitter,
 }
 
 

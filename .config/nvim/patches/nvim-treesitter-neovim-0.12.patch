@@ -1,0 +1,74 @@
+diff --git a/lua/nvim-treesitter/query_predicates.lua b/lua/nvim-treesitter/query_predicates.lua
+--- a/lua/nvim-treesitter/query_predicates.lua
++++ b/lua/nvim-treesitter/query_predicates.lua
+@@ -13,6 +13,18 @@
+ -- compatibility shim for breaking change on nightly/0.11
+ local opts = vim.fn.has "nvim-0.10" == 1 and { force = true, all = false } or true
+ 
++-- Neovim 0.12 always returns a list of nodes for each query capture.
++-- The legacy nvim-treesitter predicates were registered with all=false and
++-- expect one node, so preserve the old behavior by unwrapping the last node.
++local function get_node(match, id)
++  local captured = match[id]
++  if type(captured) == "table" then
++    return captured[#captured]
++  end
++  return captured
++end
++
+ local function get_parser_from_markdown_info_string(injection_alias)
+   local match = vim.filetype.match { filename = "a." .. injection_alias }
+   return match or non_filetype_match_injection_language_aliases[injection_alias] or injection_alias
+@@ -53,7 +65,7 @@
+   if not valid_args("nth?", pred, 2, true) then
+     return
+   end
+ 
+-  local node = match[pred[2]] ---@type TSNode
++  local node = get_node(match, pred[2]) ---@type TSNode
+   local n = tonumber(pred[3])
+   if node and node:parent() and node:parent():named_child_count() > n then
+     return node:parent():named_child(n) == node
+@@ -74,7 +86,7 @@
+   -- Avoid circular dependencies
+   local locals = require "nvim-treesitter.locals"
+-  local node = match[pred[2]]
++  local node = get_node(match, pred[2])
+   local types = { unpack(pred, 3) }
+ 
+   if not node then
+@@ -96,7 +108,7 @@
+     return
+   end
+ 
+-  local node = match[pred[2]]
++  local node = get_node(match, pred[2])
+   local types = { unpack(pred, 3) }
+ 
+   if not node then
+@@ -113,7 +125,7 @@
+ query.add_directive("set-lang-from-mimetype!", function(match, _, bufnr, pred, metadata)
+   local capture_id = pred[2]
+-  local node = match[capture_id]
++  local node = get_node(match, capture_id)
+   if not node then
+     return
+   end
+@@ -134,7 +146,7 @@
+ query.add_directive("set-lang-from-info-string!", function(match, _, bufnr, pred, metadata)
+   local capture_id = pred[2]
+-  local node = match[capture_id]
++  local node = get_node(match, capture_id)
+   if not node then
+     return
+   end
+@@ -154,7 +166,7 @@
+ query.add_directive("downcase!", function(match, _, bufnr, pred, metadata)
+   local id = pred[2]
+-  local node = match[id]
++  local node = get_node(match, id)
+   if not node then
+     return
+   end
+ 
+   local text = vim.treesitter.get_node_text(node, bufnr, { metadata = metadata[id] }) or ""
