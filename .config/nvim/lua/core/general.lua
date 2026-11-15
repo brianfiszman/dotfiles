@@ -116,13 +116,21 @@ local function reindent_and_edit(key)
     bang = true,
   })
 
+  local source_indent = vim.api.nvim_get_current_line():match("^%s*") or ""
   local saved_indentexpr = vim.bo.indentexpr
   local saved_autoindent = vim.bo.autoindent
   vim.bo.indentexpr = ""
   vim.bo.autoindent = true
 
   local prefix = vim.api.nvim_replace_termcodes(
-    ("%d%s<C-o>:let &l:indentexpr = "):format(count, key),
+    ("%d%s"):format(count, key),
+    true,
+    false,
+    true
+  )
+  local replaced_line_indent = key == "S" and source_indent or ""
+  local restore_prefix = vim.api.nvim_replace_termcodes(
+    "<C-o>:let &l:indentexpr = ",
     true,
     false,
     true
@@ -135,10 +143,15 @@ local function reindent_and_edit(key)
     true
   )
 
-  -- Do not remap the queued S/o/O: that must be Neovim's native command.
-  -- Ctrl-O restores the indentation engine after the native command has
-  -- opened its line and before the user's next keystroke is processed.
-  vim.api.nvim_feedkeys(prefix .. restored_indentexpr .. suffix, "nt", false)
+  -- S replaces the line without carrying its leading whitespace, so restore
+  -- the prefix computed by == explicitly. Native o/O use autoindent to copy
+  -- that same prefix from the adjacent source line. Ctrl-O restores the
+  -- original indentation engine before the user's next keystroke is handled.
+  vim.api.nvim_feedkeys(
+    prefix .. replaced_line_indent .. restore_prefix .. restored_indentexpr .. suffix,
+    "nt",
+    false
+  )
 end
 
 vim.keymap.set("n", "S", function()
