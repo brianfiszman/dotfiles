@@ -305,6 +305,12 @@ startup() {
   run_nvim "dap-neotest-trigger" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-neotest-trigger.lua" \
     "+qa!"
+
+  printf '\n[behavior] Verifying scope-aware indentation for S, o and O.\n'
+  # The scenario drives Neovim's main loop and exits itself. Do not append
+  # +qa!: the deferred input assertions would never run.
+  run_nvim "indented-substitute" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/indented-substitute.lua"
 }
 
 case "$PHASE" in
