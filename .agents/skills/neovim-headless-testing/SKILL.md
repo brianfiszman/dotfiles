@@ -126,6 +126,14 @@ workspace for LSP and Treesitter tests.
 - Verify that a real closed fold still follows native behavior if the mapping
   special-cases folds.
 
+When a test invokes `nvim_input()`, do not immediately block in
+`vim.wait()` in the same synchronous `+luafile` chunk and assume the editor
+will consume queued typeahead. Either return to the main loop and assert from a
+`vim.defer_fn()` callback, or use
+`nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx", false)`
+to synchronously drain real typed keys while still honoring user mappings.
+The `"m"` flag is important: `"n"` would bypass the mapping under test.
+
 ## Lazy-loading assertions
 
 - Start from an unrelated empty buffer and assert the target module is not
