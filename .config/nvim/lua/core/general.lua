@@ -141,6 +141,8 @@ local function reindent_and_edit(key)
   local count = vim.v.count1
   local source_cursor = vim.api.nvim_win_get_cursor(0)
   local source_row = source_cursor[1]
+  local source_line_before = vim.api.nvim_get_current_line()
+  local source_old_indent = source_line_before:match("^%s*") or ""
   local source_indent
 
   if key == "S" then
@@ -167,7 +169,7 @@ local function reindent_and_edit(key)
   local new_indent = current_line:match("^%s*") or ""
   vim.api.nvim_win_set_cursor(0, {
     source_row,
-    #new_indent + math.max(source_cursor[2] - (source_cursor[2] >= #new_indent and 0 or #new_indent), 0),
+    #new_indent + math.max(source_cursor[2] - #source_old_indent, 0),
   })
 
   -- Native o/O can let an indentexpr produce a different prefix on the new
