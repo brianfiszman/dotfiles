@@ -13,7 +13,7 @@ underlying fix.
 
 ## P1 — Make everyday editing predictable
 
-- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — the prior green run did not execute the regression test because the reconstructed PR tree omitted both the production mapping and runner invocation; both are restored, and exact-head CI must include `indented-substitute.log` with behavior markers.
+- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — exact run #43662770696 executed the regression and proved that synchronous assertions inside `+luafile` cannot observe queued `nvim_input()` before the main loop resumes; a deferred state-machine test is now wired, pending exact-head CI.
 
 
 - [#32 Stop automatically unlinking snippets when the cursor is idle](https://github.com/brianfiszman/dotfiles/issues/32)

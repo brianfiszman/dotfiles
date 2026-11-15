@@ -1,7 +1,6 @@
 -- Regression test for scope-aware indentation when replacing/opening lines.
--- Use non-blocking nvim_input and bounded event-loop waits: synchronous
--- feedkeys(..., 'x!') can remain in the input loop while Insert mode is active.
--- Use a deterministic indentexpr so assertions do not depend on parser versions.
+-- Feed real user input, then assert from deferred callbacks after Neovim's
+-- main input loop has processed it. Do not synchronously wait inside +luafile.
 _G.DotfilesTestIndent = function()
   return 4
 end
@@ -15,32 +14,55 @@ vim.bo.tabstop = 2
 vim.bo.autoindent = true
 vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
 
-local function wait_for_mode(expected, description)
-  local reached = vim.wait(1500, function()
-    return vim.fn.mode():sub(1, 1) == expected
-  end, 10)
-  assert(reached, description .. " did not reach mode " .. expected
-    .. " (current mode: " .. vim.fn.mode() .. ")")
+local function fail(message)
+  vim.api.nvim_err_writeln(debug.traceback(tostring(message), 2))
+  vim.cmd("cquit")
 end
 
-local function press_and_wait_for_insert(keys, description)
+local function safely(callback)
+  local ok, err = xpcall(callback, debug.traceback)
+  if not ok then
+    fail(err)
+  end
+end
+
+local function wait_for_mode(expected, description, callback)
+  local deadline = vim.uv.hrtime() + 1500000000
+  local function poll()
+    local current = vim.fn.mode():sub(1, 1)
+    if current == expected then
+      safely(callback)
+    elseif vim.uv.hrtime() >= deadline then
+      fail(description .. " did not reach mode " .. expected
+        .. " (current mode: " .. vim.fn.mode() .. ")")
+    else
+      vim.defer_fn(poll, 10)
+    end
+  end
+  vim.defer_fn(poll, 10)
+end
+
+local function press(keys, expected, description, callback)
   print("[indented-substitute] queueing " .. description)
   local queued = vim.api.nvim_input(keys)
-  assert(queued > 0, description .. " input was not queued")
-  wait_for_mode("i", description)
-  print("[indented-substitute] " .. description .. " entered Insert mode")
+  if queued <= 0 then
+    fail(description .. " input was not queued")
+    return
+  end
+  wait_for_mode(expected, description, function()
+    print("[indented-substitute] " .. description .. " reached mode " .. expected)
+    callback()
+  end)
 end
 
-local function leave_insert()
-  local queued = vim.api.nvim_input("<Esc>")
-  assert(queued > 0, "Escape input was not queued")
-  wait_for_mode("n", "Escape")
+local function leave_insert(description, callback)
+  press("<Esc>", "n", "Escape after " .. description, callback)
 end
 
 local function assert_current_line_indent(expected, description)
   local cursor = vim.api.nvim_win_get_cursor(0)
   assert(cursor[2] == expected, description .. " cursor column should be " .. expected)
-  assert(vim.fn.indent(vim.api.nvim_win_get_cursor(0)[1]) == expected,
+  assert(vim.fn.indent(cursor[1]) == expected,
     description .. " line should have " .. expected .. " columns of indentation")
 end
 
@@ -54,91 +76,137 @@ for key, description in pairs({
   assert(mapping.desc == description, key .. " mapping description changed")
 end
 
-vim.api.nvim_buf_set_lines(0, 0, -1, false, { "stale", "tail" })
-vim.api.nvim_win_set_cursor(0, { 1, 0 })
-press_and_wait_for_insert("S", "S")
-assert_current_line_indent(4, "S")
-assert(vim.api.nvim_get_current_line() == "    ", "S must preserve the computed indentation")
-leave_insert()
+local function set_lines(lines, cursor)
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  vim.api.nvim_win_set_cursor(0, cursor)
+end
 
-vim.api.nvim_buf_set_lines(0, 0, -1, false, { "outer", "tail" })
-vim.api.nvim_win_set_cursor(0, { 1, 0 })
-press_and_wait_for_insert("o", "o")
-assert_current_line_indent(4, "o")
-leave_insert()
+local function finish()
+  _G.DotfilesTestIndent = nil
+  print("PASS: deterministic S, o, O and counted 2S preserve computed indentation")
+  print("PASS: real Lua Treesitter indentation is preserved by S")
+  print("PASS: real TypeScript Treesitter indentation is preserved by o and O")
+  vim.cmd("qa!")
+end
 
-vim.api.nvim_buf_set_lines(0, 0, -1, false, { "head", "tail" })
-vim.api.nvim_win_set_cursor(0, { 2, 0 })
-press_and_wait_for_insert("O", "O")
-assert_current_line_indent(4, "O")
-leave_insert()
-
-vim.api.nvim_buf_set_lines(0, 0, -1, false, { "first", "second", "tail" })
-vim.api.nvim_win_set_cursor(0, { 1, 0 })
-press_and_wait_for_insert("2S", "2S")
-assert(vim.api.nvim_buf_line_count(0) == 2, "2S must replace exactly two lines with one")
-assert_current_line_indent(4, "2S")
-leave_insert()
-
-_G.DotfilesTestIndent = nil
-
-print("PASS: S reindents to the current scope before entering Insert mode")
-print("PASS: o and O open new lines at the computed scope indentation")
-print("PASS: counted S preserves its line-range behavior and computed indentation")
-
--- Exercise the real Treesitter indentation provider used by this repository.
--- nvim-treesitter is pinned in lazy-lock.json; Lua has its own indents query,
--- while TypeScript inherits the pinned ECMA indentation query.
-local function new_treesitter_indent_buffer(filetype, lines)
+local function run_typescript_o()
   vim.cmd("enew!")
   vim.bo.buftype = ""
   vim.bo.bufhidden = "wipe"
   vim.bo.expandtab = true
   vim.bo.shiftwidth = 2
   vim.bo.tabstop = 2
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
-  vim.cmd("setfiletype " .. filetype)
-
-  assert(vim.bo.filetype == filetype, filetype .. " fixture must set its filetype")
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+    "const options = {",
+    "enabled: true,",
+    "};",
+  })
+  vim.cmd("setfiletype typescript")
+  assert(vim.bo.filetype == "typescript", "TypeScript fixture must set its filetype")
   assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
-    filetype .. " must use the configured nvim-treesitter indentexpr (got: "
+    "TypeScript must use the configured Treesitter indentexpr (got: "
       .. vim.inspect(vim.bo.indentexpr) .. ")")
-
-  local parser = vim.treesitter.get_parser(0, filetype)
-  assert(parser ~= nil, filetype .. " Treesitter parser must be available")
+  local parser = vim.treesitter.get_parser(0, "typescript")
+  assert(parser ~= nil, "TypeScript Treesitter parser must be available")
   parser:parse()
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+  press("o", "i", "TypeScript o with Treesitter indentation", function()
+    assert_current_line_indent(2, "TypeScript o with Treesitter indentation")
+    leave_insert("TypeScript o", function()
+      run_typescript_O()
+    end)
+  end)
 end
 
-new_treesitter_indent_buffer("lua", {
-  "local options = {",
-  "enabled = true,",
-  "}",
-})
-vim.api.nvim_win_set_cursor(0, { 2, 0 })
-press_and_wait_for_insert("S", "Lua S with Treesitter indentation")
-assert_current_line_indent(2, "Lua S with Treesitter indentation")
-leave_insert()
+function run_typescript_O()
+  vim.cmd("enew!")
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.tabstop = 2
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+    "const options = {",
+    "enabled: true,",
+    "};",
+  })
+  vim.cmd("setfiletype typescript")
+  assert(vim.bo.filetype == "typescript", "TypeScript fixture must set its filetype")
+  assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
+    "TypeScript must use the configured Treesitter indentexpr (got: "
+      .. vim.inspect(vim.bo.indentexpr) .. ")")
+  local parser = vim.treesitter.get_parser(0, "typescript")
+  assert(parser ~= nil, "TypeScript Treesitter parser must be available")
+  parser:parse()
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
 
-new_treesitter_indent_buffer("typescript", {
-  "const options = {",
-  "enabled: true,",
-  "};",
-})
-vim.api.nvim_win_set_cursor(0, { 2, 0 })
-press_and_wait_for_insert("o", "TypeScript o with Treesitter indentation")
-assert_current_line_indent(2, "TypeScript o with Treesitter indentation")
-leave_insert()
+  press("O", "i", "TypeScript O with Treesitter indentation", function()
+    assert_current_line_indent(2, "TypeScript O with Treesitter indentation")
+    leave_insert("TypeScript O", finish)
+  end)
+end
 
-new_treesitter_indent_buffer("typescript", {
-  "const options = {",
-  "enabled: true,",
-  "};",
-})
-vim.api.nvim_win_set_cursor(0, { 2, 0 })
-press_and_wait_for_insert("O", "TypeScript O with Treesitter indentation")
-assert_current_line_indent(2, "TypeScript O with Treesitter indentation")
-leave_insert()
+local function run_lua_treesitter()
+  vim.cmd("enew!")
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.tabstop = 2
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+    "local options = {",
+    "enabled = true,",
+    "}",
+  })
+  vim.cmd("setfiletype lua")
+  assert(vim.bo.filetype == "lua", "Lua fixture must set its filetype")
+  assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
+    "Lua must use the configured Treesitter indentexpr (got: "
+      .. vim.inspect(vim.bo.indentexpr) .. ")")
+  local parser = vim.treesitter.get_parser(0, "lua")
+  assert(parser ~= nil, "Lua Treesitter parser must be available")
+  parser:parse()
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
 
-print("PASS: real Lua Treesitter indentation is preserved by S")
-print("PASS: real TypeScript Treesitter indentation is preserved by o and O")
+  press("S", "i", "Lua S with Treesitter indentation", function()
+    assert_current_line_indent(2, "Lua S with Treesitter indentation")
+    assert(vim.api.nvim_get_current_line() == "  ",
+      "Lua S must preserve the computed Treesitter indentation")
+    leave_insert("Lua S", run_typescript_o)
+  end)
+end
 
+local function run_counted_substitute()
+  set_lines({ "first", "second", "tail" }, { 1, 0 })
+  press("2S", "i", "2S", function()
+    assert(vim.api.nvim_buf_line_count(0) == 2,
+      "2S must replace exactly two lines with one")
+    assert_current_line_indent(4, "2S")
+    leave_insert("2S", run_lua_treesitter)
+  end)
+end
+
+local function run_open_above()
+  set_lines({ "head", "tail" }, { 2, 0 })
+  press("O", "i", "O", function()
+    assert_current_line_indent(4, "O")
+    leave_insert("O", run_counted_substitute)
+  end)
+end
+
+local function run_open_below()
+  set_lines({ "outer", "tail" }, { 1, 0 })
+  press("o", "i", "o", function()
+    assert_current_line_indent(4, "o")
+    leave_insert("o", run_open_above)
+  end)
+end
+
+set_lines({ "stale", "tail" }, { 1, 0 })
+press("S", "i", "S", function()
+  assert_current_line_indent(4, "S")
+  assert(vim.api.nvim_get_current_line() == "    ",
+    "S must preserve the deterministic computed indentation")
+  leave_insert("S", run_open_below)
+end)

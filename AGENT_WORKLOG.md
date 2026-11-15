@@ -663,3 +663,22 @@ here rather than copying it.
   behavior-test file, and runner wiring; the exact-head artifact must contain
   `indented-substitute.log` with PASS markers. No merge or sign-off until then.
 
+---
+
+## 2026-11-14 — Defer input assertions until Neovim's main loop runs (#89)
+
+- Exact-head run [#43662770696](https://github.com/brianfiszman/dotfiles/actions/runs/43662770696)
+  now executed the previously omitted regression test. It failed quickly and
+  diagnostically: `nvim_input("S")` was queued, but a synchronous `vim.wait()`
+  inside the active `+luafile` chunk observed Normal mode because the main
+  input loop had not yet resumed.
+- Reworked the test into a deferred state machine. It queues the real key with
+  `nvim_input()`, returns control to Neovim, polls the expected mode with
+  `vim.defer_fn()` and a 1.5-second deadline, performs assertions in the timer
+  callback, and exits via `qa!` only after all deterministic and real-parser
+  scenarios complete. Removed the runner's immediate trailing `+qa!`.
+- The test artifact for #43662770696 confirms the regression file was invoked;
+  its first S action did not enter Insert mode before the main-loop wait fix.
+  Production mapping is still not changed; the next exact-head run decides
+  whether that mapping itself is defective.
+

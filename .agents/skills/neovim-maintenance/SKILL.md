@@ -486,10 +486,14 @@ headless sequence, before any other DAP test populates the registry.
 - In headless tests, `nvim_feedkeys(..., "x", ...)` sends an implicit Escape at
   end-of-typeahead if the editor remains in Insert mode. Avoid synchronous
   `feedkeys(..., "x!")` to assert an active Insert-mode transition: it can keep
-  execution in the input loop until more input arrives. Queue actual user keys
-  with non-blocking `vim.api.nvim_input()`, then use a bounded `vim.wait()`
-  predicate to assert the expected mode. Use key notation such as `"<Esc>"`
-  directly with `nvim_input()`; it translates keycodes itself.
+  execution in the input loop until more input arrives. `nvim_input()` is
+  non-blocking and accepts key notation such as `"<Esc>"`, but its input is
+  processed only after the current Lua command yields to Neovim's main loop.
+  Therefore, do not call `vim.wait()` from the same `+luafile` chunk and expect
+  queued input to have run. Queue the user input, return from the Lua chunk,
+  then use `vim.defer_fn()` callbacks to assert the resulting mode with a
+  bounded deadline. Let the final callback exit Neovim with `qa!`; do not pass
+  a subsequent command-line `+qa!` that can quit before the deferred test runs.
 - Invoke behavioral Lua files directly with `+luafile` so an assertion failure
   is reported through the normal test process and log scanner. Print trace/pass
   markers before and after input transitions so a timeout identifies the last
@@ -503,4 +507,3 @@ test edits. After moving the ref, compare the PR head against the exact base and
 verify that both implementation files and their test-runner wiring remain in the
 diff. A green workflow is not evidence for a feature when its test is absent
 from the executed script or its behavior log is missing from the artifact.
-

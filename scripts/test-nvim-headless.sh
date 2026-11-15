@@ -277,8 +277,7 @@ startup() {
 
   printf '\n[behavior] Verifying S, o and O indentation behavior.\n'
   run_nvim "indented-substitute" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/indented-substitute.lua" \
-    "+qa!"
+    "+luafile $REPO_ROOT/tests/nvim/indented-substitute.lua"
 
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
   run_nvim "neotest-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
