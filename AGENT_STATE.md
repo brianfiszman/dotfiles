@@ -11,23 +11,21 @@ branches must not edit this file. Keep this checkpoint at 40 lines or fewer.
 - **Issue #89:** reopened after Brian reported JS/TS `S`, `o`, and `O`
   entering at column 0 after the initial implementation was merged.
 - **Functional PR #95:** Draft, branch `fix/89-js-ts-indent`, head
-  `be848d54895a1d0022c83c5c12bd14b106b7171c`. Test-only; no runtime change.
+  `e0f15f727ce718ba4e68416db99b99eb3baecd9e`. Tests/workflow only; no runtime change.
 
 ## Verified evidence
 
-- Exact-head full integration [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275)
-  passed on `be848d5`: install, plugin restore, normal startup, all headless tests.
-- Actual Home React source passed `S`, `o`, and `O` as `.js`, `.jsx`,
-  and `.tsx`; JS route is `javascript → javascript`, React route
-  `javascriptreact → javascript`, TSX route `typescriptreact → tsx`.
-- Dedicated `.ts` interface and object fixtures passed with parser
-  `typescript`. Neovim 0.11.3; Treesitter lock
-  `85168f15808d89b0222313652b9d2777eda3cb08`.
-- Remaining gap: exact local key/cursor context and local Neovim version to
-  reproduce Brian's column-zero report. No runtime change made.
+- Matrix run [#43738071448](https://github.com/brianfiszman/dotfiles/actions/runs/43738071448):
+  Neovim 0.11.3 full integration passed; 0.12.6 failed in JavaScript nested-block `O`
+  (expected indent 4, got 0), with the same lockfile/Treesitter revision.
+- Earlier matrix run [#43737557010](https://github.com/brianfiszman/dotfiles/actions/runs/43737557010)
+  failed 0.12.6 at TypeScript object `O` (expected 2, got 0); 0.11.3 passed.
+- 0.11.3 passed Home React `S`/`o`/`O` under `.js`, `.jsx`, `.tsx`,
+  and dedicated `.ts` cases. Pinned Treesitter: `85168f15808d89b0222313652b9d2777eda3cb08`.
+- Stop after two 0.12.6 failures. Root cause below the Neovim/Treesitter indent path
+  is not yet isolated; do not change runtime mapping speculatively.
 
 ## Pending
 
-- Obtain the failing key (`S`, `o`, or `O`), cursor line/context, and local Neovim version.
-- Reproduce locally before any runtime workaround.
-- Keep both PRs Draft; no merge authorization.
+- Obtain Brian's exact failing key and line/context; compare local Treesitter checkout with `lazy-lock.json`.
+- Keep PRs #95 and #96 Draft; no merge authorization.
