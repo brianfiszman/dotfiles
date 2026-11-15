@@ -1,10 +1,13 @@
 -- Exercise the actual LazyUpdatePre/LazyUpdate and LazyRestorePre/LazyRestore
 -- events against Git checkout collisions, including Lazy's subsequent docs task.
 local config = require("lazy.core.config")
-local expected_commit = "85168f15808d89b0222313652b9d2777eda3cb08"
 local treesitter = config.plugins["nvim-treesitter"]
-assert(treesitter and treesitter.commit == expected_commit,
-  "legacy nvim-treesitter must stay on the exact commit covered by the compatibility adapter")
+assert(treesitter and treesitter.branch == "main",
+  "nvim-treesitter must track the current upstream main API")
+local lockfile_path = vim.fn.stdpath("config") .. "/lazy-lock.json"
+local lockfile = vim.json.decode(table.concat(vim.fn.readfile(lockfile_path), "\\n"))
+assert(lockfile["nvim-treesitter"] and lockfile["nvim-treesitter"].branch == "main",
+  "lazy-lock.json must record the current nvim-treesitter main branch")
 
 local root = vim.fn.tempname() .. "-lazy-update-preflight"
 local repo = root .. "/plugin"
