@@ -56,6 +56,7 @@ Do not turn an unverified suspicion into a functional issue. When diagnosis is
 uncertain, timebox an investigation or mark the uncertainty explicitly. Follow
 `.agents/skills/diagnostic-experiments/SKILL.md` when a failure resists the first
 attempt.
+For `:checkhealth` triage, external tool/provider provisioning, and local-versus-CI dependency drift, follow `.agents/skills/neovim-dependency-management/SKILL.md`.
 
 ## Review every change as code
 

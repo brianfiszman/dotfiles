@@ -80,9 +80,12 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
 
 ### Optional: Python provider
 
-Most editing features do not require Neovim's Python provider. A few plugins
-and Python integrations may use it. To create a dedicated environment without
-committing or reusing a machine-specific virtualenv, run:
+Most Neovim editing features do not require the Python provider. It is only
+needed by Python remote plugins and integrations that explicitly use it.
+
+This configuration prefers a dedicated environment at
+`${stdpath("data")}/python3-venv/bin/python` when it exists. Create it with
+the same Python 3 interpreter available on the target machine:
 
 ```sh
 PYTHON_VENV="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/python3-venv"
@@ -90,13 +93,74 @@ python3 -m venv "$PYTHON_VENV"
 "$PYTHON_VENV/bin/python" -m pip install --upgrade pip pynvim
 ```
 
-On the next launch, Neovim automatically uses this interpreter when it exists.
-A manually configured `vim.g.python3_host_prog` takes precedence. Verify it
-inside Neovim with:
+Restart Neovim after installation. The early `init.lua` setup selects this
+interpreter automatically when the executable exists. A manually configured
+`vim.g.python3_host_prog` takes precedence.
+
+Verify the selected interpreter with:
 
 ```vim
-:checkhealth provider
+:lua print(vim.g.python3_host_prog or "automatic provider detection")
+:checkhealth vim.provider
 ```
+
+If the health report tries to launch a missing `pynvim-python` executable, the
+automatic provider launcher is unavailable. Creating the dedicated venv above
+gives this configuration an explicit interpreter path. Do not install
+`pynvim` into a global Python environment just to silence the warning.
+
+### Optional: Tree-sitter CLI
+
+The current configuration uses the legacy `nvim-treesitter` API. Its
+healthcheck says the `tree-sitter` executable is only needed for
+`:TSInstallFromGrammar`; it is not required for ordinary `:TSInstall` or for
+the parser binaries already installed by this configuration.
+
+When grammar regeneration is needed, install the CLI from inside Neovim through
+Mason:
+
+```vim
+:MasonInstall tree-sitter-cli
+```
+
+Verify that Neovim can find it:
+
+```vim
+:lua print(vim.fn.executable("tree-sitter"))
+:checkhealth nvim-treesitter
+:checkhealth lspsaga
+```
+
+A result of `1` means the executable is on Neovim's PATH. This is an optional
+Mason-managed tool, not a prerequisite for JavaScript/TypeScript indentation.
+Do not install it with a system package manager merely to make ordinary parser
+installation work.
+
+### Existing Treesitter installations on Neovim 0.12
+
+A lazy.nvim plugin `build` function runs on plugin install/update, not merely
+because its spec changed. To force the build function on an already-installed
+plugin, use:
+
+```vim
+:Lazy build nvim-treesitter
+```
+
+The Neovim 0.12 compatibility patch was merged to `master` in [PR #95](https://github.com/brianfiszman/dotfiles/pull/95) as [commit `f5b2a1f`](https://github.com/brianfiszman/dotfiles/commit/f5b2a1ff7d8f0277ad33e50b64e9e9f99b34186f). It has both a startup `init` hook (for existing checkouts) and a `build` hook (for fresh installs). Update the active dotfiles checkout to this revision; the next normal Neovim startup applies the patch before Treesitter loads. On an older build-only config revision, `:Lazy build nvim-treesitter` can force the build hook, but the startup hook in the merged revision removes the need for that manual step. The hook checks the exact locked plugin SHA and is idempotent; do not edit the plugin source manually.
+
+### Interpreting optional health warnings
+
+A `:checkhealth` report is not a list of system packages that must all be
+installed. For example, Git already satisfies Diffview's VCS requirement, so
+missing Mercurial is not actionable. Composer/PHP/Julia and the Perl provider
+are only relevant when using the matching ecosystem or provider. Neorg key
+conflicts, WhichKey overlap/deprecation warnings, and unknown LSP filetypes are
+configuration issues rather than missing executables.
+
+If `:checkhealth vim.pack` reports an existing package directory without a
+lockfile while this configuration uses lazy.nvim, inspect the directory and
+identify its owner before changing or deleting it. The installer does not
+remove plugin data directories.
 
 ### Troubleshooting and validation
 

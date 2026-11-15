@@ -90,6 +90,7 @@ grow into a second transcript.
 - Keep the functional backlog in `docs/neovim-modernization-backlog.md` as a thin
   index; the issues are canonical.
 - Follow `.agents/skills/neovim-maintenance/SKILL.md` for Neovim-specific work.
+- Follow `.agents/skills/neovim-dependency-management/SKILL.md` when triaging `:checkhealth`, provisioning optional tools/providers, or comparing local and CI dependency state.
 - Follow `.agents/skills/github-project-management/SKILL.md` when creating,
   updating, comparing, or closing GitHub issues and pull requests.
 - Follow `.agents/skills/github-actions-validation/SKILL.md` when inspecting,
