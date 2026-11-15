@@ -5,7 +5,7 @@ local treesitter = config.plugins["nvim-treesitter"]
 assert(treesitter and treesitter.branch == "main",
   "nvim-treesitter must track the current upstream main API")
 local lockfile_path = vim.fn.stdpath("config") .. "/lazy-lock.json"
-local lockfile = vim.json.decode(table.concat(vim.fn.readfile(lockfile_path), "\\n"))
+local lockfile = vim.json.decode(table.concat(vim.fn.readfile(lockfile_path), "\n"))
 assert(lockfile["nvim-treesitter"] and lockfile["nvim-treesitter"].branch == "main",
   "lazy-lock.json must record the current nvim-treesitter main branch")
 
