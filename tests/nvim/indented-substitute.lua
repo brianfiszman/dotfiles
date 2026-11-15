@@ -75,8 +75,9 @@ local function wait_for_current_line_indent(expected, expected_row, description,
     then
       safely(callback)
     elseif vim.uv.hrtime() >= deadline then
-      fail(("%s indentation did not settle (mode=%s row=%d column=%d indent=%d line=%s)"):format(
-        description, vim.fn.mode(), cursor[1], cursor[2], actual_indent, vim.inspect(line)))
+      fail(("%s indentation did not settle (mode=%s row=%d column=%d indent=%d line=%s buffer=%s)"):format(
+        description, vim.fn.mode(), cursor[1], cursor[2], actual_indent, vim.inspect(line),
+        vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
     else
       vim.defer_fn(poll, 10)
     end
