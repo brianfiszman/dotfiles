@@ -682,3 +682,24 @@ here rather than copying it.
   Production mapping is still not changed; the next exact-head run decides
   whether that mapping itself is defective.
 
+---
+
+## 2026-11-14 — Confirm deterministic mappings and derive TypeScript indentation expectation (#89)
+
+- Exact-head run [#43663087456](https://github.com/brianfiszman/dotfiles/actions/runs/43663087456)
+  finally executed the asynchronous regression test. It confirmed the
+  deterministic `S`, `o`, `O`, and counted `2S` cases, plus real Lua
+  Treesitter `S`, all entered Insert and returned to Normal mode correctly.
+- The TypeScript `o` scenario also entered Insert mode, but its cursor column
+  differed from the hard-coded expectation of 2. The artifact showed
+  nvim-treesitter running its indent query ("2 lines to indent... 3 lines
+  indented"); the test did not record the actual cursor/indent columns, so no
+  production defect can yet be claimed.
+- The failure handler's `cquit` did not terminate from the deferred callback
+  and caused a 5-minute timeout. It now exits with `qa!` after logging the
+  assertion error, which the shell runner detects as an error.
+- Next iteration computes TypeScript's expected indentation by applying the
+  active `indentexpr` to an identical control buffer, resets the source line
+  to stale whitespace, then compares the mapped `o/O` result to that value.
+  This avoids assuming that the parser must produce exactly two columns.
+

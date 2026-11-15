@@ -13,7 +13,7 @@ underlying fix.
 
 ## P1 — Make everyday editing predictable
 
-- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — exact run #43662770696 executed the regression and proved that synchronous assertions inside `+luafile` cannot observe queued `nvim_input()` before the main loop resumes; a deferred state-machine test is now wired, pending exact-head CI.
+- [#89 Make S, o and O enter at the current scope indentation](https://github.com/brianfiszman/dotfiles/issues/89) — exact run #43663087456 proved deterministic `S/o/O/2S` and Lua Treesitter `S` pass; TypeScript `o` entered Insert but the test's fixed two-column expectation was wrong or incomplete. The next test derives expected indentation from the real `indentexpr`.
 
 
 - [#32 Stop automatically unlinking snippets when the cursor is idle](https://github.com/brianfiszman/dotfiles/issues/32)

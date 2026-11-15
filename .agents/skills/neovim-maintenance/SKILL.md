@@ -494,6 +494,11 @@ headless sequence, before any other DAP test populates the registry.
   then use `vim.defer_fn()` callbacks to assert the resulting mode with a
   bounded deadline. Let the final callback exit Neovim with `qa!`; do not pass
   a subsequent command-line `+qa!` that can quit before the deferred test runs.
+- Derive a language-specific expected indentation from the actual active
+  `indentexpr` (for example, use a control `==` operation on the same syntax
+  fixture) instead of assuming a fixed column count across parsers. Compare the
+  mapping's result with that computed value, and print both cursor column and
+  line indentation on failure.
 - Invoke behavioral Lua files directly with `+luafile` so an assertion failure
   is reported through the normal test process and log scanner. Print trace/pass
   markers before and after input transitions so a timeout identifies the last

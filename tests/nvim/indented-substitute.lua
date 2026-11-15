@@ -16,7 +16,8 @@ vim.bo.indentexpr = "v:lua.DotfilesTestIndent()"
 
 local function fail(message)
   vim.api.nvim_err_writeln(debug.traceback(tostring(message), 2))
-  vim.cmd("cquit")
+  -- qa! exits from this timer callback; run_nvim scans the log for E5113.
+  vim.cmd("qa!")
 end
 
 local function safely(callback)
@@ -61,9 +62,17 @@ end
 
 local function assert_current_line_indent(expected, description)
   local cursor = vim.api.nvim_win_get_cursor(0)
-  assert(cursor[2] == expected, description .. " cursor column should be " .. expected)
-  assert(vim.fn.indent(cursor[1]) == expected,
-    description .. " line should have " .. expected .. " columns of indentation")
+  local actual_indent = vim.fn.indent(cursor[1])
+  local line = vim.api.nvim_get_current_line()
+  print(("[indented-substitute] %s: cursor=%d indent=%d line=%s"):format(
+    description, cursor[2], actual_indent, vim.inspect(line)))
+  assert(cursor[2] == expected,
+    description .. " cursor column expected " .. expected
+      .. " (actual cursor=" .. cursor[2] .. ", indent=" .. actual_indent
+      .. ", line=" .. vim.inspect(line) .. ")")
+  assert(actual_indent == expected,
+    description .. " line indent expected " .. expected
+      .. " (actual=" .. actual_indent .. ", line=" .. vim.inspect(line) .. ")")
 end
 
 for key, description in pairs({
@@ -89,9 +98,7 @@ local function finish()
   vim.cmd("qa!")
 end
 
-local run_typescript_O
-
-local function run_typescript_o()
+local function setup_typescript_buffer()
   vim.cmd("enew!")
   vim.bo.buftype = ""
   vim.bo.bufhidden = "wipe"
@@ -113,8 +120,27 @@ local function run_typescript_o()
   parser:parse()
   vim.api.nvim_win_set_cursor(0, { 2, 0 })
 
+  -- Obtain the expected scope indentation from this exact parser/query and
+  -- active indentexpr, rather than assuming a hard-coded two-space result.
+  vim.cmd("normal! ==")
+  local expected = vim.fn.indent(2)
+  assert(expected > 0,
+    "TypeScript Treesitter query did not compute a nested object indentation")
+  print("[indented-substitute] TypeScript indentexpr computed " .. expected .. " columns")
+
+  -- Restore stale whitespace so the mapped action must recalculate it again.
+  vim.api.nvim_buf_set_lines(0, 1, 2, false, { "enabled: true," })
+  parser:parse()
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  return expected
+end
+
+local run_typescript_O
+
+local function run_typescript_o()
+  local expected = setup_typescript_buffer()
   press("o", "i", "TypeScript o with Treesitter indentation", function()
-    assert_current_line_indent(2, "TypeScript o with Treesitter indentation")
+    assert_current_line_indent(expected, "TypeScript o with Treesitter indentation")
     leave_insert("TypeScript o", function()
       run_typescript_O()
     end)
@@ -122,29 +148,9 @@ local function run_typescript_o()
 end
 
 run_typescript_O = function()
-  vim.cmd("enew!")
-  vim.bo.buftype = ""
-  vim.bo.bufhidden = "wipe"
-  vim.bo.expandtab = true
-  vim.bo.shiftwidth = 2
-  vim.bo.tabstop = 2
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
-    "const options = {",
-    "enabled: true,",
-    "};",
-  })
-  vim.cmd("setfiletype typescript")
-  assert(vim.bo.filetype == "typescript", "TypeScript fixture must set its filetype")
-  assert(vim.bo.indentexpr == "nvim_treesitter#indent()",
-    "TypeScript must use the configured Treesitter indentexpr (got: "
-      .. vim.inspect(vim.bo.indentexpr) .. ")")
-  local parser = vim.treesitter.get_parser(0, "typescript")
-  assert(parser ~= nil, "TypeScript Treesitter parser must be available")
-  parser:parse()
-  vim.api.nvim_win_set_cursor(0, { 2, 0 })
-
+  local expected = setup_typescript_buffer()
   press("O", "i", "TypeScript O with Treesitter indentation", function()
-    assert_current_line_indent(2, "TypeScript O with Treesitter indentation")
+    assert_current_line_indent(expected, "TypeScript O with Treesitter indentation")
     leave_insert("TypeScript O", finish)
   end)
 end
