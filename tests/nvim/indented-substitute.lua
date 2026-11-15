@@ -262,9 +262,11 @@ run_yaml_control = function()
   treesitter_fixture("yaml", {
     "service:",
     "enabled: true",
-  }, { 1, 0 })
+  }, { 2, 0 })
+  assert_stale_source(2, "enabled: true", "YAML nested mapping")
   press("o", "YAML nested o", function()
-    assert_insert(2, 2, "YAML nested o")
+    assert_insert(3, 2, "YAML nested o")
+    assert_source_reindented(2, 2, "enabled: true", "YAML nested o")
     leave_insert("YAML nested o", run_json_control)
   end)
 end
