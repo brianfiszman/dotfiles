@@ -2,6 +2,12 @@ local legacy_treesitter_commit = "85168f15808d89b0222313652b9d2777eda3cb08"
 local compat_patch = "patches/nvim-treesitter-neovim-0.12.patch"
 
 local function patch_legacy_treesitter_for_nvim_012(plugin)
+  -- The init hook also runs before a fresh lazy.nvim install has cloned the
+  -- plugin. In that case the build hook below applies the patch after cloning.
+  if vim.fn.isdirectory(plugin.dir) ~= 1 then
+    return
+  end
+
   local result = vim.system({
     "git", "-C", plugin.dir, "rev-parse", "HEAD",
   }, { text = true }):wait()
@@ -45,8 +51,11 @@ local M = {
     -- Additional text objects for treesitter
     "nvim-treesitter/nvim-treesitter-textobjects",
   },
-  -- Keep the original build path on 0.11. On 0.12 apply the compatibility
-  -- shim before startup; ensure_installed handles the configured parsers.
+  -- lazy.nvim runs init on every startup, so already-installed checkouts get
+  -- patched before any Treesitter module loads. The build hook covers fresh
+  -- installs after clone; both paths are safe to repeat.
+  init = vim.fn.has("nvim-0.12") == 1 and patch_legacy_treesitter_for_nvim_012 or nil,
+  -- Keep the original build path on 0.11. ensure_installed handles configured parsers.
   build = vim.fn.has("nvim-0.12") == 1 and patch_legacy_treesitter_for_nvim_012 or ":TSUpdate",
 }
 
