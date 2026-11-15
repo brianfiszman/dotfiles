@@ -13,12 +13,27 @@ local function assert_equal(expected, actual, label)
   print("PASS: " .. label)
 end
 
-local ready = vim.wait(20 * 60 * 1000, function()
-  return vim.g.dotfiles_treesitter_ready == true or vim.g.dotfiles_treesitter_error ~= nil
-end, 100)
-assert(ready, "Mason did not finish installing tree-sitter-cli and the configured parsers")
-assert(vim.g.dotfiles_treesitter_error == nil,
-  "Treesitter installation failed: " .. tostring(vim.g.dotfiles_treesitter_error))
+local parser_languages = {
+  "c", "lua", "luadoc", "go", "javascript", "typescript", "json", "json5", "jsdoc", "yaml",
+  "xml", "vim", "vimdoc", "tsx", "scheme", "make", "dot", "dockerfile", "csv", "diff",
+  "gitignore", "gitcommit", "git_config", "git_rebase", "gitattributes", "css", "comment",
+  "gomod", "gosum", "gowork", "html", "ini", "markdown", "markdown_inline", "passwd",
+  "proto", "scss", "sql", "regex", "bash", "helm",
+}
+
+local treesitter_plugin = require("lazy.core.config").plugins["nvim-treesitter"]
+assert(treesitter_plugin and treesitter_plugin.branch == "main",
+  "The current upstream nvim-treesitter main branch must be configured")
+
+local treesitter = require("nvim-treesitter")
+local installed = {}
+for _, language in ipairs(treesitter.get_installed("parsers")) do
+  installed[language] = true
+end
+for _, language in ipairs(parser_languages) do
+  assert(installed[language], "Configured Treesitter parser was not installed: " .. language)
+end
+print(("PASS: all %d configured Treesitter parsers are installed"):format(#parser_languages))
 
 local executable = vim.fn.exepath("tree-sitter")
 assert(executable ~= "", "tree-sitter-cli is not available in Neovim's PATH")
