@@ -3,38 +3,36 @@
 _Last updated: 2026-11-15 (America/Argentina/Buenos_Aires)_
 
 Canonical copy lives on `master`. Functional branches must not edit this file;
-state updates land through a dedicated docs PR. Keep this file at 40 lines or fewer.
+state updates land through a dedicated docs change. Keep this file at 40 lines or fewer.
 
 ## Current focus
 
-- **Repository:** `brianfiszman/dotfiles`. **Base:** `master` at `f5b2a1f`.
-- **Merged fix:** [PR #95](https://github.com/brianfiszman/dotfiles/pull/95),
-  `fix/89-js-ts-indent`, squash commit `f5b2a1f`.
-- **Docs PR:** [#98](https://github.com/brianfiszman/dotfiles/pull/98),
-  `docs/neovim-dependency-management`; dependency triage, README, backlog,
-  and skills only.
+- **Repository:** `brianfiszman/dotfiles`; PRs #95 and #98 are merged.
+- **Functional fix:** [PR #95](https://github.com/brianfiszman/dotfiles/pull/95),
+  Neovim 0.12 legacy Treesitter compatibility; merge commit `f5b2a1f`.
+- **Dependency guidance:** [PR #98](https://github.com/brianfiszman/dotfiles/pull/98),
+  dependency triage, optional setup paths, skills, README, backlog, and worklog.
 
 ## Verified evidence
 
 - PR #95 workflow
   [#43749144164](https://github.com/brianfiszman/dotfiles/actions/runs/43749144164)
-  passed both Neovim versions and the simulated pre-existing checkout test.
-- Health report: JS/TS/TSX parsers are installed; the `tree-sitter` CLI is
-  optional for `:TSInstallFromGrammar`; Python provider auto-detection fails
-  because `pynvim-python` is missing.
-- Git satisfies Diffview; Composer/PHP/Julia, Perl, and Mercurial are optional
-  for unused features. Existing `vim.pack` data needs inventory, not deletion.
+  passed Neovim 0.11.3 and 0.12.6, including pre-existing checkout repair.
+- PR #98 latest-base workflow
+  [#43752267360](https://github.com/brianfiszman/dotfiles/actions/runs/43752267360)
+  passed all four jobs on a branch based on the merged #95 commit.
+- The local Mac's active config revision and installed Treesitter SHA/patch state
+  remain unverified; CI does not establish them.
 
 ## Pending
 
-- PR #98 contains documentation/skills/state updates and must pass CI against
-  the current master after PR #95.
-- Local installed Treesitter SHA/patch state is unverified; CI does not prove it.
-- Issues [#66](https://github.com/brianfiszman/dotfiles/issues/66) and
-  [#97](https://github.com/brianfiszman/dotfiles/issues/97) track optional
-  Python-provider and Mason CLI setup paths.
+- Issue [#66](https://github.com/brianfiszman/dotfiles/issues/66): optional,
+  explicit Python provider setup and verification.
+- Issue [#97](https://github.com/brianfiszman/dotfiles/issues/97): optional
+  Tree-sitter CLI installation through Mason.
+- No files or dependencies have been installed on the local Mac.
 
 ## Next action
 
-- Complete latest-base validation and review of docs PR #98; then prioritize
-  issue #66 or #97 separately.
+- Prioritize #66 or #97 only when useful; neither blocks ordinary Lua editing
+  or the CI-validated JavaScript/TypeScript indentation fix.
