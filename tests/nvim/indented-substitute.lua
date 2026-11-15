@@ -119,11 +119,53 @@ local function set_lines(lines, cursor)
   vim.api.nvim_win_set_cursor(0, cursor)
 end
 
+local function probe_named_on_key_handlers()
+  vim.cmd("enew!")
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.tabstop = 2
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+    "const options = {",
+    "enabled: true,",
+    "};",
+  })
+  vim.cmd("setfiletype typescript")
+  vim.bo.indentexpr = ""
+  vim.bo.indentkeys = ""
+  vim.bo.formatoptions = ""
+  vim.bo.comments = ""
+  vim.bo.autoindent = false
+  vim.bo.smartindent = false
+  vim.bo.cindent = false
+  vim.bo.lisp = false
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+  local callbacks_before = vim.on_key()
+  local namespaces = vim.api.nvim_get_namespaces()
+  local removed = {}
+  for name, ns_id in pairs(namespaces) do
+    vim.on_key(nil, ns_id)
+    removed[#removed + 1] = name
+  end
+  local callbacks_after = vim.on_key()
+  print(("[scope-indent-on-key] callbacks before=%d after_named_clear=%d named_namespaces=%s"):format(
+    callbacks_before, callbacks_after, vim.inspect(removed)))
+
+  vim.cmd("noautocmd normal! o")
+  print(("[scope-indent-on-key] after named callback clear cursor=%s line_count=%d buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
 local function finish()
   _G.DotfilesTestIndent = nil
   print("PASS: deterministic S, o, O and counted 2S preserve computed indentation")
   print("PASS: real Lua Treesitter indentation is preserved by S")
   print("PASS: real TypeScript Treesitter indentation is preserved by o and O")
+  probe_named_on_key_handlers()
   -- This is a standalone disposable Neovim process; exit directly after all
   -- deferred input callbacks and assertions have completed.
   os.exit(0, true)
