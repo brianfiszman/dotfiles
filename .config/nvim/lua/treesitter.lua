@@ -3,6 +3,71 @@ local legacy_compat_patch = "patches/nvim-treesitter-neovim-0.12.patch"
 local query_predicates_module = "nvim-treesitter.query_predicates"
 local query_predicates_file = "lua/nvim-treesitter/query_predicates.lua"
 
+-- Register the adapter while the plugin spec is imported, before lazy.nvim
+-- installs missing plugins. Lazy's install path loads a plugin before running
+-- its build callback, so registering only from init/build is too late on the
+-- very first startup of a clean installation.
+local function register_legacy_query_predicates_adapter()
+  if package.loaded[query_predicates_module] or package.preload[query_predicates_module] then
+    return
+  end
+
+  package.preload[query_predicates_module] = function()
+    local query = require("vim.treesitter.query")
+    local add_predicate = query.add_predicate
+    local add_directive = query.add_directive
+
+    local function adapt_handler(handler)
+      return function(match, ...)
+        local single_node_captures = {}
+        for capture_id, captured in pairs(match) do
+          if type(captured) == "table" then
+            single_node_captures[capture_id] = captured[#captured]
+          else
+            single_node_captures[capture_id] = captured
+          end
+        end
+        return handler(single_node_captures, ...)
+      end
+    end
+
+    query.add_predicate = function(name, handler, opts)
+      return add_predicate(name, adapt_handler(handler), opts)
+    end
+    query.add_directive = function(name, handler, opts)
+      return add_directive(name, adapt_handler(handler), opts)
+    end
+
+    -- Lazy adds the plugin to runtimepath before sourcing its plugin files.
+    -- Resolve the module then, because the plugin may not exist when this
+    -- config/spec module is first evaluated on a clean installation.
+    local candidates = vim.api.nvim_get_runtime_file(query_predicates_file, false)
+    local source_file = candidates[1]
+    if not source_file then
+      source_file = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/" .. query_predicates_file
+    end
+
+    local chunk, load_error = loadfile(source_file)
+    if not chunk then
+      query.add_predicate = add_predicate
+      query.add_directive = add_directive
+      error("Could not load the locked nvim-treesitter query-predicate module: " .. tostring(load_error))
+    end
+
+    local ok, result = xpcall(chunk, debug.traceback)
+    query.add_predicate = add_predicate
+    query.add_directive = add_directive
+    if not ok then
+      error("Could not register the nvim-treesitter compatibility predicates: " .. tostring(result))
+    end
+    return true
+  end
+end
+
+if vim.fn.has("nvim-0.12") == 1 then
+  register_legacy_query_predicates_adapter()
+end
+
 local function git(plugin, args)
   local command = { "git", "-C", plugin.dir }
   vim.list_extend(command, args)
@@ -68,55 +133,9 @@ local function install_legacy_query_predicates_adapter(plugin)
       .. "refusing to install the compatibility adapter.")
   end
 
-  -- Neovim 0.12 returns a list of nodes for each query capture. The locked
-  -- legacy plugin expects a single TSNode. Adapt only the handlers registered
-  -- while its query_predicates module loads; do not change the global query API
-  -- or modify any file inside the plugin checkout.
-  if package.loaded[query_predicates_module] or package.preload[query_predicates_module] then
-    return
-  end
-
-  package.preload[query_predicates_module] = function()
-    local query = require("vim.treesitter.query")
-    local add_predicate = query.add_predicate
-    local add_directive = query.add_directive
-
-    local function adapt_handler(handler)
-      return function(match, ...)
-        local single_node_captures = {}
-        for capture_id, captured in pairs(match) do
-          if type(captured) == "table" then
-            single_node_captures[capture_id] = captured[#captured]
-          else
-            single_node_captures[capture_id] = captured
-          end
-        end
-        return handler(single_node_captures, ...)
-      end
-    end
-
-    query.add_predicate = function(name, handler, opts)
-      return add_predicate(name, adapt_handler(handler), opts)
-    end
-    query.add_directive = function(name, handler, opts)
-      return add_directive(name, adapt_handler(handler), opts)
-    end
-
-    local chunk, load_error = loadfile(source_file)
-    if not chunk then
-      query.add_predicate = add_predicate
-      query.add_directive = add_directive
-      error("Could not load the locked nvim-treesitter query-predicate module: " .. tostring(load_error))
-    end
-
-    local ok, result = xpcall(chunk, debug.traceback)
-    query.add_predicate = add_predicate
-    query.add_directive = add_directive
-    if not ok then
-      error("Could not register the nvim-treesitter compatibility predicates: " .. tostring(result))
-    end
-    return true
-  end
+  -- The adapter was registered when this spec module was imported, before
+  -- Lazy's clean-install path can load nvim-treesitter during its build task.
+  register_legacy_query_predicates_adapter()
 end
 
 local M = {
