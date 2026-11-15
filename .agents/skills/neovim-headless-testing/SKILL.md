@@ -156,6 +156,22 @@ The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
 - Keep parser compilation in an isolated HOME/XDG environment. Never install
   tools or modify the maintainer's real Mac from CI.
 
+## Mason Tools startup ordering
+
+When a Mason Tool Installer plugin is a Lazy dependency, do not rely on its
+internal `VimEnter` hook to read `ensure_installed`: Lazy may source the
+plugin script during the `VimEnter` event and invoke that hook before its
+`config()` function applies the options. Set `run_on_start = false`, call
+`setup(opts)`, and schedule `check_install(false)` after setup. Register
+consumers of `MasonToolsUpdateCompleted` before scheduling that installation.
+This guarantees the initial CLI install actually runs and its completion is
+observed by the dependent plugin configuration.
+
+The startup phase must have a deadline consistent with first-run provisioning:
+Mason installation plus compilation/update of the configured parser set can
+take materially longer than a warm startup. Keep it below the workflow job
+deadline and above the configured parser-install timeout.
+
 ## Mason package lifecycle tests
 
 Mason 2.x registry lifecycle events are:
