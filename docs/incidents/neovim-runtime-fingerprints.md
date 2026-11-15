@@ -38,11 +38,15 @@ a reliable async completion signal. Subscribe to the registry-level
 `package:install:success` and `package:install:failed` events and wait on an
 in-memory result table.
 
-Do not listen for a registry-level `package:handle` event. The install handle is
-exposed by each `Package` instance, not emitted as a registry lifecycle event; a
-registry listener for it never fires. Incident: a test timed out despite Mason
-completing installs. Replacing the listener with terminal events passed the five
-adapter installations in run
+Do not listen for a registry-level `package:handle` event: Mason does not emit
+that event. The actual handle event is `package:install:handle`, whose single
+argument is an `InstallHandle` with a `.package` field. The terminal events
+`package:install:success` and `package:install:failed` receive
+`(Package, receipt_or_error)` and fire after the handle is closed. Subscribe
+before triggering installation, then wait on an in-memory result table; use a
+one-time `is_installed()` scan only to account for packages already installed
+before the observer attached. Never poll `is_installed()` inside `vim.wait()`.
+The event-driven adapter test passed in run
 [#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
 
 ## Mason DAP command entry points
