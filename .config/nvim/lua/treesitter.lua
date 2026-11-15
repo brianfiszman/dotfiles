@@ -20,15 +20,26 @@ local function install_legacy_query_predicates_adapter(plugin)
   end
 
   local head = (revision.stdout or ""):gsub("%s+$", "")
-  -- Scope this compatibility layer to the exact legacy revision. A newer
-  -- upstream revision must be validated independently, not patched blindly.
+  -- The plugin spec pins this exact legacy revision. Refuse a checkout
+  -- mismatch rather than silently starting without the compatibility adapter.
   if head ~= legacy_treesitter_commit then
-    return
+    error(("Unsupported nvim-treesitter revision %s; expected pinned commit %s"):format(
+      head, legacy_treesitter_commit
+    ))
   end
 
   local source_file = plugin.dir .. "/" .. query_predicates_file
   if vim.fn.filereadable(source_file) ~= 1 then
     error("The locked nvim-treesitter query-predicate module is missing: " .. source_file)
+  end
+
+  -- Do not touch a path with staged edits. The migration only owns the
+  -- unstaged patch introduced by the previous dotfiles revision.
+  local staged = git(plugin, { "diff", "--cached", "--quiet", "--", query_predicates_file })
+  if staged.code == 1 then
+    error("The nvim-treesitter query-predicate file has staged changes; refusing to migrate it.")
+  elseif staged.code ~= 0 then
+    error("Could not inspect staged nvim-treesitter changes: " .. (staged.stderr or "unknown Git error"))
   end
 
   -- Migrate installations that received the previous on-disk patch. Reverse
