@@ -319,6 +319,40 @@ local function probe_feedkeys_native_open()
     vim.inspect(cursor), #lines, vim.fn.mode(), vim.inspect(lines)))
 end
 
+local function probe_typescript_without_filetype_autocmds()
+  vim.cmd("enew!")
+  vim.bo.buftype = ""
+  vim.bo.bufhidden = "wipe"
+  vim.bo.expandtab = true
+  vim.bo.shiftwidth = 2
+  vim.bo.tabstop = 2
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+    "const options = {",
+    "enabled: true,",
+    "};",
+  })
+  vim.cmd("noautocmd setfiletype typescript")
+  assert(vim.bo.filetype == "typescript",
+    "noautocmd TypeScript fixture must still set its filetype")
+  vim.bo.indentexpr = ""
+  vim.bo.indentkeys = ""
+  vim.bo.formatoptions = ""
+  vim.bo.comments = ""
+  vim.bo.commentstring = ""
+  vim.bo.autoindent = false
+  vim.bo.smartindent = false
+  vim.bo.cindent = false
+  vim.bo.lisp = false
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  print(("[scope-indent-filetype] before noautocmd FileType handlers cursor=%s filetype=%q buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)), vim.bo.filetype,
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+  vim.cmd("noautocmd normal! o")
+  print(("[scope-indent-filetype] after noautocmd FileType handlers cursor=%s line_count=%d buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)), vim.api.nvim_buf_line_count(0),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
 local function probe_typescript_noautocmd_open()
   setup_typescript_buffer()
   vim.bo.indentexpr = ""
@@ -428,6 +462,7 @@ local function probe_native_typescript_open_variants()
   probe_typescript_indentkeys_disabled()
   probe_typescript_autoindent_disabled()
   probe_minimal_neovim_runtime()
+  probe_typescript_without_filetype_autocmds()
 end
 
 local function run_typescript_o()
