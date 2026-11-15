@@ -232,6 +232,18 @@ local function reindent_and_edit(key)
       end,
     })
     trace_scope_event("before native normal")
+    print(("[scope-indent-trace] source options filetype=%q formatoptions=%q autoindent=%s smartindent=%s copyindent=%s"):format(
+      vim.bo.filetype, vim.bo.formatoptions, tostring(vim.bo.autoindent),
+      tostring(vim.bo.smartindent), tostring(vim.bo.copyindent)))
+    for _, autocmd in ipairs(vim.api.nvim_get_autocmds({
+      event = { "InsertEnter", "InsertLeave" },
+      buffer = bufnr,
+    })) do
+      print(("[scope-indent-trace] autocmd event=%s group=%s desc=%q pattern=%q once=%s command=%q"):format(
+        autocmd.event, tostring(autocmd.group_name or autocmd.group),
+        tostring(autocmd.desc), tostring(autocmd.pattern),
+        tostring(autocmd.once), tostring(autocmd.command)))
+    end
     local saved_indentexpr = vim.bo.indentexpr
     -- The Treesitter indentexpr can reposition the native open-line target
     -- while Neovim computes indentation for the newly created blank line.
