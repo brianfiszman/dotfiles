@@ -375,46 +375,59 @@ local function probe_filetype_handler_groups()
   end
 
   open_with_current_handlers("all FileType handlers enabled")
-  for _, candidate in ipairs(candidates) do
+  local function restore_autocmd(autocmd)
+    local opts = {
+      group = autocmd.group,
+      pattern = autocmd.pattern,
+    }
+    if autocmd.buffer and autocmd.buffer > 0 then
+      opts.buffer = autocmd.buffer
+      opts.pattern = nil
+    end
+    if autocmd.desc then
+      opts.desc = autocmd.desc
+    end
+    if autocmd.once then
+      opts.once = true
+    end
+    if autocmd.nested then
+      opts.nested = true
+    end
+    if autocmd.callback then
+      opts.callback = autocmd.callback
+    elseif autocmd.command and autocmd.command ~= "" then
+      opts.command = autocmd.command
+    end
+    vim.api.nvim_create_autocmd(autocmd.event, opts)
+  end
+
+  local function run_with_only_groups(label, enabled_groups)
     local removed = {}
-    for _, autocmd in ipairs(handlers) do
-      if autocmd.group_name == candidate and autocmd.id then
+    local current_handlers = vim.api.nvim_get_autocmds({ event = "FileType" })
+    local keep_native = {
+      filetypeplugin = true,
+      filetypeindent = true,
+      syntaxset = true,
+    }
+    for _, autocmd in ipairs(current_handlers) do
+      local keep = keep_native[autocmd.group_name] or enabled_groups[autocmd.group_name]
+      if not keep and autocmd.id then
         vim.api.nvim_del_autocmd(autocmd.id)
         removed[#removed + 1] = autocmd
       end
     end
-
-    if #removed > 0 then
-      open_with_current_handlers(candidate .. " disabled")
-      for _, autocmd in ipairs(removed) do
-        local opts = {
-          group = autocmd.group,
-          pattern = autocmd.pattern,
-        }
-        if autocmd.buffer and autocmd.buffer > 0 then
-          opts.buffer = autocmd.buffer
-          opts.pattern = nil
-        end
-        if autocmd.desc then
-          opts.desc = autocmd.desc
-        end
-        if autocmd.once then
-          opts.once = true
-        end
-        if autocmd.nested then
-          opts.nested = true
-        end
-        if autocmd.callback then
-          opts.callback = autocmd.callback
-        elseif autocmd.command and autocmd.command ~= "" then
-          opts.command = autocmd.command
-        end
-        vim.api.nvim_create_autocmd(autocmd.event, opts)
-      end
-    else
-      print("[scope-indent-group-probe] no removable handlers for " .. candidate)
+    local row = open_with_current_handlers(label .. " removed=" .. #removed)
+    for _, autocmd in ipairs(removed) do
+      restore_autocmd(autocmd)
     end
+    return row
   end
+
+  local only_native_row = run_with_only_groups("only native filetype handlers", {})
+  for _, candidate in ipairs(candidates) do
+    run_with_only_groups("only " .. candidate, { [candidate] = true })
+  end
+  print("[scope-indent-group-probe] only-native-row=" .. only_native_row)
 end
 
 local function probe_typescript_without_filetype_autocmds()
