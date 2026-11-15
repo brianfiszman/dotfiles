@@ -3,13 +3,12 @@
 This repository contains personal dotfiles. Treat installation and local-machine
 state as user data, not disposable test fixtures.
 
-## Source of truth and execution continuity
+## Source of truth
 
-- Treat the current repository state and GitHub as the source of truth. Conversation
-  history is useful context, but it can be stale or incomplete.
-- When resuming work, inspect the current branch and worktree when available, then
-  review the relevant issues, open and recently closed PRs, branch heads, and changed
-  files before creating or modifying artifacts.
+- The repository and live GitHub state are authoritative. Conversation history,
+  `AGENT_STATE.md`, skills, and worklogs are navigation aids; verify them.
+- When resuming work, inspect the current branch and worktree, then review the
+  relevant issues, open and recently closed PRs, branch heads, and changed files.
 - Read this file and the relevant skill before making changes.
 - Search existing issues and PRs before creating new ones. A closed issue may
   document a previous decision; inspect it instead of assuming the work is absent.
@@ -30,6 +29,53 @@ state as user data, not disposable test fixtures.
   compiled binaries, or machine-specific absolute paths.
 - Do not run a bulk plugin update as part of an unrelated fix.
 
+## Operational limits
+
+These limits exist to stop unbounded branches, CI churn, and memory files that
+grow into a second transcript.
+
+- **One functional PR in flight.** Do not open a second functional PR while one
+  is under review. A docs-only PR may run in parallel when it touches no runtime
+  files, but it still gets its own branch and PR.
+- **Stop and reframe after two failed attempts** at the same symptom. Record the
+  hypothesis, what was ruled out, and which layer to test next. Do not keep
+  stacking fixes or probes on a failing approach.
+- **Remote-only agents: CI is the only runtime.** Do not use CI to explore
+  hypotheses. State the root cause in one sentence before pushing a fix, batch
+  related assertions into one run, and make every assertion print expected vs
+  actual plus the relevant fixture state. After two failed runs on the same
+  symptom, stop and hand off the diagnosis instead of pushing another guess.
+- **No committed probe files or debug prints.** Experiments belong in a scratch
+  file under the temporary directory, or in a single disposable change removed
+  before review. A confirmed repro becomes a focused regression test.
+- **Batch CI-triggering commits.** Push when a reviewable slice is ready, not
+  after every checkpoint edit. Do not re-run heavy integration for prose-only
+  changes to `AGENTS.md`, `AGENT_STATE.md`, worklogs, or `docs/**`.
+- **Keep memory files small.** `AGENT_STATE.md` stays at 40 lines or fewer.
+  `AGENT_WORKLOG.md` points to the current monthly file; older months live under
+  `docs/agent-log/`. Skills stay focused; move durable history to
+  `docs/incidents/` and durable decisions to `docs/decisions/`.
+- **No secrets in the repository or transcript.** Do not print tokens. Prefer an
+  authenticated `gh` session; when a token is required, read it from the
+  environment without echoing it.
+
+## Authorization
+
+- Merging always requires Brian's explicit approval. Silence, green CI, a Draft
+  PR becoming Ready, or an assistant recommendation is not approval.
+- Do not mark a Draft PR Ready or merge it without an explicit instruction.
+- Paused work stays paused. A branch-local `AGENT_STATE.md` or worklog does not
+  authorize resuming it.
+
+## State ownership
+
+- `AGENT_STATE.md` on `master` is canonical. Functional branches do not edit it.
+- State-only updates land through a dedicated docs PR, not by amending a
+  functional PR. This prevents a branch from rewriting project state or making
+  paused work look authorized.
+- Worklogs are append-only per monthly file. Corrections are new entries that
+  link to the corrected record.
+
 ## Change workflow
 
 - Work on a topic branch; keep the default branch untouched until a reviewed PR
@@ -41,7 +87,8 @@ state as user data, not disposable test fixtures.
 - Preserve existing keymaps and workflows unless a ticket explicitly changes
   them.
 - Update the README when setup or user-facing behavior changes.
-- Keep the functional backlog in `docs/neovim-modernization-backlog.md`.
+- Keep the functional backlog in `docs/neovim-modernization-backlog.md` as a thin
+  index; the issues are canonical.
 - Follow `.agents/skills/neovim-maintenance/SKILL.md` for Neovim-specific work.
 - Follow `.agents/skills/github-project-management/SKILL.md` when creating,
   updating, comparing, or closing GitHub issues and pull requests.
@@ -49,77 +96,66 @@ state as user data, not disposable test fixtures.
   diagnosing, or reporting GitHub Actions workflows and check results.
 - Follow `.agents/skills/scrum-team/SKILL.md` when planning or executing sprint
   work, running ceremonies, or applying QA/reviewer quality gates.
+- Follow `.agents/skills/diagnostic-experiments/SKILL.md` when a failure is not
+  understood and you are about to instrument, probe, or try another fix.
+- Follow `.agents/skills/neovim-headless-testing/SKILL.md` when writing or
+  debugging a Neovim behavioral test.
+- Follow `.agents/skills/agent-memory-hygiene/SKILL.md` when updating state,
+  worklogs, skills, ADRs, or incident records.
 
 ## Preserving work across branches and PRs
 
-- Similar PR titles or goals do not prove that their code changes are duplicates.
-- Before closing or replacing a PR, compare its base and head, merge base, commits,
-  changed files, and patches against the proposed canonical PR.
-- Identify changes that exist only in the PR being closed. Preserve their branch
-  or deliberately port the changes after reviewing them; do not silently discard
-  them or describe them as merged.
-- Unique changes are not automatically correct or accepted. Compare each one
-  against an issue's acceptance criteria and classify it as accept-and-port,
-  track-separately, investigate, reject, or already-covered.
-- When consolidating competing PRs, document which PR is canonical, why the other
-  is being closed, and the disposition of its unique work.
-- Keep the relationship between epic, functional issue, branch, commits, PR, and
-  validation results traceable.
+- Similar titles do not prove duplicate code. Compare base, head, merge base,
+  commits, changed files, and patches before closing or replacing a PR.
+- Identify changes unique to the PR being closed; preserve the branch or
+  deliberately port them after review. Never describe unmerged work as merged.
+- Classify each unique change as accept-and-port, track-separately, investigate,
+  reject, or already-covered.
+- Document the canonical PR, the reason for closure, and the disposition of
+  unique work.
+- Follow `.agents/skills/github-project-management/SKILL.md` for the full audit.
 
 ## Validation and reporting
 
-Testing is a required part of every implementation task's scope, estimate, and Definition of Done. Each issue must define behavior-first acceptance scenarios before implementation and include the automated tests needed to prove the changed behavior. Use unit tests for isolated logic, integration tests for real component boundaries, and end-to-end tests for complete workflows when appropriate. For interactive Neovim behavior, prefer local-like automated scenarios with the real headless configuration and actual plugin/LSP/tool triggers; mocks, syntax checks, startup success, or module-loaded flags alone are insufficient. Required tests must run in CI on explicit relevant triggers. Manual checks supplement automation, and any behavior that cannot reasonably be automated must have exact manual steps and a stated reason.
+Testing is part of every implementation task's scope, estimate, and Definition of
+Done. Define behavior-first acceptance scenarios before implementation, include
+the automated proof, and run required checks in CI on explicit triggers.
+Interactive Neovim behavior needs real headless tests with the actual
+configuration and plugin/LSP/tool triggers; mocks, syntax checks, startup
+success, or module-loaded flags alone do not prove it. Manual checks supplement
+automation only where automation is not reasonable, with exact steps and a
+stated reason.
 
-Choose tests based on the likely impact of the change. Do not run the full plugin
-restore for every documentation or small keymap change, and do not sign off on
-bootstrap or plugin-loading changes with a syntax check alone.
+Choose validation by impact: docs-only gets Markdown/diff review; shell/installer
+gets `bash -n` plus isolated dry-run and failure-path checks; Lua/keymaps get
+targeted headless checks; plugin, lazy-loading, LSP, Treesitter, and startup
+changes get real headless startup and direct behavior assertions;
+bootstrap/installer/XDG/CI changes get the full isolated flow; performance
+changes need repeatable before/after measurements.
 
-- **Documentation-only:** review the Markdown and diff; no Neovim run is required.
-- **Shell/installer:** run shell syntax checks and focused isolated dry-run,
-  install, backup, and failure-path checks.
-- **Lua logic/keymap:** validate Lua syntax and run a targeted headless check when
-  a real Neovim environment is available.
-- **Plugin specs, lazy loading, LSP, Treesitter, startup:** test real headless
-  startup and directly assert the affected plugin or behavior. Include plugin
-  restore when dependencies or the lockfile are involved.
-- **Bootstrap, installation flow, XDG paths, CI harness:** run the full isolated
-  integration flow: install, restore locked plugins, then start normally.
-- **Performance changes:** collect repeatable before/after measurements under
-  equivalent conditions; do not claim improvement from intuition.
-
-For every level:
-
-- Run `bash -n` on changed shell scripts.
-- Distinguish static inspection, mocked harnesses, actual Neovim headless startup,
-  plugin restoration, behavioral assertions, and manual macOS interaction.
-  They prove different things. A mocked harness is not a real Neovim run.
-- A test-only mode must not silently remove normal plugin configuration. The
-  normal-startup phase must run with test-only environment flags unset and must
-  exercise the actual configuration.
-- Do not equate plugin repositories being downloaded with plugins being
-  initialized, or lazy.nvim being loaded with every lazy-loaded plugin working.
-- Report exactly which tests actually ran, their results, and anything that still
-  needs validation on the user's Mac. Do not report a test as passing when it was
-  unavailable, skipped, mocked, or merely expected to run in CI.
-
+For every level, distinguish static inspection, mocked harness, real startup,
+plugin restore, behavioral assertion, and manual macOS interaction. Report exactly
+what ran, what passed, and what remains unverified. The detailed matrix is in
+`.agents/skills/neovim-maintenance/SKILL.md`; test construction is in
+`.agents/skills/neovim-headless-testing/SKILL.md`.
 
 ## Execution continuity
 
 For substantial, multi-step work, read `AGENT_STATE.md` and follow
-`.agents/skills/execution-continuity/SKILL.md` before acting. The checkpoint
-is a navigation aid, not authority over current GitHub state.
+`.agents/skills/execution-continuity/SKILL.md` before acting. The checkpoint is a
+navigation aid, not authority over current GitHub state.
 
 - Recover the current branch, worktree, exact HEAD, linked issues/PRs, and
   relevant workflow evidence before continuing. Verify checkpoint claims against
   the live repository and GitHub; never assume a prior session finished an action.
-- Update `AGENT_STATE.md` at meaningful milestones, failures, decisions,
-  before and after risky operations, and before/after long waits. Keep the
-  immediate next action explicit.
-- Append meaningful discoveries, failed attempts, and decisions to
-  `AGENT_WORKLOG.md`. Do not copy full issue/PR discussions or rewrite old
-  entries; link to the canonical record instead.
-- Commit and push checkpoint/worklog changes on the active work branch. Never
-  write directly to `master`. Verify the remote branch contains the update.
+- Update `AGENT_STATE.md` at meaningful milestones, failures, decisions, before
+  and after risky operations, and before/after long waits. Keep the immediate
+  next action explicit and the file at 40 lines or fewer.
+- Append meaningful discoveries, failed attempts, and decisions to the current
+  monthly worklog under `docs/agent-log/`. Do not copy full issue/PR discussions
+  or rewrite old entries; link to the canonical record instead.
+- Commit and push checkpoint/worklog changes through a dedicated docs PR. Never
+  write directly to `master`, and do not mix state edits into a functional PR.
 - If a tool call or conversation is interrupted, inspect GitHub before retrying
   a mutation. The operation may have succeeded even if its response was lost.
 - Distinguish observed, passed, failed, pending, unavailable, mocked, and
