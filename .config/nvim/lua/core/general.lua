@@ -116,42 +116,21 @@ local function reindent_and_edit(key)
     bang = true,
   })
 
+  local keys
   if key == "S" then
-    local keys = vim.api.nvim_replace_termcodes(
-      ("%dS"):format(count),
-      true,
-      false,
-      true
-    )
-    -- Keep the active indentexpr for S; the native change-line command uses
-    -- the indentation already computed for the line by ==.
-    vim.api.nvim_feedkeys(keys, "int", false)
-    return
+    -- The native change-line command preserves the indentation computed above.
+    keys = ("%dS"):format(count)
+  else
+    -- Open the line natively, then reindent that new blank line with the active
+    -- buffer engine before returning to Insert mode.
+    keys = key .. "<C-o>=="
   end
 
-  local saved_indentexpr = vim.bo.indentexpr
-  local saved_autoindent = vim.bo.autoindent
-  vim.bo.indentexpr = ""
-  vim.bo.autoindent = true
-
-  local prefix = vim.api.nvim_replace_termcodes(
-    ("%d%s<C-o>:let &l:indentexpr = "):format(count, key),
-    true,
-    false,
-    true
+  vim.api.nvim_feedkeys(
+    vim.api.nvim_replace_termcodes(keys, true, false, true),
+    "int",
+    false
   )
-  local restored_indentexpr = vim.fn.string(saved_indentexpr)
-  local suffix = vim.api.nvim_replace_termcodes(
-    (" | let &l:autoindent = %d<CR>"):format(saved_autoindent and 1 or 0),
-    true,
-    false,
-    true
-  )
-
-  -- Native o/O copy the already-computed source prefix via autoindent. Keep
-  -- Treesitter's indentexpr disabled only during line creation, then restore
-  -- it before the next user keystroke is processed.
-  vim.api.nvim_feedkeys(prefix .. restored_indentexpr .. suffix, "int", false)
 end
 
 vim.keymap.set("n", "S", function()
