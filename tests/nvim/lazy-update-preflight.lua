@@ -109,6 +109,15 @@ vim.api.nvim_exec_autocmds("User", { pattern = "LazyUpdate", modeline = false })
 assert(read(tags_file):find("upstream%-help%-tag"),
   "the LazyUpdate post-hook changed upstream-tracked doc/tags")
 
+-- A later preflight must also leave an already tracked tags file untouched.
+local tracked_contents = read(tags_file)
+vim.api.nvim_exec_autocmds("User", { pattern = "LazyUpdatePre", modeline = false })
+assert((vim.uv or vim.loop).fs_stat(tags_file) ~= nil,
+  "LazyUpdatePre removed a tracked upstream doc/tags file")
+assert(read(tags_file) == tracked_contents,
+  "LazyUpdatePre modified a tracked upstream doc/tags file")
+vim.api.nvim_exec_autocmds("User", { pattern = "LazyUpdate", modeline = false })
+
 -- Model a different installed plugin that is not updated during restore. Its
 -- generated tags file must be recreated after LazyRestorePre removes it.
 git({ "checkout", base })
