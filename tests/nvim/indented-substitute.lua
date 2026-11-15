@@ -169,6 +169,103 @@ local function treesitter_fixture(filetype, lines, cursor)
     filetype, current_parser_language, vim.bo.indentexpr, vim.fn.shiftwidth()))
 end
 
+local home_react_source = {
+  'import { Fragment } from "react";',
+  "import {",
+  "  RouterLink,",
+  "  Link,",
+  "  Countdown,",
+  "  Picture,",
+  "  Title,",
+  "  MainBody,",
+  "  MainHeader,",
+  '} from "../../components";',
+  'import { theme } from "../../style/theme.style";',
+  'import { startOfDay } from "date-fns";',
+  'import chaufoPic from "../../resources/img/chaufo.png";',
+  'import "./Home.css";',
+  "",
+  "function Home() {",
+  "  const timeForChaufo = startOfDay(new Date(2023, 8, 30));",
+  "",
+  "  return (",
+  "    <Fragment>",
+  "      <MainHeader theme={theme}>",
+  "        <Picture",
+  "          src={chaufoPic}",
+  '          alt="chaufo"',
+  '          size="small"',
+  '          borderRadius="4rem"',
+  "        />",
+  "      </MainHeader>",
+  "",
+  "      <MainBody theme={theme}>",
+  "        {Date.now() < timeForChaufo ? (",
+  '          <Title theme={theme}>En honor a Chaufo</Title>',
+  "        ) : (",
+  '          ""',
+  "        )}",
+  "",
+  "        <Countdown countdownTo={timeForChaufo} theme={theme}>",
+  "          <MainBody theme={theme}>",
+  '            <Title theme={theme}>Timbre de Chaufo</Title>',
+  "",
+  '            <Link theme={theme} href="https://www.instagram.com/chaufoman/">',
+  "              Learn about Chaufo",
+  "            </Link>",
+  "",
+  '            <RouterLink to={"top10"} theme={theme}>',
+  "              Top 7 de cosas con las que Chaufo nos ha divertido :-D",
+  "            </RouterLink>",
+  "",
+  '            <RouterLink to={"chaufest"} theme={theme}>',
+  "              Conocé todo sobre la Chaufest!",
+  "            </RouterLink>",
+  "          </MainBody>",
+  "        </Countdown>",
+  "      </MainBody>",
+  "    </Fragment>",
+  "  );",
+  "}",
+  "",
+  "export default Home;",
+}
+
+local function home_react_case(filetype, target_fragment, key, source_indent, insert_indent, next_case)
+  local lines = vim.deepcopy(home_react_source)
+  local target_row
+  for row, line in ipairs(lines) do
+    if line:find(target_fragment, 1, true) then
+      target_row = row
+      break
+    end
+  end
+  assert(target_row, "Home React fixture is missing target line " .. target_fragment)
+
+  treesitter_fixture(filetype, lines, { target_row, 0 })
+  local source_line = vim.api.nvim_buf_get_lines(0, target_row - 1, target_row, false)[1]
+  local source_text = source_line:gsub("^%s+", "")
+  assert(source_text:find(target_fragment, 1, true),
+    "Home React target changed unexpectedly (" .. buffer_state() .. ")")
+  vim.api.nvim_buf_set_lines(0, target_row - 1, target_row, false, { source_text })
+  vim.treesitter.get_parser(0):parse()
+  vim.api.nvim_win_set_cursor(0, { target_row, 0 })
+  assert(vim.fn.indent(target_row) == 0,
+    "Home React target must start with stale zero indentation (" .. buffer_state() .. ")")
+
+  press(key, "Home React " .. filetype .. " " .. key .. " " .. target_fragment, function()
+    local inserted_row = key == "o" and target_row + 1 or target_row
+    assert_insert(inserted_row, insert_indent, "Home React " .. filetype .. " " .. key
+      .. " " .. target_fragment)
+    if key == "o" then
+      assert_source_reindented(target_row, source_indent, source_text, "Home React " .. key)
+    elseif key == "O" then
+      assert_source_reindented(target_row + 1, source_indent, source_text, "Home React " .. key)
+    end
+    leave_insert("Home React " .. filetype .. " " .. key, next_case)
+  end)
+end
+
 local function assert_stale_source(row, expected_text, description)
   local actual = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
   assert(actual == expected_text,
@@ -209,7 +306,8 @@ local function finish()
   print("PASS: real Lua Treesitter indentation survives S")
   print("PASS: real TypeScript object-literal indentation supports o and O")
   print("PASS: real JavaScript block/object indentation supports S, o and O")
-  print("PASS: real JSX and TSX open-line indentation uses their configured parsers")
+  print("PASS: simple JSX and TSX open-line indentation uses their configured parsers")
+  print("PASS: the supplied Home React component preserves JSX scope for S, o and O in JSX and TSX")
   print("PASS: real TypeScript interface/block/object indentation supports S, o and O")
   print("PASS: real JSON and YAML parsers preserve nested open-line indentation")
   print("PASS: a closed fold keeps native o at the fold boundary and hides the source")
@@ -227,6 +325,12 @@ local run_typescript_nested_open_above
 local run_typescript_open_above
 local run_jsx_open_below
 local run_tsx_open_below
+local run_home_jsx_open_below
+local run_home_jsx_substitute
+local run_home_jsx_open_above
+local run_home_tsx_open_below
+local run_home_tsx_substitute
+local run_home_tsx_open_above
 
 local function run_closed_fold_control()
   set_buffer({ "fold head", "  stale", "fold tail" }, { 2, 0 })
@@ -247,6 +351,30 @@ local function run_closed_fold_control()
   end)
 end
 
+run_home_tsx_open_above = function()
+  home_react_case("typescriptreact", "<Countdown countdownTo=", "O", 8, 8, run_yaml_control)
+end
+
+run_home_tsx_substitute = function()
+  home_react_case("typescriptreact", "<Picture", "S", 8, 8, run_home_tsx_open_above)
+end
+
+run_home_tsx_open_below = function()
+  home_react_case("typescriptreact", "<MainHeader theme=", "o", 6, 8, run_home_tsx_substitute)
+end
+
+run_home_jsx_open_above = function()
+  home_react_case("javascriptreact", "<Countdown countdownTo=", "O", 8, 8, run_home_tsx_open_below)
+end
+
+run_home_jsx_substitute = function()
+  home_react_case("javascriptreact", "<Picture", "S", 8, 8, run_home_jsx_open_above)
+end
+
+run_home_jsx_open_below = function()
+  home_react_case("javascriptreact", "<MainHeader theme=", "o", 6, 8, run_home_jsx_substitute)
+end
+
 run_tsx_open_below = function()
   treesitter_fixture("typescriptreact", {
     "export default function Home() {",
@@ -265,7 +393,7 @@ run_tsx_open_below = function()
   press("o", "TSX component o", function()
     assert_insert(5, 8, "TSX component o")
     assert_source_reindented(4, 6, "<Button", "TSX component o")
-    leave_insert("TSX component o", run_closed_fold_control)
+    leave_insert("TSX component o", run_home_jsx_open_below)
   end)
 end
 
