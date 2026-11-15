@@ -107,10 +107,6 @@ vim.g.cmp_enabled = true
 -- Reindent before the native edit command. For nvim-treesitter, use its
 -- line-number API directly: running the Normal-mode == operator can move the
 -- cursor asynchronously while the parser refreshes the edited tree.
-local scope_indent_group = vim.api.nvim_create_augroup("DotfilesScopeIndent", {
-  clear = false,
-})
-
 local function get_source_indent(lnum)
   local indentexpr = vim.bo.indentexpr
   if indentexpr == "nvim_treesitter#indent()" then
@@ -179,36 +175,6 @@ local function reindent_and_edit(key)
   -- a line query. Keep native o/O anchored to the line where the user pressed it.
   restore_source_cursor(source_cursor, key .. " indent calculation")
 
-  -- Native o/O can let an indentexpr produce a different prefix on the new
-  -- blank line. Preserve any comment leader/body, replacing only its leading
-  -- whitespace with the prefix computed for the source line above.
-  vim.api.nvim_create_autocmd("InsertEnter", {
-    group = scope_indent_group,
-    buffer = bufnr,
-    once = true,
-    callback = function()
-      local cursor = vim.api.nvim_win_get_cursor(0)
-      local line = vim.api.nvim_get_current_line()
-      local old_indent = line:match("^%s*") or ""
-      local body = line:sub(#old_indent + 1)
-      local body_column = math.max(cursor[2] - #old_indent, 0)
-
-      vim.api.nvim_buf_set_lines(0, cursor[1] - 1, cursor[1], false, {
-        source_indent .. body,
-      })
-      print(("[scope-indent] InsertEnter before prefix cursor=%s current=%s source_indent=%q lines=%s"):format(
-        vim.inspect(cursor), vim.inspect(line), source_indent,
-        vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
-      vim.api.nvim_win_set_cursor(0, {
-        cursor[1],
-        #source_indent + body_column,
-      })
-      print(("[scope-indent] InsertEnter after prefix cursor=%s line=%s"):format(
-        vim.inspect(vim.api.nvim_win_get_cursor(0)), vim.inspect(vim.api.nvim_get_current_line())))
-    end,
-    desc = "Apply the source indentation to a newly opened line",
-  })
-
   local keys = vim.api.nvim_replace_termcodes(
     ("%d%s"):format(count, key),
     true,
@@ -238,9 +204,36 @@ local function reindent_and_edit(key)
       args = { keys },
       bang = true,
     })
-    -- :normal! executes native o/O but returns to Normal mode when its command
-    -- ends. Re-enter Insert at the end of the newly opened, indented line.
+    -- :normal! opens the line natively but returns to Normal when the Ex
+    -- command ends. Re-enter Insert, then apply the source prefix after that
+    -- mode transition so startinsert! cannot clear it again.
     vim.cmd("startinsert!")
+    vim.schedule(function()
+      if not vim.api.nvim_win_is_valid(winid)
+        or vim.api.nvim_get_current_win() ~= winid
+        or vim.api.nvim_win_get_buf(winid) ~= bufnr
+        or vim.fn.mode():sub(1, 1) ~= "i"
+      then
+        print(("[scope-indent] skipped prefix for %s: window/buffer/mode changed"):format(key))
+        return
+      end
+
+      local cursor = vim.api.nvim_win_get_cursor(winid)
+      local line = vim.api.nvim_get_current_line()
+      local old_indent = line:match("^%s*") or ""
+      local body = line:sub(#old_indent + 1)
+      local body_column = math.max(cursor[2] - #old_indent, 0)
+      vim.api.nvim_buf_set_lines(0, cursor[1] - 1, cursor[1], false, {
+        source_indent .. body,
+      })
+      vim.api.nvim_win_set_cursor(winid, {
+        cursor[1],
+        #source_indent + body_column,
+      })
+      print(("[scope-indent] applied prefix for %s row=%d column=%d indent=%d line=%q"):format(
+        key, cursor[1], vim.api.nvim_win_get_cursor(winid)[2],
+        vim.fn.indent(cursor[1]), vim.api.nvim_get_current_line()))
+    end)
   end)
 end
 
