@@ -116,21 +116,26 @@ local function reindent_and_edit(key)
     bang = true,
   })
 
-  local source_indent = vim.api.nvim_get_current_line():match("^%s*") or ""
+  if key == "S" then
+    local keys = vim.api.nvim_replace_termcodes(
+      ("%dS"):format(count),
+      true,
+      false,
+      true
+    )
+    -- Keep the active indentexpr for S; the native change-line command uses
+    -- the indentation already computed for the line by ==.
+    vim.api.nvim_feedkeys(keys, "int", false)
+    return
+  end
+
   local saved_indentexpr = vim.bo.indentexpr
   local saved_autoindent = vim.bo.autoindent
   vim.bo.indentexpr = ""
   vim.bo.autoindent = true
 
   local prefix = vim.api.nvim_replace_termcodes(
-    ("%d%s"):format(count, key),
-    true,
-    false,
-    true
-  )
-  local replaced_line_indent = key == "S" and source_indent or ""
-  local restore_prefix = vim.api.nvim_replace_termcodes(
-    "<C-o>:let &l:indentexpr = ",
+    ("%d%s<C-o>:let &l:indentexpr = "):format(count, key),
     true,
     false,
     true
@@ -143,15 +148,10 @@ local function reindent_and_edit(key)
     true
   )
 
-  -- S replaces the line without carrying its leading whitespace, so restore
-  -- the prefix computed by == explicitly. Native o/O use autoindent to copy
-  -- that same prefix from the adjacent source line. Ctrl-O restores the
-  -- original indentation engine before the user's next keystroke is handled.
-  vim.api.nvim_feedkeys(
-    prefix .. replaced_line_indent .. restore_prefix .. restored_indentexpr .. suffix,
-    "nt",
-    false
-  )
+  -- Native o/O copy the already-computed source prefix via autoindent. Keep
+  -- Treesitter's indentexpr disabled only during line creation, then restore
+  -- it before the next user keystroke is processed.
+  vim.api.nvim_feedkeys(prefix .. restored_indentexpr .. suffix, "int", false)
 end
 
 vim.keymap.set("n", "S", function()
