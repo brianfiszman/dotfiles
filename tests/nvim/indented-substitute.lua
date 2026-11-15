@@ -331,6 +331,42 @@ local function probe_typescript_autoindent_disabled()
     vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
 end
 
+local function probe_minimal_child_typescript_open(label, enable_filetype_indent, disable_indentexpr)
+  local child_script = vim.fn.tempname() .. ".lua"
+  local child_lines = {
+    string.format('vim.cmd("filetype plugin indent %s")', enable_filetype_indent and "on" or "off"),
+    'vim.cmd("enew")',
+    'vim.api.nvim_buf_set_lines(0, 0, -1, false, { "const options = {", "enabled: true,", "};" })',
+    'vim.cmd("setfiletype typescript")',
+    disable_indentexpr and 'vim.bo.indentexpr = ""' or '-- keep active indentexpr',
+    'vim.api.nvim_win_set_cursor(0, { 2, 0 })',
+    'local before = vim.api.nvim_win_get_cursor(0)',
+    'vim.cmd.normal({ args = { "o" }, bang = true })',
+    'print("[scope-indent-child] ' .. label .. ' before=" .. vim.inspect(before) .. " after=" .. vim.inspect(vim.api.nvim_win_get_cursor(0)) .. " lines=" .. vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false)) .. " indentexpr=" .. vim.inspect(vim.bo.indentexpr))',
+    'vim.cmd("qa!")',
+  }
+  vim.fn.writefile(child_lines, child_script)
+  local output = vim.fn.system({
+    vim.v.progpath,
+    "--headless",
+    "-u",
+    "NONE",
+    "-l",
+    child_script,
+  })
+  local exit_code = vim.v.shell_error
+  vim.fn.delete(child_script)
+  print(("[scope-indent-child] %s exit=%d output=%s"):format(
+    label, exit_code, vim.inspect(output:gsub("\\n", " | "))))
+  assert(exit_code == 0, "minimal child Neovim probe failed: " .. output)
+end
+
+local function probe_minimal_neovim_runtime()
+  probe_minimal_child_typescript_open("minimal TS indent plugin on", true, false)
+  probe_minimal_child_typescript_open("minimal TS indent plugin off", false, false)
+  probe_minimal_child_typescript_open("minimal TS indentexpr cleared", true, true)
+end
+
 local function probe_native_typescript_open_variants()
   probe_native_typescript_open("no-count, indentexpr disabled", "jcroql", "", "o")
   probe_native_typescript_open("count-one, indentexpr disabled", "jcroql", "", "1o")
@@ -344,6 +380,7 @@ local function probe_native_typescript_open_variants()
   probe_typescript_noautocmd_open()
   probe_typescript_indentkeys_disabled()
   probe_typescript_autoindent_disabled()
+  probe_minimal_neovim_runtime()
 end
 
 local function run_typescript_o()
