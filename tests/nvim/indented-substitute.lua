@@ -278,6 +278,59 @@ local function probe_feedkeys_native_open()
     vim.inspect(cursor), #lines, vim.fn.mode(), vim.inspect(lines)))
 end
 
+local function probe_typescript_noautocmd_open()
+  setup_typescript_buffer()
+  vim.bo.indentexpr = ""
+  vim.bo.autoindent = false
+  vim.bo.smartindent = false
+  vim.bo.cindent = false
+  vim.bo.lisp = false
+  vim.bo.formatoptions = ""
+  vim.bo.indentkeys = ""
+  vim.bo.comments = ""
+  local before = {
+    cursor = vim.api.nvim_win_get_cursor(0),
+    lines = vim.api.nvim_buf_get_lines(0, 0, -1, false),
+  }
+  print(("[scope-indent-probe] before noautocmd typescript o cursor=%s lines=%s options=%s"):format(
+    vim.inspect(before.cursor), vim.inspect(before.lines),
+    vim.inspect(scope_indent_local_options())))
+  vim.cmd("noautocmd normal! o")
+  print(("[scope-indent-probe] after noautocmd typescript o cursor=%s line_count=%d mode=%s buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0), vim.fn.mode(),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
+local function probe_typescript_indentkeys_disabled()
+  setup_typescript_buffer()
+  vim.bo.indentexpr = ""
+  vim.bo.indentkeys = ""
+  vim.bo.formatoptions = ""
+  local before = vim.api.nvim_win_get_cursor(0)
+  vim.cmd.normal({ args = { "o" }, bang = true })
+  print(("[scope-indent-probe] after TS indentkeys empty cursor=%s line_count=%d buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
+local function probe_typescript_autoindent_disabled()
+  setup_typescript_buffer()
+  vim.bo.indentexpr = ""
+  vim.bo.autoindent = false
+  vim.bo.smartindent = false
+  vim.bo.cindent = false
+  vim.bo.lisp = false
+  vim.bo.formatoptions = ""
+  local before = vim.api.nvim_win_get_cursor(0)
+  vim.cmd.normal({ args = { "o" }, bang = true })
+  print(("[scope-indent-probe] after TS indentation options disabled cursor=%s line_count=%d buffer=%s"):format(
+    vim.inspect(vim.api.nvim_win_get_cursor(0)),
+    vim.api.nvim_buf_line_count(0),
+    vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
+end
+
 local function probe_native_typescript_open_variants()
   probe_native_typescript_open("no-count, indentexpr disabled", "jcroql", "", "o")
   probe_native_typescript_open("count-one, indentexpr disabled", "jcroql", "", "1o")
@@ -288,6 +341,9 @@ local function probe_native_typescript_open_variants()
   probe_typescript_without_parser()
   probe_javascript_filetype()
   probe_feedkeys_native_open()
+  probe_typescript_noautocmd_open()
+  probe_typescript_indentkeys_disabled()
+  probe_typescript_autoindent_disabled()
 end
 
 local function run_typescript_o()
