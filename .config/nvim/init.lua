@@ -1,9 +1,7 @@
--- The selected nvim-lspconfig release requires Neovim 0.11.3 or newer.
+-- The current nvim-treesitter API requires Neovim 0.12 or newer.
 local nvim_version = vim.version()
-if nvim_version.major == 0
-  and (nvim_version.minor < 11 or (nvim_version.minor == 11 and nvim_version.patch < 3))
-then
-  error(("[dotfiles] Neovim 0.11.3 or newer is required (found %d.%d.%d)."):format(
+if nvim_version.major == 0 and nvim_version.minor < 12 then
+  error(("[dotfiles] Neovim 0.12.0 or newer is required (found %d.%d.%d)."):format(
     nvim_version.major,
     nvim_version.minor,
     nvim_version.patch
