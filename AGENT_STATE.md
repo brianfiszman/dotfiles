@@ -23,9 +23,11 @@ branches must not edit this file. Keep this checkpoint at 40 lines or fewer.
 - The test covers JS/TS blocks and objects, Lua, JSON, YAML, counted `2S`,
   and closed-fold behavior. Neovim 0.11.3; Treesitter lock
   `85168f15808d89b0222313652b9d2777eda3cb08`.
-- Earlier Home test timeout [#43733782831](https://github.com/brianfiszman/dotfiles/actions/runs/43733782831)
-  was a test callback loop, now fixed. Intermediate invalid head `9ae8ea0`
-  and its cancelled run are superseded.
+- User confirmed affected files include `.js` and `.ts`; JSX/TSX are
+  suspected but not yet confirmed locally. The actual Home component is now
+  also tested as `.js` in current functional head `be848d5`; run
+  [#43736863275](https://github.com/brianfiszman/dotfiles/actions/runs/43736863275)
+  is pending exact-head validation. Intermediate watchdog head `9ae8ea0` is superseded.
 
 ## Pending
 
