@@ -177,7 +177,6 @@ local M = {
         auto_update = true,
         run_on_start = true,
         start_delay = 0,
-        debounce_hours = 24,
       },
     },
     {
