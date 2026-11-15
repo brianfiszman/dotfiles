@@ -104,14 +104,47 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
--- Reindent the current scope, then let Neovim execute its native editing
--- command. Returning keys keeps the Insert-mode transition in the input loop.
-vim.keymap.set("n", "S", function()
+-- Reindent the current scope, then use Neovim's native editing command.
+-- The temporary indentexpr override lets autoindent copy the computed prefix
+-- from the source line; restore the original engine before the user can type.
+local function reindent_and_edit(key)
   local count = vim.v.count1
-  return ("<Cmd>normal! %d==<CR>%dcc"):format(count, count)
+  local reindent_count = key == "S" and count or 1
+
+  vim.cmd.normal({
+    args = { ("%d=="):format(reindent_count) },
+    bang = true,
+  })
+
+  local saved_indentexpr = vim.bo.indentexpr
+  local saved_autoindent = vim.bo.autoindent
+  vim.bo.indentexpr = ""
+  vim.bo.autoindent = true
+
+  local prefix = vim.api.nvim_replace_termcodes(
+    ("%d%s<C-o>:let &l:indentexpr = "):format(count, key),
+    true,
+    false,
+    true
+  )
+  local restored_indentexpr = vim.fn.string(saved_indentexpr)
+  local suffix = vim.api.nvim_replace_termcodes(
+    (" | let &l:autoindent = %d<CR>"):format(saved_autoindent and 1 or 0),
+    true,
+    false,
+    true
+  )
+
+  -- Do not remap the queued S/o/O: that must be Neovim's native command.
+  -- Ctrl-O restores the indentation engine after the native command has
+  -- opened its line and before the user's next keystroke is processed.
+  vim.api.nvim_feedkeys(prefix .. restored_indentexpr .. suffix, "nt", false)
+end
+
+vim.keymap.set("n", "S", function()
+  reindent_and_edit("S")
 end, {
   desc = "Reindent and replace line(s)",
-  expr = true,
   silent = true,
 })
 
@@ -120,11 +153,9 @@ for key, description in pairs({
   O = "Reindent and open line above",
 }) do
   vim.keymap.set("n", key, function()
-    local count = vim.v.count1
-    return ("<Cmd>normal! ==<CR>%d%s"):format(count, key)
+    reindent_and_edit(key)
   end, {
     desc = description,
-    expr = true,
     silent = true,
   })
 end
