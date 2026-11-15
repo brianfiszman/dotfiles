@@ -121,6 +121,7 @@ local function set_buffer(lines, cursor)
 end
 
 local parser_fixtures = {
+  lua = { extension = ".lua", parser = "lua" },
   javascript = { extension = ".js", parser = "javascript" },
   typescript = { extension = ".ts", parser = "typescript" },
   json = { extension = ".json", parser = "json" },
