@@ -265,7 +265,7 @@ run_tsx_open_below = function()
   press("o", "TSX component o", function()
     assert_insert(5, 8, "TSX component o")
     assert_source_reindented(4, 6, "<Button", "TSX component o")
-    leave_insert("TSX component o", run_yaml_control)
+    leave_insert("TSX component o", run_closed_fold_control)
   end)
 end
 
