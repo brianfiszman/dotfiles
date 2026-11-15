@@ -73,7 +73,7 @@ local function configure_buffer(bufnr)
     return
   end
 
-  local ok, parser = pcall(vim.treesitter.get_parser, bufnr, language, { error = false })
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr, language)
   if ok and parser then
     local started, err = pcall(vim.treesitter.start, bufnr, language)
     if not started then
