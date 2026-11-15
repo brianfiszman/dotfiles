@@ -13,12 +13,14 @@ plugin/LSP/tool trigger. Report the level actually reached.
 
 ## Environment parity
 
-- Use the Neovim version pinned by CI and the committed `lazy-lock.json`.
-- Local plugin checkouts can drift. A local Neovim 0.12.6 with a newer
-  nvim-treesitter could not compute TypeScript indent while the pinned 0.11.3
-  environment could. When local and CI disagree, check versions before changing
-  the product.
-- Restore locked plugins; do not silently upgrade them.
+- Use the latest stable Neovim release pinned by CI and the committed
+  `lazy-lock.json`. Do not add older stable versions to the matrix solely for
+  backward compatibility; only add them when the maintainer explicitly asks.
+- Keep plugin branches and lockfile revisions aligned with the current upstream
+  APIs under test. Restore locked plugins; do not silently upgrade them during
+  a test.
+- When local and CI disagree, compare Neovim, plugin SHA, parser revisions,
+  installed external tools, and XDG paths before changing product code.
 - Keep test-only environment flags unset for the normal-startup phase.
 
 ## Local-versus-CI dependency diagnosis
@@ -135,6 +137,24 @@ workspace for LSP and Treesitter tests.
 - Test each positive filetype in its own process.
 - For Insert-mode integrations, separate the deterministic lazy-load assertion
   from any network or external-service bootstrap.
+
+## Current nvim-treesitter integration
+
+The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
+`tree-sitter-cli` 0.26.1+ plus a C compiler.
+
+- Use the real Mason registry/package and assert that
+  `vim.fn.exepath("tree-sitter")` resolves the installed executable.
+- Parse and assert the CLI's actual version; do not mock its output.
+- Exercise the real parser installation/update path and assert the expected
+  parser libraries are discoverable through Neovim's runtimepath.
+- Open real files for JavaScript, TypeScript, JSX, TSX, HTML, Lua, JSON and YAML;
+  assert language mapping, parsing, active highlighting and configured
+  `indentexpr`.
+- Exercise editing mappings and standalone autotag behavior through real
+  Neovim input, not direct helper function calls.
+- Keep parser compilation in an isolated HOME/XDG environment. Never install
+  tools or modify the maintainer's real Mac from CI.
 
 ## LSP and Treesitter assertions
 
