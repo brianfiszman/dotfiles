@@ -189,18 +189,18 @@ run_nvim() {
 }
 
 prepare() {
-  printf '[prepare] Checking Vim error-code matcher...\\n'
+  printf '[prepare] Checking Vim error-code matcher...\n'
   local matcher_fixture="$WORK_DIR/vim-error-code-matcher.log"
   local matcher_result
-  printf 'E12: too short\\nE123: three digits\\nE1234: four digits\\nE12345: too long\\n' > "$matcher_fixture"
+  printf 'E12: too short\nE123: three digits\nE1234: four digits\nE12345: too long\n' > "$matcher_fixture"
   matcher_result="$(grep -E "$VIM_ERROR_CODE_PATTERN" "$matcher_fixture")"
-  [[ "$matcher_result" == "$(printf 'E123: three digits\\nE1234: four digits')" ]] || {
-    printf 'Error: Vim error matcher did not recognize exactly three- and four-digit codes.\\n' >&2
-    printf 'Matched: %s\\n' "$matcher_result" >&2
+  [[ "$matcher_result" == "$(printf 'E123: three digits\nE1234: four digits')" ]] || {
+    printf 'Error: Vim error matcher did not recognize exactly three- and four-digit codes.\n' >&2
+    printf 'Matched: %s\n' "$matcher_result" >&2
     return 1
   }
 
-  printf '[prepare] Checking shell syntax...\\n'
+  printf '[prepare] Checking shell syntax...\n'
   bash -n "$REPO_ROOT/install.sh"
   bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
 
