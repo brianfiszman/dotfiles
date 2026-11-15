@@ -104,25 +104,50 @@ vim.g.lsp_handlers_enabled = true
 vim.g.codelens_enabled = true
 vim.g.cmp_enabled = true
 
--- Reindent the current scope, then use Neovim's native editing command.
--- The temporary indentexpr override lets autoindent copy the computed prefix
--- from the source line; restore the original engine before the user can type.
+-- Reindent before the native edit command. For nvim-treesitter, use its
+-- line-number API directly: running the Normal-mode == operator can move the
+-- cursor asynchronously while the parser refreshes the edited tree.
 local scope_indent_group = vim.api.nvim_create_augroup("DotfilesScopeIndent", {
   clear = false,
 })
 
-local function reindent_and_edit(key)
-  local count = vim.v.count1
-  local reindent_count = key == "S" and count or 1
-  local source_cursor = vim.api.nvim_win_get_cursor(0)
+local function reindent_current_line(lnum)
+  local indentexpr = vim.bo.indentexpr
+  if indentexpr == "nvim_treesitter#indent()" then
+    local ok, indent = pcall(function()
+      return require("nvim-treesitter.indent").get_indent(lnum)
+    end)
+    if ok and type(indent) == "number" and indent >= 0 then
+      local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
+      local old_indent = line:match("^%s*") or ""
+      local body = line:sub(#old_indent + 1)
+      vim.api.nvim_buf_set_lines(0, lnum - 1, lnum, false, {
+        string.rep(" ", indent) .. body,
+      })
+      return string.rep(" ", indent)
+    end
+  end
 
+  -- Other indentation engines retain Neovim's native == behavior.
   vim.cmd.normal({
-    args = { ("%d=="):format(reindent_count) },
+    args = { "==" },
     bang = true,
   })
+  local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
+  return line:match("^%s*") or ""
+end
+
+local function reindent_and_edit(key)
+  local count = vim.v.count1
+  local source_cursor = vim.api.nvim_win_get_cursor(0)
+  local source_row = source_cursor[1]
+  local source_indent
 
   if key == "S" then
-    -- The native change-line command preserves the indentation computed above.
+    vim.cmd.normal({
+      args = { ("%d=="):format(count) },
+      bang = true,
+    })
     local keys = vim.api.nvim_replace_termcodes(
       ("%dS"):format(count),
       true,
@@ -134,17 +159,20 @@ local function reindent_and_edit(key)
   end
 
   local bufnr = vim.api.nvim_get_current_buf()
-  local source_line = vim.api.nvim_get_current_line()
-  vim.api.nvim_win_set_cursor(0, {
-    source_cursor[1],
-    math.min(source_cursor[2], #source_line),
-  })
-  source_line = vim.api.nvim_get_current_line()
-  local source_indent = source_line:match("^%s*") or ""
+  source_indent = reindent_current_line(source_row)
 
-  -- Native o/O may create a line with an indentexpr result that differs from
-  -- its source line. Preserve its comment leader/content, but replace only
-  -- leading whitespace on InsertEnter with the source line's computed prefix.
+  -- Rewriting the source line preserves its row, but restore its exact cursor
+  -- offset in case the indentation width changed.
+  local current_line = vim.api.nvim_buf_get_lines(0, source_row - 1, source_row, false)[1] or ""
+  local new_indent = current_line:match("^%s*") or ""
+  vim.api.nvim_win_set_cursor(0, {
+    source_row,
+    #new_indent + math.max(source_cursor[2] - (source_cursor[2] >= #new_indent and 0 or #new_indent), 0),
+  })
+
+  -- Native o/O can let an indentexpr produce a different prefix on the new
+  -- blank line. Preserve any comment leader/body, replacing only its leading
+  -- whitespace with the prefix computed for the source line above.
   vim.api.nvim_create_autocmd("InsertEnter", {
     group = scope_indent_group,
     buffer = bufnr,
@@ -164,29 +192,16 @@ local function reindent_and_edit(key)
         #source_indent + body_column,
       })
     end,
-    desc = "Apply the reindented source prefix to a newly opened line",
+    desc = "Apply the source indentation to a newly opened line",
   })
 
-  -- Treesitter may schedule cursor bookkeeping after ==. Re-anchor and
-  -- enqueue the native open command on the next event-loop turn, after that
-  -- bookkeeping has completed. Insert the keys at the front so fast user input
-  -- cannot overtake the mapping's native edit.
-  vim.schedule(function()
-    if not vim.api.nvim_buf_is_valid(bufnr) or vim.api.nvim_get_current_buf() ~= bufnr then
-      return
-    end
-    vim.api.nvim_win_set_cursor(0, {
-      source_cursor[1],
-      math.min(source_cursor[2], #source_line),
-    })
-    local keys = vim.api.nvim_replace_termcodes(
-      ("%d%s"):format(count, key),
-      true,
-      false,
-      true
-    )
-    vim.api.nvim_feedkeys(keys, "int", false)
-  end)
+  local keys = vim.api.nvim_replace_termcodes(
+    ("%d%s"):format(count, key),
+    true,
+    false,
+    true
+  )
+  vim.api.nvim_feedkeys(keys, "int", false)
 end
 
 vim.keymap.set("n", "S", function()
