@@ -177,6 +177,38 @@ end
 
 local run_typescript_O
 
+local function scope_indent_local_options()
+  return {
+    buftype = vim.bo.buftype,
+    filetype = vim.bo.filetype,
+    autoindent = vim.bo.autoindent,
+    smartindent = vim.bo.smartindent,
+    cindent = vim.bo.cindent,
+    lisp = vim.bo.lisp,
+    expandtab = vim.bo.expandtab,
+    copyindent = vim.bo.copyindent,
+    preserveindent = vim.bo.preserveindent,
+    smarttab = vim.bo.smarttab,
+    shiftwidth = vim.bo.shiftwidth,
+    softtabstop = vim.bo.softtabstop,
+    tabstop = vim.bo.tabstop,
+    formatoptions = vim.bo.formatoptions,
+    comments = vim.bo.comments,
+    commentstring = vim.bo.commentstring,
+    indentexpr = vim.bo.indentexpr,
+    indentkeys = vim.bo.indentkeys,
+    cinkeys = vim.bo.cinkeys,
+    cinoptions = vim.bo.cinoptions,
+    lispwords = vim.bo.lispwords,
+    formatexpr = vim.bo.formatexpr,
+    equalprg = vim.bo.equalprg,
+    omnifunc = vim.bo.omnifunc,
+    complete = vim.bo.complete,
+    virtualedit = vim.wo.virtualedit,
+    whichwrap = vim.wo.whichwrap,
+  }
+end
+
 local function probe_native_typescript_open(label, formatoptions, indentexpr, keys, clear_filetype)
   setup_typescript_buffer()
   if clear_filetype then
@@ -188,9 +220,9 @@ local function probe_native_typescript_open(label, formatoptions, indentexpr, ke
     cursor = vim.api.nvim_win_get_cursor(0),
     lines = vim.api.nvim_buf_get_lines(0, 0, -1, false),
   }
-  print(("[scope-indent-probe] before %s filetype=%q cursor=%s line_count=%d formatoptions=%q indentexpr=%q"):format(
-    label, vim.bo.filetype, vim.inspect(before.cursor), #before.lines,
-    vim.bo.formatoptions, vim.bo.indentexpr))
+  print(("[scope-indent-probe] before %s cursor=%s line_count=%d options=%s"):format(
+    label, vim.inspect(before.cursor), #before.lines,
+    vim.inspect(scope_indent_local_options())))
   vim.cmd.normal({ args = { keys }, bang = true })
   local after_cursor = vim.api.nvim_win_get_cursor(0)
   local after_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
@@ -225,9 +257,10 @@ local function probe_javascript_filetype()
   vim.bo.indentexpr = ""
   vim.bo.formatoptions = ""
   vim.cmd.normal({ args = { "o" }, bang = true })
-  print(("[scope-indent-probe] after native o javascript filetype cursor=%s line_count=%d buffer=%s"):format(
+  print(("[scope-indent-probe] after native o javascript filetype cursor=%s line_count=%d options=%s buffer=%s"):format(
     vim.inspect(vim.api.nvim_win_get_cursor(0)),
     vim.api.nvim_buf_line_count(0),
+    vim.inspect(scope_indent_local_options()),
     vim.inspect(vim.api.nvim_buf_get_lines(0, 0, -1, false))))
 end
 
