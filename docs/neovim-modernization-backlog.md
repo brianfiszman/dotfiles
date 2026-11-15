@@ -38,10 +38,11 @@ independently testable behavior.
   [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`), then
   reopened after a JS/TS report. Draft follow-up
   [#95](https://github.com/brianfiszman/dotfiles/pull/95) now includes the actual
-  Home React component as JSX/TSX. A callback cycle caused run #43733782831
-  to time out; the terminal path is fixed and the watchdog placement corrected
-  in test-only head `db4e497`. Exact-head run #43735275124 is pending. No
-  runtime fix is included because the local column-zero symptom is not yet reproduced.
+  Home React component as JSX/TSX. The callback cycle and watchdog placement
+  are corrected in test-only head `db4e497`; exact-head full integration
+  [#43735275124](https://github.com/brianfiszman/dotfiles/actions/runs/43735275124)
+  passed, including all six JSX/TSX `S`/`o`/`O` cases. No runtime fix is
+  included because the local column-zero symptom is not yet reproduced.
 
 ## Open — P1: reliable language and navigation tools
 
