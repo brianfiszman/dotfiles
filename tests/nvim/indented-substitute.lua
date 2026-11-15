@@ -309,7 +309,7 @@ local function finish()
   print("PASS: real TypeScript object-literal indentation supports o and O")
   print("PASS: real JavaScript block/object indentation supports S, o and O")
   print("PASS: simple JSX and TSX open-line indentation uses their configured parsers")
-  print("PASS: the supplied Home React component preserves JSX scope for S, o and O in JSX and TSX")
+  print("PASS: the supplied Home React component preserves S, o and O in JS, JSX and TSX")
   print("PASS: real TypeScript interface/block/object indentation supports S, o and O")
   print("PASS: real JSON and YAML parsers preserve nested open-line indentation")
   print("PASS: a closed fold keeps native o at the fold boundary and hides the source")
@@ -327,6 +327,9 @@ local run_typescript_nested_open_above
 local run_typescript_open_above
 local run_jsx_open_below
 local run_tsx_open_below
+local run_home_js_open_below
+local run_home_js_substitute
+local run_home_js_open_above
 local run_home_jsx_open_below
 local run_home_jsx_substitute
 local run_home_jsx_open_above
@@ -354,7 +357,19 @@ local function run_closed_fold_control()
 end
 
 run_home_tsx_open_above = function()
-  home_react_case("typescriptreact", "<Countdown countdownTo=", "O", 8, 8, run_closed_fold_control)
+  home_react_case("typescriptreact", "<Countdown countdownTo=", "O", 8, 8, run_home_js_open_below)
+end
+
+run_home_js_open_above = function()
+  home_react_case("javascript", "<Countdown countdownTo=", "O", 8, 8, run_closed_fold_control)
+end
+
+run_home_js_substitute = function()
+  home_react_case("javascript", "<Picture", "S", 8, 8, run_home_js_open_above)
+end
+
+run_home_js_open_below = function()
+  home_react_case("javascript", "<MainHeader theme=", "o", 6, 8, run_home_js_substitute)
 end
 
 run_home_tsx_substitute = function()
