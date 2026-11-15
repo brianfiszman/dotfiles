@@ -563,6 +563,56 @@ from the active pinned provider/query, and assert both `o` and `O` on their
 expected rows. A final exact-head full integration is required after changes to
 either the mapping or the test runner.
 
+### Diagnosing mappings that cross Normal/Insert command boundaries
+
+When a mapping combines `:normal!`, an Insert-mode command, `InsertEnter`,
+`InsertLeave`, or `:startinsert!`, do not infer the editor's lifecycle from
+the source code comments or from one observed mode transition. Prove the event
+sequence on the exact Neovim version under test.
+
+For a minimal reproduction, instrument these boundaries separately:
+
+1. Immediately before dispatching the native key: current window/buffer,
+   source cursor, buffer line count and active local `indentexpr`.
+2. Every `InsertEnter` and `InsertLeave`: increment a counter and record
+   event number, mode, cursor row/byte column, buffer line count, current line,
+   and local `indentexpr`.
+3. Immediately after the `:normal!` call returns: the same state snapshot.
+4. Immediately before and after any explicit `:startinsert!` call.
+5. In a scheduled callback after the input loop settles: final state and the
+   complete buffer contents.
+
+Use a disposable buffer and a deliberately simple indentation provider first.
+Then repeat the exact same sequence with the real parser-backed provider. Keep
+the user-key dispatch, provider calculation, and Insert-mode restart as
+independent experiments until their individual effects are known.
+
+Specific cautions:
+
+- `:normal! o` / `:normal! O` already perform native line creation and can
+  cross Insert-mode boundaries. Do not add `:startinsert!` or a second
+  `InsertEnter` handler based on an assumed event sequence; first log whether
+  the native command entered and left Insert mode and what row it created.
+- Registering an `InsertEnter` autocmd after a command has already fired its
+  event cannot observe that earlier event. If a second entry is expected,
+  prove that it actually occurs and assert the exact entry count.
+- A callback that sees the right prefix on the wrong row is not a pass. Preserve
+  the source row and target row as separate values; assert the final complete
+  buffer shape as well as cursor row, byte column, indentation and mode.
+- Do not move the cursor to the expected row merely to satisfy the test. First
+  determine which operation inserted or selected the unexpected row.
+- Remove temporary global event tracing after the reproduction, or scope it to
+  a dedicated augroup/buffer and clear it deterministically.
+
+For issue #89, the latest failing trace (run #43672262947) showed deterministic
+mappings and Lua Treesitter passing, while TypeScript `o` applied the correct
+two-space prefix to row 4 instead of the expected row 3. The trace also showed
+that the current implementation calls native `:normal! o`, then explicitly
+calls `:startinsert!` and relies on a second `InsertEnter`. The next useful
+experiment is to count and snapshot both transitions, and compare it with a
+minimal native-`o` path that does not explicitly restart Insert mode. This is
+a diagnosis to test, not a confirmed root cause.
+
 ## Preserve functional files when rebuilding a PR tree
 
 When creating a Git tree from the base branch to preserve a merge base, include
