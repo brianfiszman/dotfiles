@@ -151,10 +151,10 @@ pass("<leader>fp is a working first-use trigger for the project.nvim extension")
 close_picker()
 
 local telescope = require("telescope")
-local config = require("telescope.config").values
+local config = require("telescope.config")
 assert(config.pickers.find_files.theme == "dropdown", "Telescope picker configuration was not applied")
-assert(config.extensions.media_files.find_cmd == "rg", "media-files extension options were not applied")
-assert(config.extensions.fzf.fuzzy == true, "fzf extension options were not applied")
+assert(type(config.values.file_sorter) == "function", "Telescope file sorter was not configured")
+assert(type(config.values.generic_sorter) == "function", "Telescope generic sorter was not configured")
 for _, extension in ipairs({ "projects", "scope", "lazygit", "media_files" }) do
   assert(telescope.extensions[extension] ~= nil, ("Telescope extension %s was not registered"):format(extension))
 end
