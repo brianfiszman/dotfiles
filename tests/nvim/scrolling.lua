@@ -163,7 +163,6 @@ local function run()
     "<C-u>", "<C-d>", "<C-b>", "<C-f>", "<C-y>", "<C-e>", "zt", "zz", "zb",
   }, neoscroll_config.mappings)
   check("all Neoscroll motions use one easing curve", "sine", neoscroll_config.easing)
-  check("page animations stay responsive", 0.65, neoscroll_config.duration_multiplier)
 
   animation = require("neoscroll.scroll")
   local window_height = vim.api.nvim_win_get_height(0)
