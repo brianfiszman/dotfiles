@@ -226,12 +226,13 @@ if not ok then
   return
 end
 
--- Keep Neovim's event loop alive until both asynchronous native mouse-wheel
--- events have been consumed and asserted. A script that only schedules a
--- defer_fn must not be allowed to exit before its callbacks run.
-local completed = vim.wait(5000, function()
-  return test_finished
-end, 10)
-if not completed then
-  fail("scroll integration test did not complete both native wheel checks")
-end
+-- Do not block inside vim.wait() here. nvim_input_mouse() enqueues input for
+-- Neovim's main input loop; vim.wait() runs libuv callbacks but does not make
+-- the editor consume that queued input. Returning from this startup script
+-- lets the real TUI loop process the wheel event before the verification
+-- timer fires.
+vim.defer_fn(function()
+  if not test_finished then
+    fail("scroll integration test did not complete both native wheel checks")
+  end
+end, 5000)
