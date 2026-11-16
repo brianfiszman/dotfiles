@@ -334,6 +334,11 @@ startup() {
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
 
+  printf '\n[behavior] Verifying Avante lazy-loading, local provider configuration, and safe defaults.\n'
+  run_nvim "avante-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/avante-lazy-loading.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
   run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/scrolling.lua"

@@ -78,6 +78,50 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
 - Use `K` for symbol documentation, `<leader>DF` for the diagnostic under the
   cursor, and `[d` / `]d` to move between diagnostics.
 
+### AI assistant (Avante)
+
+Avante.nvim provides on-demand codebase chat, user-invoked edits, diff review,
+and agentic workflows inside Neovim. It is loaded only when you use one of its
+keymaps or commands; it does not start a model request during ordinary startup.
+
+The default backend is **local Ollama** at `http://127.0.0.1:11434`, using
+`qwen3:8b`. Install Ollama separately, then start its service and download the
+model:
+
+```sh
+ollama serve
+ollama pull qwen3:8b
+```
+
+Skip `ollama serve` when the Ollama app/service is already running. Open Neovim
+and use:
+
+- `<leader>aa`: open or close the Avante assistant sidebar.
+- `<leader>aq`: ask about the current code.
+- `<leader>ae` (Visual mode): edit the selected code.
+
+Override the local endpoint or model before launching Neovim:
+
+```sh
+export AVANTE_OLLAMA_ENDPOINT="http://127.0.0.1:11434"
+export AVANTE_OLLAMA_MODEL="qwen3:8b"
+```
+
+The model is downloaded and run by Ollama; local inference has no per-request
+API fee, but it uses local memory, compute, storage, and power. The default
+endpoint is loopback. Changing it to a remote endpoint sends the selected
+project context to that host.
+
+Avante's defaults are tightened in this configuration: tool use requires
+permission prompts, generated diffs are not auto-applied, access to Git-ignored
+files is disabled, and prompt logging is off. **Automatic inline suggestions
+remain disabled** because Avante currently documents that feature as
+experimental and high-frequency. It is not yet considered a validated
+replacement for the retired Codeium completion workflow; see issue #69.
+
+The plugin's native components are restored by its lazy.nvim `make` build
+hook. The project does not install Ollama or operating-system packages for you.
+
 ### Optional: Python provider
 
 Most Neovim editing features do not require the Python provider. It is only

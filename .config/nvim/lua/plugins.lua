@@ -180,7 +180,7 @@ require("lazy").setup({
   require 'dap.mason-nvim-dap',
   require 'linting.nvim-lint',
   require 'formatting.conform',
-  require 'ai.codeium',
+  require 'ai.avante',
 }, {
   -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
   -- bootstrap its own toolchain
