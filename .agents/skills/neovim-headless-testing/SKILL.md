@@ -181,6 +181,14 @@ check its `highlights` / `indents` query groups independently. Add a test
 that installs an extra parser outside the managed list and opens a matching
 buffer; this catches regressions hidden by testing only ensured parsers.
 
+When a behavioral fixture positions the cursor inside code, explicitly
+establish the fold state first. The real config may enable `foldmethod=syntax`
+and leave folds closed by default; Neovim can move a cursor set inside a closed
+fold to its boundary, so a textobject test may select a different declaration
+even though the query/mapping is correct. Disable folds for tests of textobject
+semantics, and cover fold-boundary behavior in a separate focused test when
+that behavior is under review.
+
 ## Mason Tool Installer optional integrations and Lazy
 
 Disable an integration when its module should remain lazy. In particular,
