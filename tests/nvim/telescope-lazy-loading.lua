@@ -145,7 +145,6 @@ for _, suffix in ipairs(mappings) do
   assert(vim.fn.maparg(leader .. suffix, "n") ~= "", ("mapping %s disappeared after Telescope setup"):format(leader .. suffix))
 end
 pass("all nine documented picker mappings remain available after Telescope loads")
-close_picker()
 
 print("STEP: invoking the real <leader>ff mapping")
 feed(leader .. "ff")
