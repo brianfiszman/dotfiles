@@ -12,6 +12,8 @@ local function check(label, expected, actual)
   print("PASS: " .. label)
 end
 
+local animation
+
 local function wait_until(label, timeout_ms, predicate)
   local completed = vim.wait(timeout_ms, predicate, 10)
   check(label, true, completed)
@@ -123,7 +125,6 @@ local function run()
   print("PASS: one Neoscroll animation engine, six real keyboard motions, and native wheel scrolling")
 end
 
-animation = nil
 local ok, err = xpcall(run, debug.traceback)
 if not ok then
   io.stderr:write("[scrolling] FAIL: " .. tostring(err) .. "\n")
