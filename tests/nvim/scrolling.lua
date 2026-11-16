@@ -74,7 +74,7 @@ local function exercise_motion(key, expected_delta, description)
     expected_delta, after - before)
 end
 
-local function exercise_mouse_wheel(direction, comparison, description, next_step)
+local function exercise_mouse_wheel(direction, description, next_step)
   prepare_buffer()
   -- The synthetic PTY may leave a hit-enter prompt after querying terminal
   -- background color. Dismiss it before queuing non-blocking mouse input; then
@@ -114,14 +114,12 @@ local function exercise_mouse_wheel(direction, comparison, description, next_ste
       return
     end
 
-    -- Neovim 0.12.6 maps API action "down" to K_MOUSEUP and "up" to
-    -- K_MOUSEDOWN (src/nvim/api/vim.c). Invert the API action to inject the
-    -- native TUI wheel direction that corresponds to this requested motion.
-    local api_action = comparison == "down" and "up" or "down"
+    -- The API action already names the intended wheel direction. Keep it
+    -- aligned with Neovim's own functional UI tests instead of reversing it.
     local sent, send_error = pcall(
       vim.api.nvim_input_mouse,
       "wheel",
-      api_action,
+      direction,
       "",
       0,
       row,
@@ -143,8 +141,8 @@ local function exercise_mouse_wheel(direction, comparison, description, next_ste
       ))
 
       local ok, err = xpcall(function()
-        local moved = comparison == "down" and after > before
-          or comparison == "up" and after < before
+        local moved = direction == "down" and after > before
+          or direction == "up" and after < before
         check(("%s changes the viewport in the expected direction (topline %d -> %d)"):format(
           description, before, after
         ), true, moved)
@@ -213,8 +211,8 @@ local function run()
   exercise_motion("<S-Down>", 10, "Shift-Down")
   exercise_motion("<S-Up>", -10, "Shift-Up")
 
-  exercise_mouse_wheel("down", "down", "Mouse wheel down", function()
-    exercise_mouse_wheel("up", "up", "Mouse wheel up", function()
+  exercise_mouse_wheel("down", "Mouse wheel down", function()
+    exercise_mouse_wheel("up", "Mouse wheel up", function()
       test_finished = true
       print("PASS: one Neoscroll animation engine, eight real keyboard motions, preserved Ctrl-F formatting, and native wheel scrolling")
       vim.cmd("qa!")
