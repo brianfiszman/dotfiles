@@ -163,6 +163,35 @@ The `"m"` flag is important: `"n"` would bypass the mapping under test.
 - For Insert-mode integrations, separate the deterministic lazy-load assertion
   from any network or external-service bootstrap.
 
+## Telescope lazy-loading through keys, commands, and module imports
+
+Telescope can be reached through more than one Lazy trigger. When a plugin
+exposes all of these paths, test them independently in fresh Neovim processes:
+
+- A `keys` spec with an LHS-only entry installs a temporary first-key mapping.
+  Dispatch the real mapping and assert the picker opens; checking `maparg()`
+  alone proves only that the stub exists.
+- A `cmd = "Telescope"` trigger must preserve command arguments and open a real
+  picker when `:Telescope find_files` is entered directly.
+- A plugin mapping that calls `require("telescope")` exercises Lazy's module
+  autoload path. Test that route separately, before any command or key trigger
+  has loaded Telescope.
+
+Audit indirect integrations before marking a plugin lazy. A dependency edge or
+an unconditional `require()` in another plugin's `VeryLazy` config can still
+load it. Keep independent integrations such as Scope setup active, but defer
+their Telescope extension registration until Telescope itself initializes.
+Call `telescope.setup()` before `telescope.load_extension()`: extension setup
+reads the extension configuration and may modify Telescope's configured
+sorters. Test that optional extension exports are present on first use without
+loading them during idle startup.
+
+For real picker behavior, create temporary file/content fixtures and inspect the
+actual Telescope result manager for expected file and grep entries. Do not infer
+success merely from an open picker window or a loaded module. External preview
+tools (for example Chafa for media-files previews) must be checked explicitly;
+report a skipped preview interaction separately from extension registration.
+
 ## Current nvim-treesitter integration
 
 The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
