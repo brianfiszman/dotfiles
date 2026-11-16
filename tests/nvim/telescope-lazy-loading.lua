@@ -181,11 +181,18 @@ end)
 pass("the real <leader>ff mapping opens find_files and returns the expected file")
 close_picker()
 
-print("STEP: invoking the real <leader>ft mapping and typing a search query")
+print("STEP: invoking the real <leader>ft mapping and setting a live-grep query")
 feed(leader .. "ft")
 local grep_picker = wait_for_picker("Live Grep")
-vim.api.nvim_set_current_win(grep_picker.prompt_win)
-feed(marker)
+-- Set the prompt through the active picker API. The mapping and picker launch
+-- are real user input; using set_prompt avoids depending on terminal Insert-mode
+-- transitions in headless Neovim while still exercising Telescope's real
+-- prompt-change callback, ripgrep process and result pipeline.
+grep_picker:set_prompt(marker)
+wait_for("live_grep prompt to contain the fixture query", 10000, function()
+  local prompt = vim.api.nvim_buf_get_lines(grep_picker.prompt_bufnr, 0, 1, false)[1] or ""
+  return prompt:sub(-#marker) == marker
+end)
 wait_for("live_grep to return the fixture marker", 30000, function()
   return picker_has_entry(function(entry)
     return tostring(entry.text or ""):find(marker, 1, true) ~= nil
