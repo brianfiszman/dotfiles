@@ -13,6 +13,7 @@ local function check(label, expected, actual)
 end
 
 local animation
+local animation_starts = 0
 local test_finished = false
 
 local function fail(err)
@@ -59,8 +60,15 @@ local function exercise_motion(key, expected_delta, description)
   prepare_buffer()
   local before = vim.api.nvim_win_get_cursor(0)[1]
 
+  local starts_before = animation_starts
+  local mapping = vim.fn.maparg(key, "n", false, true)
+  print(("INFO: %s mapping=%s"):format(description, vim.inspect(mapping)))
+
   feed_key(key)
-  check(description .. " starts the Neoscroll animation", true, animation.scrolling)
+  local started = animation_starts > starts_before
+    or vim.wait(100, function() return animation_starts > starts_before end, 1)
+  check(description .. " invokes Neoscroll's animation hook", true, started)
+  check(description .. " starts exactly one animation", 1, animation_starts - starts_before)
   wait_for_animation(description)
 
   local after = vim.api.nvim_win_get_cursor(0)[1]
@@ -165,6 +173,15 @@ local function run()
   check("all Neoscroll motions use one easing curve", "sine", neoscroll_config.easing)
 
   animation = require("neoscroll.scroll")
+  local neoscroll_options = require("neoscroll.config").opts
+  local previous_pre_hook = neoscroll_options.pre_hook
+  neoscroll_options.pre_hook = function(info)
+    animation_starts = animation_starts + 1
+    if previous_pre_hook then
+      previous_pre_hook(info)
+    end
+  end
+
   local window_height = vim.api.nvim_win_get_height(0)
   exercise_motion("<C-d>", 10, "Ctrl-D")
   exercise_motion("<C-u>", -10, "Ctrl-U")
