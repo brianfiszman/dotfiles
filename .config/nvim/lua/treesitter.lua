@@ -42,9 +42,13 @@ local parser_languages = {
   "helm",
 }
 
-local parser_language_set = {}
-for _, language in ipairs(parser_languages) do
-  parser_language_set[language] = true
+local indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+local install_timeout_ms = 20 * 60 * 1000
+local updating_parsers = false
+
+local function has_query(language, query_name)
+  local ok, query = pcall(vim.treesitter.query.get, language, query_name)
+  return ok and query ~= nil
 end
 
 local indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
@@ -58,23 +62,36 @@ local function configure_buffer(bufnr)
 
   local filetype = vim.bo[bufnr].filetype
   local language = vim.treesitter.language.get_lang(filetype)
-  if not language or not parser_language_set[language] then
+  if not language then
     return
   end
 
-  -- Keep the old Treesitter indent integration for every configured language.
-  vim.bo[bufnr].indentexpr = indentexpr
+  -- Preserve the legacy modules' capability checks. Parsers installed outside
+  -- the managed 41-language set must remain usable when their queries exist.
+  local has_indents = has_query(language, "indents")
+  local has_highlights = has_query(language, "highlights")
+  if not has_indents and not has_highlights then
+    return
+  end
 
-  -- Preserve the previous 100 KiB highlighting limit without disabling
-  -- parser-backed indentation for larger files.
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr, language)
+  if not ok or not parser then
+    return
+  end
+
+  if has_indents then
+    vim.bo[bufnr].indentexpr = indentexpr
+  end
+
+  -- Preserve the previous 100 KiB Treesitter highlighting limit without
+  -- disabling parser-backed indentation for larger files.
   local filename = vim.api.nvim_buf_get_name(bufnr)
   local stat = filename ~= "" and (vim.uv or vim.loop).fs_stat(filename) or nil
   if stat and stat.size > 100 * 1024 then
     return
   end
 
-  local ok, parser = pcall(vim.treesitter.get_parser, bufnr, language)
-  if ok and parser then
+  if has_highlights then
     local started, err = pcall(vim.treesitter.start, bufnr, language)
     if not started then
       vim.notify(
@@ -82,6 +99,11 @@ local function configure_buffer(bufnr)
         vim.log.levels.ERROR,
         { title = "dotfiles Treesitter" }
       )
+    else
+      -- The legacy configuration enabled additional Vim regex highlighting
+      -- alongside Treesitter. The FileType syntax hook skips buffers marked
+      -- b:ts_highlight, so explicitly retain that second highlighting layer.
+      vim.bo[bufnr].syntax = "ON"
     end
   end
 end
