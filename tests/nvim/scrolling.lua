@@ -32,7 +32,8 @@ local function feed_key(key)
 end
 
 local function prepare_buffer()
-  vim.cmd("enew!")
+  -- Reuse the current scratch buffer. Repeated :enew! calls retrigger
+  -- unrelated BufEnter/FileExplorer compatibility autocmds in the PTY.
   local lines = {}
   for line = 1, 1600 do
     lines[line] = ("scroll-fixture-%04d"):format(line)
@@ -74,16 +75,7 @@ local function exercise_motion(key, expected_delta, description)
 end
 
 local function exercise_mouse_wheel(direction, comparison, description, next_step)
-  -- The synthetic PTY cannot answer Neovim's OSC 11 background-color query.
-  -- Dismiss its hit-enter prompt before queuing a non-blocking mouse event.
   prepare_buffer()
-  -- NvimTree 1.18.0 leaves a known FileExplorer autocmd cleanup prompt on
-  -- this Neovim version. Dismiss it after enew! (which can retrigger BufEnter),
-  -- then restore the fixture cursor before sending the mouse event.
-  feed_key("<CR>")
-  check(description .. " leaves Neovim in Normal mode after buffer reset", "n",
-    vim.fn.mode():sub(1, 1))
-  vim.cmd("messages clear")
   vim.api.nvim_win_set_cursor(0, { 800, 0 })
   vim.cmd("normal! zz")
   local winid = vim.api.nvim_get_current_win()
@@ -210,10 +202,15 @@ end
 local ok, err = xpcall(run, debug.traceback)
 if not ok then
   fail(err)
+  return
 end
 
-vim.defer_fn(function()
-  if not test_finished then
-    fail("scroll integration test exceeded its 15-second deadline")
-  end
-end, 15000)
+-- Keep Neovim's event loop alive until both asynchronous native mouse-wheel
+-- events have been consumed and asserted. A script that only schedules a
+-- defer_fn must not be allowed to exit before its callbacks run.
+local completed = vim.wait(5000, function()
+  return test_finished
+end, 10)
+if not completed then
+  fail("scroll integration test did not complete both native wheel checks")
+end
