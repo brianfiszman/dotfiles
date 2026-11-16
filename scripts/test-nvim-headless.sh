@@ -205,6 +205,14 @@ prepare() {
   bash -n "$REPO_ROOT/install.sh"
   bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
 
+  local tracked_python_venv
+  tracked_python_venv="$(git -C "$REPO_ROOT" ls-files -- .config/nvim/venv/)"
+  if [[ -n "$tracked_python_venv" ]]; then
+    printf 'Error: machine-local Python provider files must not be tracked:\n%s\n' "$tracked_python_venv" >&2
+    return 1
+  fi
+  printf '[prepare] Passed: no machine-local Python virtualenv is tracked.\n'
+
   printf '[prepare] Testing Neovim: '
   "$NVIM_BIN" --version | sed -n '1p'
 
@@ -366,6 +374,16 @@ startup() {
   # +qa!: the deferred input assertions would never run.
   run_nvim "indented-substitute" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/indented-substitute.lua"
+
+  printf '\n[behavior] Provisioning the optional Python provider and exercising failure preservation.\n'
+  run_nvim "python-provider-provisioning" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/python-provider-provisioning.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying the Python provider in a fresh Neovim process.\n'
+  run_nvim "python-provider-host" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/python-provider-host.lua" \
+    "+qa!"
 }
 
 case "$PHASE" in

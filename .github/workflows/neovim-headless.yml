@@ -138,7 +138,7 @@ jobs:
             libreadline-dev
             liblua5.1-0-dev
             lua5.1
-            python3-pynvim
+            python3-venv
             ripgrep
           )
           missing_packages=()
@@ -160,7 +160,7 @@ jobs:
 
           command -v fdfind >/dev/null
           command -v rg >/dev/null
-          python3 -c 'import pynvim; print("pynvim:", pynvim.__version__)'
+          python3 -m venv --help > /dev/null
           test -f /usr/include/readline/readline.h
           test -f /usr/include/lua5.1/lua.h
 

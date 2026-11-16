@@ -83,19 +83,31 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
 Most Neovim editing features do not require the Python provider. It is only
 needed by Python remote plugins and integrations that explicitly use it.
 
-This configuration prefers a dedicated environment at
-`${stdpath("data")}/python3-venv/bin/python` when it exists. Create it with
-the same Python 3 interpreter available on the target machine:
+To opt in, open Neovim and run:
+
+```vim
+:DotfilesInstallPythonProvider
+```
+
+The command uses `python3` from Neovim's `PATH` (Python 3.9 or newer). It creates
+a dedicated environment at `${stdpath("data")}/python3-venv`, upgrades `pip`,
+installs `pynvim`, and verifies that both `pynvim` and `neovim` import correctly.
+The validated environment replaces the previous one only after all steps pass;
+a failed venv creation, package install, or import leaves the existing provider
+environment untouched. The command does not install Python or system packages,
+and it never invokes Homebrew, apt, or another OS package manager.
+
+Restart Neovim after installation. The early `init.lua` setup selects this
+interpreter automatically when it exists. A manually configured
+`vim.g.python3_host_prog` takes precedence.
+
+If you prefer to provision it from a shell, the equivalent manual fallback is:
 
 ```sh
 PYTHON_VENV="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/python3-venv"
 python3 -m venv "$PYTHON_VENV"
 "$PYTHON_VENV/bin/python" -m pip install --upgrade pip pynvim
 ```
-
-Restart Neovim after installation. The early `init.lua` setup selects this
-interpreter automatically when the executable exists. A manually configured
-`vim.g.python3_host_prog` takes precedence.
 
 Verify the selected interpreter with:
 
@@ -105,9 +117,8 @@ Verify the selected interpreter with:
 ```
 
 If the health report tries to launch a missing `pynvim-python` executable, the
-automatic provider launcher is unavailable. Creating the dedicated venv above
-gives this configuration an explicit interpreter path. Do not install
-`pynvim` into a global Python environment just to silence the warning.
+automatic provider launcher is unavailable. Use the command above rather than
+installing `pynvim` into a global Python environment just to silence the warning.
 
 ### Tree-sitter
 

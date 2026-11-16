@@ -63,6 +63,7 @@ vim.opt.rtp:prepend(lazypath)
 
 require 'core.autocmds'
 require 'core.general'
+require('core.python-provider').setup()
 require 'plugins'
 require 'bindings.splitting'
 require 'bindings.tab'
