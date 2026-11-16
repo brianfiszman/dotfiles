@@ -130,7 +130,7 @@ local function exercise_mouse_wheel(direction, description, next_step)
       return
     end
 
-    local deadline = vim.uv.hrtime() + 1_000_000_000
+    local deadline = vim.uv.hrtime() + 1000000000
 
     local function verify_wheel_input()
       if test_finished then
