@@ -60,6 +60,11 @@ local path = vim.fn.tempname() .. ".go"
 assert(vim.fn.writefile(source, path) == 0, "Could not write Go textobjects fixture")
 vim.cmd("edit " .. vim.fn.fnameescape(path))
 
+-- The real config uses foldmethod=syntax. Keep this textobject fixture fully
+-- visible so cursor placement and selection assertions exercise the Go query,
+-- not native cursor jumps to the boundary of a closed syntax fold.
+vim.wo.foldenable = false
+
 assert(vim.bo.filetype == "go", "Go fixture filetype was not detected")
 assert(package.loaded["go"] ~= nil, "Go filetype did not lazy-load go.nvim")
 assert(package.loaded["nvim-treesitter-textobjects"] ~= nil,
