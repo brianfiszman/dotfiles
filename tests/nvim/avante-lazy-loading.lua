@@ -48,6 +48,7 @@ assert(config.providers.ollama.model == expected_model,
 assert(type(config.providers.ollama.is_env_set) == "function", "Ollama endpoint check is not configured")
 
 assert(config.behaviour.auto_suggestions == true, "automatic inline suggestions must be enabled")
+assert(config.behaviour.auto_suggestions_respect_ignore == true, "automatic suggestions must skip Git-ignored files")
 assert(config.suggestion.debounce == 800, "automatic suggestion debounce must be 800 ms")
 assert(config.suggestion.throttle == 1200, "automatic suggestion throttle must be 1200 ms")
 assert(config.behaviour.auto_approve_tool_permissions == false, "agent tools must require permission prompts")

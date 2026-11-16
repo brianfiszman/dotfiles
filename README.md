@@ -119,6 +119,9 @@ API fee, but it uses local memory, compute, storage, and power. The default
 endpoint is loopback. Changing it to a remote endpoint sends the selected
 project context to that host.
 
+Automatic suggestions also respect the project's `.gitignore`, so they are
+not requested for Git-ignored files.
+
 The assistant's conversation/session history is still stored locally under
 Neovim's state directory (`stdpath("state")/avante`). Disabling prompt logging
 turns off the separate timestamped prompt replay/debug log; it does not disable

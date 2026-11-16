@@ -44,6 +44,7 @@ return {
     },
     behaviour = {
       auto_suggestions = true,
+      auto_suggestions_respect_ignore = true,
       auto_set_keymaps = true,
       auto_apply_diff_after_generation = false,
       auto_approve_tool_permissions = false,
