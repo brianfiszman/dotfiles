@@ -87,6 +87,9 @@ local function exercise_mouse_wheel(direction, comparison, description)
 end
 
 local function run()
+  check("native mouse-wheel test has an attached Neovim UI", true,
+    #vim.api.nvim_list_uis() > 0)
+
   local lazy_config = require("lazy.core.config")
   check("Neoscroll is the only declared scroll-animation plugin", true,
     lazy_config.plugins["neoscroll.nvim"] ~= nil

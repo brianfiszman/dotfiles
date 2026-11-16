@@ -17,7 +17,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee; do
+for required_command in "$NVIM_BIN" git find grep tee script; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -84,6 +84,13 @@ run_nvim() {
   local tee_status=0
   local -a pipeline_status=()
   local -a nvim_args=(--headless)
+  local use_pty=0
+  if [[ "$label" == "scrolling" ]]; then
+    # Native mouse input needs an attached UI; a PTY-backed TUI gives the
+    # integration test a real screen grid without manual interaction.
+    nvim_args=()
+    use_pty=1
+  fi
   local startup_verbose_file="$WORK_DIR/startup-verbose.log"
   local startup_timing_file="$WORK_DIR/startup-startuptime.log"
 
@@ -101,15 +108,30 @@ run_nvim() {
 
   # Stream output to the Actions console while preserving a complete log file.
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
+  local -a nvim_command=("$NVIM_BIN" "\${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
+  local pty_command=""
+  if ((use_pty)); then
+    printf -v pty_command '%q ' "\${nvim_command[@]}"
+  fi
+
   set +e
   if command -v timeout >/dev/null 2>&1; then
-    timeout --signal=TERM --kill-after=30s "$time_limit" \
-      "$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
-    pipeline_status=("${PIPESTATUS[@]}")
+    if ((use_pty)); then
+      TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+        script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+    else
+      timeout --signal=TERM --kill-after=30s "$time_limit" \
+        "\${nvim_command[@]}" 2>&1 | tee "$log_file"
+    fi
+    pipeline_status=("\${PIPESTATUS[@]}")
   else
     printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
-    "$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
-    pipeline_status=("${PIPESTATUS[@]}")
+    if ((use_pty)); then
+      TERM=xterm-256color script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+    else
+      "\${nvim_command[@]}" 2>&1 | tee "$log_file"
+    fi
+    pipeline_status=("\${PIPESTATUS[@]}")
   fi
   set -e
 
