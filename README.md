@@ -136,6 +136,13 @@ experimental). `<leader>V` selects/expands the current syntax node and
 `<BS>` contracts the selection to its child node. Rainbow delimiters and
 HTML/JSX/TSX autotagging use their standalone plugins.
 
+Go buffers also use the standalone `nvim-treesitter-textobjects/main` plugin:
+`af`/`if` select functions, `ac`/`ic` select type declarations, and
+`]]`, `][`, `[[`, `[]` navigate function boundaries. These mappings use
+the plugin's current `setup()` API; go.nvim's legacy textobject hook is disabled
+because it depends on the removed `nvim-treesitter.configs` module. Go.nvim
+itself remains enabled for Go tooling, LSP and commands.
+
 The old `highlight_definitions` refactor extension was removed with the
 legacy API. The current upstream rewrite exposes locals queries but does not
 provide a maintained equivalent for that feature, so the configuration does
