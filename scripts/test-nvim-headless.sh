@@ -145,7 +145,7 @@ run_nvim() {
 
   # Neovim can report Lua/Vimscript errors while still returning exit status 0.
   # The verbose trace captures messages that do not reach stdout/stderr.
-  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|Failed to run .*config|module .+ not found" "$log_file"; then
+  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$log_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
