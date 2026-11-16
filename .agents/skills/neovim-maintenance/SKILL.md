@@ -26,6 +26,16 @@ on another machine.
   documentation when they are needed to make the setup safer or close a
   validation gap. Do not treat those files as off-limits.
 
+## Version and compatibility policy
+
+Target the latest stable Neovim and current upstream-supported plugin APIs.
+Do not maintain older-version support, legacy branches, or compatibility
+fallbacks solely for backward compatibility; migrate forward instead. CI
+targets latest stable by default, with nightly optional and older versions only
+on explicit request. Exact pins are for reproducibility, not obsolete APIs.
+Temporary shims must be justified by the latest stable contract and have a
+clear removal condition.
+
 ## Start by recovering the real state
 
 1. Read `AGENTS.md` and this skill.

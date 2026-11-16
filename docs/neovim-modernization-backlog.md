@@ -39,16 +39,15 @@ independently testable behavior.
 
 - [#40](https://github.com/brianfiszman/dotfiles/issues/40) — make Run with Args
   pass debug arguments.
-- [#43](https://github.com/brianfiszman/dotfiles/issues/43) — load testing,
-  debugging, and search tools only when used (parent).
-- [#44](https://github.com/brianfiszman/dotfiles/issues/44) — pin the Treesitter
-  API and make parser updates predictable.
-- [#97](https://github.com/brianfiszman/dotfiles/issues/97) — install the
-  optional Tree-sitter CLI through Mason when grammar regeneration is needed.
 - [#45](https://github.com/brianfiszman/dotfiles/issues/45) — make shell, font,
   and clipboard settings portable.
-- [#76](https://github.com/brianfiszman/dotfiles/issues/76) — load Telescope on
-  the first picker action.
+
+## Open — P2: CI follow-ups
+
+- [#91](https://github.com/brianfiszman/dotfiles/issues/91) — first feedback
+  optimization slice merged in PR #92 (`7857e87`); issue remains open for
+  broad plugin/Mason caching and behavior-suite parallelization, both deferred
+  until build-hook and mutable-state safety are proven.
 
 ## Recently completed
 
@@ -62,13 +61,28 @@ independently testable behavior.
 
 
 
-- [#89](https://github.com/brianfiszman/dotfiles/issues/89) — scope-aware
-  `S`, `o`, and `O`, merged in PR
-  [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`).
+- [#76](https://github.com/brianfiszman/dotfiles/issues/76) — load Telescope
+  and its extensions on the first picker action, merged in
+  [PR #104](https://github.com/brianfiszman/dotfiles/pull/104) as
+  [`47b55a4`](https://github.com/brianfiszman/dotfiles/commit/47b55a4e9b7cd9e68f4445a5471e18ea81566a00).
+  Exact PR head `49103aa1c118362a63e37a9818e570681b7fd44d` passed workflow
+  [#43796931858](https://github.com/brianfiszman/dotfiles/actions/runs/43796931858);
+  post-merge push workflow [#43800490473](https://github.com/brianfiszman/dotfiles/actions/runs/43800490473)
+  also passed on the merge commit. Chafa was unavailable in CI, so only the
+  multimedia preview interaction was skipped; extension setup was verified.
+- [#43](https://github.com/brianfiszman/dotfiles/issues/43) — parent tracking
+  lazy-loading for testing, debugging, and search; closed completed after all
+  three children (#74, #75, #76) were implemented, validated, and merged.
 
-- [#91](https://github.com/brianfiszman/dotfiles/issues/91) — Neovim CI feedback
-  optimization, merged as PR
-  [#92](https://github.com/brianfiszman/dotfiles/pull/92) (`7857e87`).
+- [#89](https://github.com/brianfiszman/dotfiles/issues/89) — scope-aware
+  `S`, `o`, and `O`, initially implemented in PR
+  [#93](https://github.com/brianfiszman/dotfiles/pull/93) (`e5d7fb5`);
+  reconfirmed on current Treesitter in PR #102. Brian confirmed the behavior
+  works; issue closed completed.
+- [#44](https://github.com/brianfiszman/dotfiles/issues/44) — migrate to current
+  upstream Treesitter APIs, including Mason CLI provisioning, merged in PR
+  [#102](https://github.com/brianfiszman/dotfiles/pull/102)
+  (`a0242f4`); issue #97 was superseded and closed.
 - [#42](https://github.com/brianfiszman/dotfiles/issues/42) — replace Neodev with
   Lazydev, merged as PR [#88](https://github.com/brianfiszman/dotfiles/pull/88)
   (`9e43312`).
