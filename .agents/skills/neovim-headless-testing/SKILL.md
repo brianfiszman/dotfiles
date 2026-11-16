@@ -95,6 +95,12 @@ end
   error, print the traceback and terminate Neovim with a non-zero exit (for
   example, `:cquit 1`). Do not let an exception skip the final `:qa!` and
   leave a headless process alive until the workflow timeout.
+- When invoking a user command that is expected to report a failure, capture
+  `nvim_cmd()` with `pcall()`. Some platform/version combinations surface an
+  ERROR-level notification as a synchronous command exception. Accept it only
+  when the command has already recorded the expected failed state and the
+  exception text matches the recorded actionable message; unexpected exceptions
+  and failures during success scenarios must still fail the test.
 - In platform-specific shell runners, stream Neovim output through `tee` while
   preserving the Neovim and log-writer exit statuses. File-only capture hides
   the last successful assertion when a process hangs or is cancelled.
