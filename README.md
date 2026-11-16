@@ -13,6 +13,8 @@ dein.vim or run a manual plugin-manager command.
 - Neovim 0.12.0 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
+- `make`, Rust/`cargo`, and a C build toolchain for Avante's native components.
+  On macOS, install the Xcode Command Line Tools separately.
 - A terminal with a Nerd Font is recommended for icons, but the font is not
   required to start Neovim.
 
@@ -77,6 +79,67 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
   server. Its `LspEslintFixAll` action still runs before saving an attached buffer.
 - Use `K` for symbol documentation, `<leader>DF` for the diagnostic under the
   cursor, and `[d` / `]d` to move between diagnostics.
+
+### AI assistant (Avante)
+
+Avante.nvim replaces the retired Codeium completion integration with local
+automatic inline suggestions, plus on-demand codebase chat, user-invoked edits,
+diff review, and agentic workflows. It stays unloaded during ordinary startup
+and loads on the first InsertEnter or an Avante command/key trigger.
+
+The default backend is **local Ollama** at `http://127.0.0.1:11434`, using
+`qwen3:8b`. Install Ollama separately, then start its service and download the
+model:
+
+```sh
+ollama serve
+ollama pull qwen3:8b
+```
+
+Skip `ollama serve` when the Ollama app/service is already running. Open Neovim
+and use:
+
+- Automatic inline suggestions appear while typing in Insert mode.
+- `<M-l>`: accept the current suggestion.
+- `<M-]>` / `<M-[>`: move to the next/previous suggestion.
+- `<C-]>`: dismiss the current suggestion.
+- `<leader>at`: open or close the Avante assistant sidebar.
+- `<leader>aa`: ask about the current code.
+- `<leader>ae` (Visual mode): edit the selected code.
+
+Override the local endpoint or model before launching Neovim:
+
+```sh
+export AVANTE_OLLAMA_ENDPOINT="http://127.0.0.1:11434"
+export AVANTE_OLLAMA_MODEL="qwen3:8b"
+```
+
+The model is downloaded and run by Ollama; local inference has no per-request
+API fee, but it uses local memory, compute, storage, and power. The default
+endpoint is loopback. Changing it to a remote endpoint sends the selected
+project context to that host.
+
+Automatic suggestions also respect the project's `.gitignore`, so they are
+not requested for Git-ignored files.
+
+The assistant's conversation/session history is still stored locally under
+Neovim's state directory (`stdpath("state")/avante`). Disabling prompt logging
+turns off the separate timestamped prompt replay/debug log; it does not disable
+the normal local conversation history.
+
+Avante's automatic inline suggestions are enabled and use the same local
+Ollama model as the assistant. Requests are paced with an 800 ms debounce and
+a 1200 ms throttle to limit repeated inference while typing. Upstream currently
+labels automatic suggestions experimental, so relevance and latency depend on
+the selected model and local hardware.
+
+Tool use still requires explicit permission prompts, generated diffs are not
+auto-applied, access to Git-ignored files is disabled, and prompt replay logging
+is off.
+
+The plugin's lazy.nvim `make` build hook compiles its native Rust components,
+so install `make`, Rust/Cargo, and a C toolchain before restoring plugins. The
+project does not install Ollama or operating-system packages for you.
 
 ### Optional: Python provider
 
