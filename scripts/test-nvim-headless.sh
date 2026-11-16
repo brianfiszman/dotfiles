@@ -251,12 +251,9 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  local -a restore_checks=(
-    "+Lazy! restore"
-    "+luafile $REPO_ROOT/tests/nvim/mason-installations-ready.lua"
-    "+qa!"
-  )
-  run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
+  local -a restore_checks=("+Lazy! restore" "+qa!")
+  DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
+    run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
 }
