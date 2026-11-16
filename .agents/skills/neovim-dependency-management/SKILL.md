@@ -80,24 +80,24 @@ Provider health is separate from Mason's tool registry.
 ### Python
 
 The Python provider requires Python 3.9+ and the `pynvim` Python package.
-Prefer a dedicated virtualenv or the documented `uv`/`pipx` installation
-path; do not use a global `pip --user` install.
+Keep it optional: ordinary Lua editing and Neovim startup must not depend on
+a Python provider being installed.
 
-For this repository, `init.lua` prefers this machine-local interpreter when
-present:
+Use `:DotfilesInstallPythonProvider` inside Neovim to opt in. The command uses
+`python3` from Neovim's `PATH`, stages a dedicated virtualenv under
+`${stdpath("data")}/python3-venv`, upgrades `pip`, installs `pynvim`, and verifies
+both `pynvim` and `neovim` imports before activating it. It replaces the previous
+environment only after validation succeeds, so missing Python, venv failures,
+package-install failures, and import failures do not destroy a working provider.
+It does not install Python globally or invoke an OS package manager.
 
-```text
-${stdpath("data")}/python3-venv/bin/python
-```
-
-The README's explicit venv commands create that environment. A provider
-healthcheck that instead tries to launch a missing `pynvim-python` executable
-means automatic detection found a stale/unavailable launcher; Python itself
-may still be installed. Provision the dedicated venv, restart Neovim, and
-verify `:checkhealth vim.provider`.
+Restart Neovim after provisioning. Early `init.lua` setup selects the dedicated
+interpreter only when `vim.g.python3_host_prog` has not been configured manually.
+Verify the real provider with `:checkhealth vim.provider` after restart.
+The README documents an equivalent shell-based fallback.
 
 The provider is optional for ordinary Lua editing. Do not make its installation
-a first-start requirement. The repository's tracked follow-up is issue #66.
+a first-start requirement.
 
 ### Other providers
 
@@ -132,6 +132,13 @@ Examples:
 
 A green CI run proves only the exact source SHA and isolated environment that
 ran. It does not install a patch or dependency on the maintainer's Mac.
+
+A full `:checkhealth vim.provider` runs several optional providers in sequence.
+An earlier provider can abort the aggregate before Python is reached; for
+example, the Node check uses Neovim's configured `&shell`, so CI must provide
+the configured shell executable (this repository uses `/bin/zsh`). When the
+Python section is absent, inspect the whole report and fix the missing runtime
+prerequisite rather than weakening the Python assertion.
 
 Before changing dependencies or updating plugins, capture:
 

@@ -20,12 +20,10 @@ vim.opt.sessionoptions = { -- required
 -- optionally enable 24-bit colour
 vim.opt.termguicolors = true
 
--- Prefer an isolated pynvim environment when one has been created for this setup.
--- If the maintainer has configured a different Python host explicitly, respect it.
-local python_host = vim.fn.stdpath("data") .. "/python3-venv/bin/python"
-if vim.g.python3_host_prog == nil and vim.fn.executable(python_host) == 1 then
-  vim.g.python3_host_prog = python_host
-end
+-- Configure an explicitly provisioned Python provider before plugin/provider detection.
+-- The helper preserves a manually configured vim.g.python3_host_prog.
+local python_provider = require("core.python-provider")
+python_provider.configure_host()
 
 local uv = vim.uv or vim.loop
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -63,6 +61,7 @@ vim.opt.rtp:prepend(lazypath)
 
 require 'core.autocmds'
 require 'core.general'
+python_provider.setup()
 require 'plugins'
 require 'bindings.splitting'
 require 'bindings.tab'

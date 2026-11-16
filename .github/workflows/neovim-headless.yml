@@ -11,6 +11,7 @@ on:
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
+      - "scripts/test-python-provider-macos.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
       - "scripts/ci/**"
@@ -67,12 +68,71 @@ jobs:
           set -Eeuo pipefail
           bash -n install.sh
           bash -n scripts/test-nvim-headless.sh
+          bash -n scripts/test-python-provider-macos.sh
 
       - name: Validate lazy.nvim lockfile JSON
         run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
 
       - name: Test PR integration decision and fail-open behavior
         run: node --test tests/ci/neovim-integration-decision.test.cjs
+
+
+  python-provider-macos:
+    name: Python provider provisioning (macOS)
+    needs: integration-decision
+    if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python for the provider test
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned Neovim
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          case "$(uname -m)" in
+            arm64)
+              archive_name="nvim-macos-arm64.tar.gz"
+              archive_sha256="1dbd148222b051ba6c307c4d17a318ed083df018a4f6a5a0ce46955ffc9ab87b"
+              install_dir="nvim-macos-arm64"
+              ;;
+            x86_64)
+              archive_name="nvim-macos-x86_64.tar.gz"
+              archive_sha256="481424f1dbc85f637d57e47d27d042aa9c883e5a4fe9ee64fc4ee9573b221998"
+              install_dir="nvim-macos-x86_64"
+              ;;
+            *)
+              printf 'Unsupported macOS runner architecture: %s\n' "$(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+
+          archive="$RUNNER_TEMP/$archive_name"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/v0.12.6/$archive_name" \
+            --output "$archive"
+          printf '%s  %s\n' "$archive_sha256" "$archive" | shasum --algorithm 256 --check
+          xattr -c "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/$install_dir/bin" >> "$GITHUB_PATH"
+
+      - name: Verify the macOS runtime
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          nvim --version | sed -n '1,3p'
+          python3 --version
+          command -v git
+
+      - name: Run isolated real provider provisioning and fresh-start checks
+        run: bash ./scripts/test-python-provider-macos.sh
 
   headless-startup:
     name: Fresh install and headless startup (Neovim ${{ matrix.neovim-version }})
@@ -138,8 +198,9 @@ jobs:
             libreadline-dev
             liblua5.1-0-dev
             lua5.1
-            python3-pynvim
+            python3-venv
             ripgrep
+            zsh
           )
           missing_packages=()
 
@@ -160,7 +221,9 @@ jobs:
 
           command -v fdfind >/dev/null
           command -v rg >/dev/null
-          python3 -c 'import pynvim; print("pynvim:", pynvim.__version__)'
+          command -v zsh >/dev/null
+          test -x /bin/zsh
+          python3 -m venv --help > /dev/null
           test -f /usr/include/readline/readline.h
           test -f /usr/include/lua5.1/lua.h
 
