@@ -88,12 +88,23 @@ local function exercise_mouse_wheel(direction, comparison, description, next_ste
   local winid = vim.api.nvim_get_current_win()
   local before = vim.fn.line("w0")
   local position = vim.api.nvim_win_get_position(winid)
+  local screen_position = vim.fn.win_screenpos(winid)
   local info = vim.fn.getwininfo(winid)[1]
-  local row = position[1] + math.floor(vim.api.nvim_win_get_height(winid) / 2)
-  local col = position[2] + (info.textoff or 0) + 1
+  local expected_row = screen_position[1] - 1
+  local expected_col = screen_position[2] - 1
+  check(description .. " window position APIs agree", true,
+    position[1] == expected_row and position[2] == expected_col)
 
-  print(("INFO: %s before_top=%d row=%d col=%d textoff=%d"):format(
-    description, before, row, col, info.textoff or 0
+  -- nvim_input_mouse(grid=0) expects screen-global, zero-based coordinates.
+  -- Aim in the middle of the actual text area, not the number/sign gutter.
+  local row = expected_row + math.floor(info.height / 2)
+  local col = expected_col + (info.textoff or 0) + math.max(
+    1, math.floor((info.width - (info.textoff or 0)) / 2)
+  )
+  print(("INFO: %s before_top=%d winid=%d winrow=%d wincol=%d width=%d height=%d textoff=%d position=%d,%d screenpos=%d,%d mouse=%d,%d"):format(
+    description, before, winid, info.winrow, info.wincol, info.width, info.height,
+    info.textoff or 0, position[1], position[2],
+    screen_position[1], screen_position[2], row, col
   ))
 
   -- nvim_input_mouse() is non-blocking. Return to Neovim's main loop after
