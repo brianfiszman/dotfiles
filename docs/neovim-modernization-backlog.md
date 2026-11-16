@@ -31,8 +31,9 @@ independently testable behavior.
   lint runs while typing/opening files.
 - [#39](https://github.com/brianfiszman/dotfiles/issues/39) — define Tab and
   Shift-Tab once.
-- [#69](https://github.com/brianfiszman/dotfiles/issues/69) — activate Codeium on
-  Insert mode; empty-buffer deferral is validated, first activation is not.
+- [#69](https://github.com/brianfiszman/dotfiles/issues/69) — original Codeium
+  InsertEnter work is superseded pending provider selection; its upstream client
+  is archived and users report that completions no longer respond.
 
 
 ## Open — P1: reliable language and navigation tools
@@ -41,6 +42,12 @@ independently testable behavior.
   pass debug arguments.
 - [#45](https://github.com/brianfiszman/dotfiles/issues/45) — make shell, font,
   and clipboard settings portable.
+
+## Open — P1: plugin choices and alternatives
+
+- [#107](https://github.com/brianfiszman/dotfiles/issues/107) — retrospectively
+  review every active plugin against its actual role, upstream health, native
+  capabilities, maintained alternatives, and removal; audit only, no bulk migration.
 
 ## Open — P2: CI follow-ups
 
