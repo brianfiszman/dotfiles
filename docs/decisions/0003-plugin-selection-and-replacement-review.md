@@ -20,6 +20,13 @@ lock-in, portability, and migration/rollback effort. Cite dated upstream evidenc
 and record uncertainties. Conclude with keep, replace, remove, or defer. No
 unrelated bulk updates.
 
+For discovery and research methodology, follow
+[the dependency-research skill](../../.agents/skills/dependency-research/SKILL.md).
+It requires unseeded discovery, live GitHub stars, the last commit on the actual
+default branch, role-level feature verification, and a separate accounting of
+plugin licensing, model/backend pricing, local infrastructure, quotas, and data
+terms.
+
 Any chosen implementation still needs behavior-first unit/integration/end-to-end
 tests appropriate to the user-visible path. For external AI providers, a healthy
 startup or a registered keymap is not enough: authentication and actual returned
@@ -33,97 +40,163 @@ they remain the best choices today. Issue [#107](https://github.com/brianfiszman
 tracks a retrospective inventory of every active plugin spec. It is an audit
 only; recommended migrations must become separately scoped and tested work.
 
-## Immediate case: AI inline completion
+## Immediate case: AI tools for Neovim
 
-The current `ai/codeium.lua` spec uses `Exafunction/codeium.vim`. Its canonical
-Vim/Neovim repository, `Exafunction/windsurf.vim`, and the companion
-`Exafunction/windsurf.nvim` repository were archived on 2026-10-13. The
-community replacement `monkoose/neocodeium` was archived on 2026-11-08; its
-README says Codeium/Windsurf/Devin server access was discontinued in November
-2026. Its maintainer also confirmed that completions no longer worked in
-[issue #74](https://github.com/monkoose/neocodeium/issues/74). Therefore the old
-[#69 InsertEnter-only change](https://github.com/brianfiszman/dotfiles/issues/69)
+### Blind discovery method
+
+This investigation deliberately did not use the name of the candidate Brian had
+previously favored. Initial searches were:
+
+- "Neovim AI coding assistant plugins inline completion agentic chat code editing"
+- "best Neovim AI plugins autocomplete ghost text chat coding agent comparison current"
+- "Neovim AI coding assistant plugins GitHub repository popularity alternatives code completion agent"
+
+Discovery sources included the GitHub catalogues
+[awesome-neovim-sorted](https://github.com/jupblb/awesome-neovim-sorted) and
+[neovim-ai-plugins](https://github.com/ColinKennedy/neovim-ai-plugins). They
+surfaced the project later identified as Avante as the top-popularity candidate,
+without seeding the search with its name. Its current GitHub API star count and
+latest default-branch commit were then verified directly.
+
+The metrics below were checked on **2026-11-16**. Stars are live repository API
+counts. "Latest commit" is the newest commit returned by the actual default
+branch's commits endpoint, not repository `updated_at` or `pushed_at`.
+
+| Project | Stars | Default branch / latest commit | Main utility | Cheapest workable path |
+|---|---:|---|---|---|
+| [Avante](https://github.com/avante-corp/avante.nvim) | 18,196 | `main` · Nov 16, 2026 | All-in-one chat, agentic edits/diffs, ACP/MCP; experimental automatic ghost suggestions | Plugin Apache-2.0/free; Ollama or llama.cpp local inference is $0 per request but needs hardware. Hosted APIs are usually billed; Gemini has a limited free API tier |
+| [Copilot.vim](https://github.com/github/copilot.vim) | 11,712 | `release` · Jan 9, 2026 | Official automatic inline completion | Copilot Free: 2,000 completions/month; paid plans for higher usage |
+| [CodeCompanion](https://github.com/olimorris/codecompanion.nvim) | 6,945 | `main` · Nov 13, 2026 | Chat, inline code transformations, code review, ACP/MCP agents; not automatic ghost-text completion | Plugin Apache-2.0/free; local Ollama needs no API key; hosted model APIs/subscriptions cost money |
+| [copilot.lua](https://github.com/zbirenbaum/copilot.lua) | 4,094 | `master` · Nov 12, 2026 | Automatic inline completions; optional Next Edit Suggestions integration | Copilot Free: 2,000 completions/month; Pro listed at $10/month |
+| [OpenCode.nvim](https://github.com/nickjvandyke/opencode.nvim) | 3,918 | `main` · Oct 30, 2026 | Neovim frontend for OpenCode CLI, prompts, context and diff review; not typing autocomplete | Plugin MIT/free; local Ollama/LM Studio/vLLM is free per request; ChatGPT Plus/Pro can use included plan usage; other API providers billed |
+| [CopilotChat.nvim](https://github.com/CopilotC-Nvim/CopilotChat.nvim) | 3,648 | `main` · Oct 23, 2026 | Chat with Copilot, diffs and custom providers; not automatic autocomplete | Plugin GPL-3.0/free; Copilot Free is limited, or configure a local provider such as Ollama |
+| [ClaudeCode.nvim](https://github.com/coder/claudecode.nvim) | 3,158 | `main` · Nov 16, 2026 | Neovim integration for the Claude Code CLI, terminal and proposed-edit diffs | Plugin MIT/free; Claude Code requires a Pro/Max subscription or billable Anthropic Console/enterprise access |
+| [Sidekick.nvim](https://github.com/folke/sidekick.nvim) | 2,820 | `main` · Sep 8, 2026 | Copilot Next Edit Suggestions plus a terminal for external AI CLIs | Plugin Apache-2.0/free; NES relies on Copilot LSP access and CLI usage follows each agent's pricing |
+| [llama.vim](https://github.com/ggml-org/llama.vim) | 2,205 | `master` · Sep 29, 2026 | Local LLM Fill-in-the-Middle completions | Plugin MIT/free; local llama.cpp inference avoids API charges but needs compute and model storage |
+| [Minuet](https://github.com/milanglacier/minuet-ai.nvim) | 1,463 | `main` · Oct 7, 2026 | Dedicated automatic inline completion with cloud and local providers | Plugin GPL-3.0/free; local Ollama/llama.cpp or a limited Gemini API free tier; other APIs billed |
+| [Agentic.nvim](https://github.com/carlos-algms/agentic.nvim) | 660 | `main` · Nov 8, 2026 | ACP chat frontend that reuses installed agent CLIs and their auth/config | Plugin MIT/free; actual model cost/limits come from the connected CLI or provider |
+| [Tabby vim-tabby](https://github.com/TabbyML/vim-tabby) | 119 | `main` · Jan 13, 2025 | Self-hosted ghost-text completion via Tabby server | Open-source/self-hosted; server compute is the cost. Plugin also needs a separate Node 18+ `tabby-agent`; upstream editor plugin is stale |
+
+This table is deliberately not a single score. Several high-star candidates solve
+different jobs; their popularity should not make them look interchangeable.
+
+### Findings by workflow
+
+**Best all-in-one candidate by the requested criteria: Avante.** It led the
+blind discovery set by a large margin, had 18,196 stars, and its main branch had
+a commit on the research date. Its utility is broad: chat, code edits/diffs,
+agentic mode, ACP/MCP providers, project instructions, and optional automatic
+suggestions. The plugin is Apache-2.0. It can use Ollama/llama.cpp locally, so a
+no-subscription setup is possible; the default provider is Claude, however, and
+hosted inference is not free merely because the plugin is.
+
+Important cautions from the actual current source:
+
+- `behaviour.auto_suggestions` is **experimental and false by default**.
+- The default suggestion debounce and throttle are both 600 ms.
+- The current implementation submits the buffer contents and diagnostics to the
+  selected LLM and displays structured virtual-text suggestions. This is not
+  necessarily as cheap, fast, or context-efficient as a dedicated completion API.
+- The default config currently has `auto_approve_tool_permissions = true` and
+  `prompt_logger.enabled = true` (logs are written under Neovim's cache path).
+  Disable automatic tool approval and prompt logging explicitly before using
+  agentic mode with real projects unless the user deliberately opts in.
+- Prebuilt Rust libraries are downloaded with `:AvanteBuild`; building from
+  source requires Cargo/Rust. Dependencies include Plenary, Nui, and
+  mega.cmdparse/mega.logging.
+- The project warns that the Copilot provider is risky for high-frequency
+  automatic suggestions; do not assume a Copilot subscription is a safe Avante
+  autocomplete backend.
+
+**Strongest all-in-one alternative: CodeCompanion.** It has 6,945 stars and a
+recent main-branch commit. It covers multi-provider chat, user-invoked inline
+transformations, code review, ACP, and MCP. It can use Ollama locally with no API
+key. Its inline interaction edits a buffer after a user prompt; it is not
+automatic ghost text while typing. This distinction matters when comparing it
+with the former Codeium role.
+
+**Dedicated inline completion choices:** copilot.lua, Minuet, llama.vim, and
+Avante's experimental suggestion engine. copilot.lua is actively maintained and
+the most straightforward turnkey hosted option, with Copilot Free's 2,000
+monthly completions or the paid Pro plan. Minuet has a more recent code commit
+than its star count might suggest and supports local or hosted models. llama.vim
+is a local FIM choice. Avante can provide inline suggestions, but they are
+currently experimental and more general-purpose than a dedicated completion
+engine.
+
+**Agent frontends:** OpenCode.nvim, ClaudeCode.nvim, and Agentic.nvim mainly
+connect Neovim to separate coding-agent CLIs. The plugin may be free while the
+agent requires an existing subscription, API billing, or local hardware.
+OpenCode documents local Ollama/LM Studio/vLLM providers and ChatGPT Plus/Pro
+authentication that consumes the plan's included usage.
+
+**Self-hosted option:** Tabby is conceptually attractive for local/private
+completion, but the Neovim editor plugin's latest default-branch commit is
+January 13, 2025. The current official setup also requires a Tabby server and a
+separate `tabby-agent` installed through npm (Node.js 18+). Do not recommend
+fresh adoption without further verification of the editor integration's
+maintenance.
+
+### Recommendation for Brian's criteria
+
+Avante is the clear first candidate to try as a **general AI coding assistant**:
+it is by far the most popular in the discovered set, its main branch was updated
+on the research date, it provides the broadest combined utility, and it has a
+genuinely free local-inference path. That is the result of the blind search, not
+a conclusion based on starting with its name.
+
+For the exact old Codeium autocomplete workflow, do not call Avante a proven
+drop-in replacement yet. Compare its experimental suggestions in a real editing
+session against copilot.lua and Minuet. If the goal is one general-purpose AI
+assistant rather than continuous completion, prioritize an Avante trial with
+safe tool/logging defaults; keep CodeCompanion as the serious alternative.
+
+### Pricing and free-use sources
+
+- [GitHub Copilot plans and Free/Pro limits](https://docs.github.com/en/copilot/get-started/plans)
+- [GitHub Copilot Free setup and 2,000 completion limit](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/enable-copilot/set-up-for-self)
+- [OpenCode provider authentication and subscription usage](https://opencode.ai/docs/providers)
+- [OpenCode local model configuration](https://opencode.ai/docs/models)
+- [Gemini API free tier and data policy](https://ai.google.dev/gemini-api/docs/pricing)
+- [Ollama local use and pricing](https://ollama.com/pricing)
+- [Claude Code authentication and subscription/API requirements](https://code.claude.com/docs/en/getting-started)
+- [Tabby self-hosted principles](https://tabby.tabbyml.com/docs/)
+- [Tabby Vim/Neovim server and agent requirements](https://tabby.tabbyml.com/docs/extensions/installation/vim/)
+
+### Technical sources
+
+- [Avante README](https://github.com/avante-corp/avante.nvim)
+- [Avante config defaults](https://github.com/avante-corp/avante.nvim/blob/main/lua/avante/config.lua)
+- [Avante suggestion implementation](https://github.com/avante-corp/avante.nvim/blob/main/lua/avante/suggestion.lua)
+- [Avante latest default-branch commit](https://github.com/avante-corp/avante.nvim/commit/045fc710fe2dfbe77c4b5aae58974f09953dd997)
+- [CodeCompanion inline interaction documentation](https://github.com/olimorris/codecompanion.nvim/blob/main/doc/configuration/inline.md)
+- [CodeCompanion local-model documentation](https://github.com/olimorris/codecompanion.nvim/blob/main/doc/codecompanion.txt)
+- [Copilot.lua README](https://github.com/zbirenbaum/copilot.lua)
+- [Minuet README](https://github.com/milanglacier/minuet-ai.nvim)
+- [llama.vim README](https://github.com/ggml-org/llama.vim)
+- [OpenCode.nvim README](https://github.com/nickjvandyke/opencode.nvim)
+- [ClaudeCode.nvim README](https://github.com/coder/claudecode.nvim)
+- [Agentic.nvim README](https://github.com/carlos-algms/agentic.nvim)
+- [Sidekick.nvim README](https://github.com/folke/sidekick.nvim)
+- [CopilotChat.nvim README](https://github.com/CopilotC-Nvim/CopilotChat.nvim)
+- [Tabby vim-tabby README](https://github.com/TabbyML/vim-tabby)
+
+## Earlier Codeium/Windsurf decision
+
+The current `ai/codeium.lua` spec uses `Exafunction/codeium.vim`. Its
+canonical Vim/Neovim repositories (`Exafunction/windsurf.vim` and
+`Exafunction/windsurf.nvim`) were archived on 2026-10-13. The community
+replacement `monkoose/neocodeium` was archived on 2026-11-08; its README says
+Codeium/Windsurf/Devin server access was discontinued in November 2026. Its
+maintainer confirmed that completions no longer worked in
+[NeoCodeium issue #74](https://github.com/monkoose/neocodeium/issues/74).
+Therefore the old [#69 InsertEnter-only change](https://github.com/brianfiszman/dotfiles/issues/69)
 must not be implemented as written. Lazy-loading does not restore a retired
-backend. No runtime removal or replacement has been made pending a trial.
+backend. No runtime removal or replacement has been made.
 
-### Candidates worth testing
+## Scope boundary
 
-- **[Avante](https://github.com/avante-corp/avante.nvim):** add this as a serious
-  all-in-one candidate, not just another completion plugin. It combines Cursor-like
-  chat/edit/diff and agentic workflows (including ACP/MCP integrations) with an
-  optional ghost-text auto-suggestion engine. Its `behaviour.auto_suggestions`
-  feature is currently **experimental and disabled by default**. Unlike a
-  dedicated next-token completion service, its implementation sends the current
-  buffer and diagnostics to the selected LLM after `InsertEnter`/`CursorMovedI`,
-  then renders structured, potentially multi-block edits as virtual text. The
-  default debounce and throttle are each 600 ms. Its own config warns that using
-  the Copilot provider for these high-frequency suggestions is dangerous because
-  of token-refresh/rate/account-suspension reports. The plugin is active (latest
-  tagged release v0.5.0 on 2026-10-31; commits continued on 2026-11-16), Apache-2.0,
-  and supports a broad provider/ACP model ecosystem. Trade-offs: experimental
-  suggestion quality/latency, higher request cost from repeated whole-buffer
-  prompts, extra runtime/build dependencies (Plenary, Nui, mega.cmdparse/logging,
-  and prebuilt Rust libraries or Cargo when building from source), and a broader
-  security surface. Current defaults enable prompt logging and auto-approve agent
-  tool permissions; those must be explicitly reviewed/disabled or scoped before
-  enabling agentic use.
-- **[Minuet](https://github.com/milanglacier/minuet-ai.nvim):** currently
-  maintained, supports cloud providers and local Ollama/llama.cpp, and provides
-  its own virtual-text ghost-completion frontend with incremental acceptance.
-  It avoids a proprietary background binary and uses Neovim's built-in
-  `vim.system` plus curl. It needs an API key for hosted providers or local
-  inference infrastructure; model quality, latency, and ongoing inference cost
-  depend on the selected backend. Its license is GPL-3.0.
-- **[GitHub Copilot](https://github.com/zbirenbaum/copilot.lua):** maintained
-  turnkey hosted alternative. The plugin requires Neovim 0.11+ and defaults to
-  GitHub's native Copilot Language Server; first use downloads a platform
-  binary of roughly 75–110 MB. Copilot Free currently caps inline suggestions
-  at 2,000 completions/month; Pro is listed at USD 10/month, with a separate
-  monthly AI-credit allowance for premium model features. It is the simplest
-  cloud-service trial, but brings vendor/account dependence.
-- **[Tabby](https://github.com/TabbyML/vim-tabby):** self-hosted option with
-  ghost-text completions. It requires a Tabby server plus a separate
-  `tabby-agent` Node.js component (Node 18+), so it offers greater control at a
-  higher setup and operations cost. The server and editor extension must be
-  assessed separately for maintenance health.
-- **[Supermaven](https://supermaven.com/blog/sunsetting-supermaven):** not a
-  default new-adoption recommendation. Its official sunset announcement was
-  2025-11-21; free autocomplete inference was promised for existing Neovim and
-  JetBrains customers, not as a new, actively developed service.
-
-### Current recommendation
-
-Trial Avante, Minuet, and Copilot in a controlled comparison, but do not
-pretend their suggestion engines are equivalent. Avante is the strongest
-all-in-one candidate and merits testing for both inline suggestions and agentic
-editing; Minuet is the provider-flexible dedicated completion candidate; Copilot
-is the turnkey hosted-completion baseline. Evaluate Avante's experimental
-auto-suggestions separately from its chat/agent workflows. Do not configure
-Avante's auto-suggestion provider as Copilot until its high-frequency auth/cost
-risk is resolved. Include Tabby if self-hosting or code privacy becomes a deciding
-requirement. Measure suggestion relevance, time-to-first-suggestion,
-throughput/latency, acceptance ergonomics, false positives, interruption rate,
-startup impact, authentication reliability, request volume, and cost. For Avante
-agent workflows, also test tool safety, diff review, multi-file correctness, and
-prompt-history privacy. Do not choose on feature lists or popularity alone.
-
-## Sources checked on 2026-11-16
-
-- [Exafunction/windsurf.vim archive](https://github.com/Exafunction/windsurf.vim)
-- [Exafunction/windsurf.nvim archive](https://github.com/Exafunction/windsurf.nvim)
-- [NeoCodeium archived repository and service notice](https://github.com/monkoose/neocodeium)
-- [NeoCodeium service failure report and maintainer confirmation](https://github.com/monkoose/neocodeium/issues/74)
-- [Avante README and installation/dependency requirements](https://github.com/avante-corp/avante.nvim)
-- [Avante current configuration and suggestion defaults](https://github.com/avante-corp/avante.nvim/blob/main/lua/avante/config.lua)
-- [Avante automatic suggestion implementation](https://github.com/avante-corp/avante.nvim/blob/main/lua/avante/suggestion.lua)
-- [Avante v0.5.0 release and Rust/ACP build changes](https://github.com/avante-corp/avante.nvim/releases/tag/v0.5.0)
-- [Avante Copilot high-frequency token refresh issue #1048](https://github.com/yetone/avante.nvim/issues/1048)
-- [Minuet README and provider/frontend documentation](https://github.com/milanglacier/minuet-ai.nvim)
-- [Minuet release history](https://github.com/milanglacier/minuet-ai.nvim/releases)
-- [Copilot Lua README](https://github.com/zbirenbaum/copilot.lua)
-- [Copilot plans and inline suggestion limits](https://docs.github.com/en/copilot/get-started/plans)
-- [Tabby Vim/Neovim integration requirements](https://tabby.tabbyml.com/docs/extensions/installation/vim/)
-- [Supermaven sunset announcement](https://supermaven.com/blog/sunsetting-supermaven)
-
-No plugin spec, lockfile, runtime behavior, or installed dependency was changed
-as part of this decision.
+This record is research and decision guidance only. No plugin specification,
+lockfile, runtime behavior, installed dependency, or test harness was changed.
+A later Avante/CodeCompanion/Copilot/Minuet trial or migration must be separately
+scoped and validated against the actual user workflow.
