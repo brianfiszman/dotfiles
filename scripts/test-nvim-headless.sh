@@ -123,7 +123,7 @@ run_nvim() {
     if ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
         TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
-          script -qef /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
+          script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
       else
         TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
           script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
@@ -137,7 +137,7 @@ run_nvim() {
     printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
     if ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
-        TERM=xterm-256color script -qef /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
+        TERM=xterm-256color script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
       else
         TERM=xterm-256color script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
       fi
