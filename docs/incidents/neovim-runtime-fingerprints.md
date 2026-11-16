@@ -136,3 +136,26 @@ and awaits parser readiness. Keep the DAP adapter provisioning test on the
 explicit first-use `:DapInstall` path in
 `tests/nvim/dap-mason-command-trigger.lua`, where its event listeners are
 registered before the install is triggered.
+
+
+## Go.nvim and standalone current-API textobjects
+
+The locked go.nvim revision
+`0d426e87227dd14584881ecc595c173121456111` loaded
+`nvim-treesitter.configs` from `lua/go/ts/textobjects.lua` whenever a Go
+buffer loaded. That module does not exist in `nvim-treesitter/main`, so the
+Go lazy-loading smoke test failed in the scheduled go.nvim setup callback.
+
+The latest go.nvim master adds a guarded require so the optional legacy
+textobjects hook no longer crashes, but it still does not implement the
+current standalone textobjects API. Update the lockfile to that upstream
+revision and explicitly set `textobjects = false` in `go.setup()`. Preserve
+the actual Go textobject behavior through
+`nvim-treesitter/nvim-treesitter-textobjects/main`: configure its standalone
+`setup()` API and buffer-local Go mappings for `af`, `if`, `ac`, `ic`,
+`]]`, `][`, `[[`, and `[]`.
+
+Keep an end-to-end Go fixture that asserts the module
+`nvim-treesitter.configs` remains unloaded, then exercises selection of
+functions/structs and movement between function boundaries through real
+Neovim input.
