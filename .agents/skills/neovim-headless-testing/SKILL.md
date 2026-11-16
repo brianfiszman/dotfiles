@@ -91,6 +91,23 @@ end
 - Do not add a probe notebook. Keep diagnostics as assertions in the test file
   and remove temporary prints before review.
 
+## Asynchronous errors and unrelated integrations
+
+A headless Neovim process can exit with status 0 after an exception in a
+scheduled callback. The runner must treat visible asynchronous callback errors
+such as `vim.schedule callback` and `Invalid buffer id:` as test failures;
+do not rely only on Neovim's exit status or synchronous Lua error patterns.
+
+Keep each behavioral test's scope narrow. When a test repeatedly creates and
+deletes temporary buffers to verify editing or indentation, disable unrelated
+LSP auto-activation in that disposable process with
+`vim.lsp.enable(configured_servers, false)` and assert that no clients remain.
+Plugins such as Lspsaga can schedule document-symbol requests after buffer
+changes; those callbacks may outlive a temporary buffer and produce misleading
+failures in a test that does not exercise LSP. Do not apply this isolation to
+tests whose purpose is to verify LSP attachment, requests, completion, or
+diagnostics, and do not globally suppress the resulting callback errors.
+
 ## Fixture isolation
 
 Before asserting line or editing behavior, reset every option that can move the
