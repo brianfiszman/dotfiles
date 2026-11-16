@@ -187,6 +187,12 @@ local M = {
         auto_update = true,
         run_on_start = false,
         start_delay = 0,
+        -- The installer otherwise requires mason-nvim-dap.mappings.source.
+        -- Lazy treats that module require as a plugin trigger, which eagerly
+        -- loads the DAP stack during every normal startup.
+        integrations = {
+          ["mason-nvim-dap"] = false,
+        },
       },
     },
     {
