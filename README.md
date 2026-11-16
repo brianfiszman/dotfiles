@@ -82,9 +82,10 @@ that Git is installed and that the network can reach GitHub, then restart Neovim
 
 ### AI assistant (Avante)
 
-Avante.nvim provides on-demand codebase chat, user-invoked edits, diff review,
-and agentic workflows inside Neovim. It is loaded only when you use one of its
-keymaps or commands; it does not start a model request during ordinary startup.
+Avante.nvim replaces the retired Codeium completion integration with local
+automatic inline suggestions, plus on-demand codebase chat, user-invoked edits,
+diff review, and agentic workflows. It stays unloaded during ordinary startup
+and loads on the first InsertEnter or an Avante command/key trigger.
 
 The default backend is **local Ollama** at `http://127.0.0.1:11434`, using
 `qwen3:8b`. Install Ollama separately, then start its service and download the
@@ -98,6 +99,10 @@ ollama pull qwen3:8b
 Skip `ollama serve` when the Ollama app/service is already running. Open Neovim
 and use:
 
+- Automatic inline suggestions appear while typing in Insert mode.
+- `<M-l>`: accept the current suggestion.
+- `<M-]>` / `<M-[>`: move to the next/previous suggestion.
+- `<C-]>`: dismiss the current suggestion.
 - `<leader>at`: open or close the Avante assistant sidebar.
 - `<leader>aa`: ask about the current code.
 - `<leader>ae` (Visual mode): edit the selected code.
@@ -119,12 +124,15 @@ Neovim's state directory (`stdpath("state")/avante`). Disabling prompt logging
 turns off the separate timestamped prompt replay/debug log; it does not disable
 the normal local conversation history.
 
-Avante's defaults are tightened in this configuration: tool use requires
-permission prompts, generated diffs are not auto-applied, access to Git-ignored
-files is disabled, and prompt logging is off. **Automatic inline suggestions
-remain disabled** because Avante currently documents that feature as
-experimental and high-frequency. It is not yet considered a validated
-replacement for the retired Codeium completion workflow; see issue #69.
+Avante's automatic inline suggestions are enabled and use the same local
+Ollama model as the assistant. Requests are paced with an 800 ms debounce and
+a 1200 ms throttle to limit repeated inference while typing. Upstream currently
+labels automatic suggestions experimental, so relevance and latency depend on
+the selected model and local hardware.
+
+Tool use still requires explicit permission prompts, generated diffs are not
+auto-applied, access to Git-ignored files is disabled, and prompt replay logging
+is off.
 
 The plugin's lazy.nvim `make` build hook compiles its native Rust components,
 so install `make`, Rust/Cargo, and a C toolchain before restoring plugins. The

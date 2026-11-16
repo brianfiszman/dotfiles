@@ -5,6 +5,7 @@ return {
   "yetone/avante.nvim",
   version = false,
   build = "make",
+  event = "InsertEnter",
   cmd = {
     "Avante",
     "AvanteAsk",
@@ -42,7 +43,7 @@ return {
       },
     },
     behaviour = {
-      auto_suggestions = false,
+      auto_suggestions = true,
       auto_set_keymaps = true,
       auto_apply_diff_after_generation = false,
       auto_approve_tool_permissions = false,
@@ -52,6 +53,10 @@ return {
     -- Prompts and project code should not be copied into a local replay log.
     prompt_logger = {
       enabled = false,
+    },
+    suggestion = {
+      debounce = 800,
+      throttle = 1200,
     },
   },
 }

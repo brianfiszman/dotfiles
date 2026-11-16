@@ -1,5 +1,5 @@
--- Verify Avante is idle until the maintainer invokes its actual keymap,
--- then assert the loaded provider and safety-sensitive settings.
+-- Verify Avante stays unloaded during ordinary startup, lazy-loads on the
+-- first real InsertEnter event, and uses Ollama for automatic suggestions.
 
 local function wait_for(description, timeout_ms, predicate)
   assert(vim.wait(timeout_ms, predicate, 25), ("Timed out waiting for %s"):format(description))
@@ -11,21 +11,26 @@ assert(lazy.plugins["codeium.vim"] == nil, "retired Codeium plugin is still decl
 assert(package.loaded["avante"] == nil, "Avante loaded during ordinary startup")
 assert(package.loaded["avante.config"] == nil, "Avante configuration loaded during ordinary startup")
 
-local leader = vim.g.mapleader or "\\"
-assert(vim.fn.maparg(leader .. "at", "n") ~= "", "Avante toggle keymap is missing")
-assert(vim.fn.maparg(leader .. "aa", "n") ~= "", "Avante ask keymap is missing")
-assert(vim.fn.maparg(leader .. "ae", "v") ~= "", "Avante visual-edit keymap is missing")
+local function has_event(event)
+  if type(avante_spec.event) == "string" then return avante_spec.event == event end
+  return vim.tbl_contains(avante_spec.event or {}, event)
+end
+
+assert(has_event("InsertEnter"), "Avante must load on the first InsertEnter for automatic completion")
+assert(vim.fn.maparg("<Space>at", "n") ~= "", "Avante toggle keymap is missing")
+assert(vim.fn.maparg("<Space>aa", "n") ~= "", "Avante ask keymap is missing")
+assert(vim.fn.maparg("<Space>ae", "v") ~= "", "Avante visual-edit keymap is missing")
 assert(vim.fn.exists(":Avante") == 2, "Avante command is not registered as a lazy trigger")
 assert(type(avante_spec.opts) == "table", "Avante opts were not registered with lazy.nvim")
 
-print("PASS: Avante stays unloaded during idle startup and exposes its user keymaps/command")
+print("PASS: Avante stays unloaded during idle startup and is registered for InsertEnter")
 
--- Replay the real normal-mode mapping, including lazy.nvim's remapping handler.
-local keys = vim.api.nvim_replace_termcodes(leader .. "at", true, false, true)
-vim.api.nvim_feedkeys(keys, "mtx", false)
-wait_for("the Avante module to load from <leader>aa", 30000, function()
+-- Use Neovim's real InsertEnter event path rather than manually requiring the plugin.
+vim.api.nvim_feedkeys("i", "xt", false)
+wait_for("Avante to load on InsertEnter", 30000, function()
   return package.loaded["avante"] ~= nil and package.loaded["avante.config"] ~= nil
 end)
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "xt", false)
 
 assert(vim.fn.exists(":AvanteAsk") == 2, "AvanteAsk command was not registered after loading")
 assert(vim.fn.exists(":AvanteBuild") == 2, "AvanteBuild command was not registered after loading")
@@ -42,12 +47,19 @@ assert(config.providers.ollama.model == expected_model,
   "Ollama model mismatch: expected " .. expected_model .. ", got " .. tostring(config.providers.ollama.model))
 assert(type(config.providers.ollama.is_env_set) == "function", "Ollama endpoint check is not configured")
 
-assert(config.behaviour.auto_suggestions == false, "experimental automatic suggestions must be off by default")
+assert(config.behaviour.auto_suggestions == true, "automatic inline suggestions must be enabled")
+assert(config.suggestion.debounce == 800, "automatic suggestion debounce must be 800 ms")
+assert(config.suggestion.throttle == 1200, "automatic suggestion throttle must be 1200 ms")
 assert(config.behaviour.auto_approve_tool_permissions == false, "agent tools must require permission prompts")
 assert(config.behaviour.auto_apply_diff_after_generation == false, "generated diffs must remain reviewable")
 assert(config.behaviour.allow_access_to_git_ignored_files == false, "git-ignored files must stay inaccessible")
 assert(config.prompt_logger.enabled == false, "prompt logging must be disabled")
 
-print("PASS: Avante loads on the real keymap and selects the configured local Ollama provider")
-print("PASS: tool permissions, diff review, ignored-file access, prompt logging, and auto-suggestions use safe defaults")
-print("INFO: no model request was made; live Ollama inference is covered by the documented manual smoke test")
+assert(vim.fn.maparg("<M-l>", "i") ~= "", "Avante suggestion accept mapping is missing")
+assert(vim.fn.maparg("<M-]>", "i") ~= "", "Avante next-suggestion mapping is missing")
+assert(vim.fn.maparg("<M-[>", "i") ~= "", "Avante previous-suggestion mapping is missing")
+assert(vim.fn.maparg("<C-]>", "i") ~= "", "Avante dismiss-suggestion mapping is missing")
+
+print("PASS: Avante loads on InsertEnter and uses the configured local Ollama model for automatic suggestions")
+print("PASS: suggestion pacing, accept/dismiss mappings, tool permissions, diff review, ignored-file access, and prompt logging use the expected settings")
+print("INFO: CI validates the automatic-suggestion activation/configuration path; a live model response still requires a local Ollama smoke test")
