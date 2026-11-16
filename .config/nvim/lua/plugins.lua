@@ -146,11 +146,11 @@ require("lazy").setup({
   },
   {
     "tiagovla/scope.nvim",
-    dependencies = { 'telescope.nvim' },
+    -- Scope owns tab-local buffer behavior independently of Telescope.
+    -- Its Telescope extension is registered when the first picker is opened.
     config = function()
-      require "scope".setup()
-      require 'telescope'.load_extension('scope')
-    end
+      require("scope").setup()
+    end,
   },
   {
     'yamatsum/nvim-cursorline',

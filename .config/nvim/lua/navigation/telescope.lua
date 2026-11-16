@@ -1,9 +1,24 @@
 local M = {
   "nvim-telescope/telescope.nvim",
+  lazy = true,
+  cmd = "Telescope",
+  -- These keys are also declared in config via Which-Key. Lazy.nvim installs
+  -- temporary triggers and replays the user's first key after configuration.
+  keys = {
+    "<leader>bb",
+    "<leader>fb",
+    "<leader>fc",
+    "<leader>ff",
+    "<leader>fp",
+    "<leader>ft",
+    "<leader>fh",
+    "<leader>fl",
+    "<leader>fr",
+  },
   dependencies = {
-    'nvim-lua/plenary.nvim',
-    'nvim-telescope/telescope-media-files.nvim',
-    { "nvim-telescope/telescope-fzf-native.nvim", build = "make", lazy = true }
+    "nvim-lua/plenary.nvim",
+    "nvim-telescope/telescope-media-files.nvim",
+    { "nvim-telescope/telescope-fzf-native.nvim", build = "make", lazy = true },
   },
 }
 
@@ -24,8 +39,6 @@ function M.config()
   local icons = require "core.icons"
   local actions = require "telescope.actions"
   local telescope = require("telescope")
-
-  telescope.load_extension('media_files')
 
   telescope.setup {
     defaults = {
@@ -138,7 +151,13 @@ function M.config()
     },
   }
 
-
+  -- Extensions consume the options registered by setup(), so load them only
+  -- after Telescope has its final configuration. The integrations that provide
+  -- these modules remain available without requiring Telescope during startup.
+  for _, extension in ipairs({ "fzf", "media_files", "projects", "scope", "lazygit" }) do
+    local ok, err = pcall(telescope.load_extension, extension)
+    assert(ok, ("Failed to load Telescope extension %s: %s"):format(extension, err))
+  end
 end
 
 return M

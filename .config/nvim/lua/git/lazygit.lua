@@ -43,7 +43,8 @@ function M.config()
 
   vim.g.lazygit_floating_window_use_plenary = 1 -- use plenary.nvim to manage floating window if available
 
-  require('telescope').load_extension('lazygit')
+  -- Keep this integration on the runtimepath for Telescope's first-use setup.
+  -- Requiring Telescope here would defeat its lazy command/key triggers.
 end
 
 return M

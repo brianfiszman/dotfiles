@@ -316,6 +316,21 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/neotest-lazy-loading.lua" \
     "+qa!"
 
+  printf '\n[behavior] Verifying Telescope and extensions load only on the first picker action.\n'
+  run_nvim "telescope-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/telescope-lazy-loading.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying the :Telescope command is a working first-use trigger.\n'
+  run_nvim "telescope-command-trigger" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/telescope-command-trigger.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying project.nvim can lazy-load Telescope through its module trigger.\n'
+  run_nvim "telescope-project-module-trigger" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/telescope-project-module-trigger.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying Go tooling loads only for Go-related filetypes.\n'
   run_nvim "go-lazy-loading-go" "$NVIM_STARTUP_TIMEOUT" \
     "+lua assert(package.loaded['go'] == nil, 'go.nvim loaded during an unrelated startup'); vim.cmd('setfiletype text'); assert(vim.bo.filetype == 'text', 'non-Go test buffer was not set to text'); vim.api.nvim_exec_autocmds('CmdlineEnter', { modeline = false }); assert(package.loaded['go'] == nil, 'go.nvim loaded on CmdlineEnter in a non-Go buffer'); print('PASS: CmdlineEnter in a text buffer leaves go.nvim unloaded'); vim.cmd('enew'); vim.cmd('setfiletype go'); assert(package.loaded['go'] ~= nil, 'go.nvim did not load for the Go filetype'); assert(vim.fn.exists(':GoBuild') == 2, 'GoBuild command is missing after Go plugin load'); print('PASS: Go filetype loads go.nvim and registers :GoBuild')" \
