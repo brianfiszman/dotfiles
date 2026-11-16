@@ -51,10 +51,6 @@ local function has_query(language, query_name)
   return ok and query ~= nil
 end
 
-local indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-local install_timeout_ms = 20 * 60 * 1000
-local updating_parsers = false
-
 local function configure_buffer(bufnr)
   if not vim.api.nvim_buf_is_loaded(bufnr) then
     return
