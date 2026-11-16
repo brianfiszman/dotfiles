@@ -29,8 +29,12 @@ vim.cmd("checkhealth vim.provider")
 local health_buffer = vim.fn.bufnr("health://")
 check("checkhealth created its report buffer", true, health_buffer > 0)
 local report = table.concat(vim.api.nvim_buf_get_lines(health_buffer, 0, -1, true), "\n")
-check("Python provider health reports installed pynvim",
-  true, report:find("Latest pynvim is installed.", 1, true) ~= nil)
+-- Health also compares the installed package with live PyPI metadata. Assert
+-- provider health itself, not whether an external release appeared during CI.
+check("Python provider health reports the configured interpreter",
+  true, report:find(expected_python, 1, true) ~= nil)
+check("Python provider health reports an installed pynvim version",
+  true, report:find("pynvim version:", 1, true) ~= nil)
 check("Python provider health does not report a missing pynvim module",
   false, report:find("pynvim is not installed", 1, true) ~= nil)
 
