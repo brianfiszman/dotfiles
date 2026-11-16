@@ -14,6 +14,13 @@ _G.DotfilesTestIndent = function()
   return 4
 end
 
+-- This scenario verifies editing/indentation only. Keep LSP clients disabled while
+-- cycling through disposable buffers so unrelated document-symbol requests
+-- (for example, lspsaga's asynchronous requests) cannot outlive their buffers.
+local lsp_config = require("lsp.config")
+vim.lsp.enable(lsp_config.servers, false)
+assert(#vim.lsp.get_clients() == 0, "indentation test must not leave LSP clients active")
+
 local temp_files = {}
 local current_parser_language = "none"
 
