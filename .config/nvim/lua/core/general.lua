@@ -61,7 +61,6 @@ set encoding=utf-8
 
 let g:ackprg = 'ag --vimgrep'
 
-let g:comfortable_motion_no_default_key_mappings = 1
 
 let g:db_ui_auto_execute_table_helpers = 1
 let g:cursorhold_updatetime = 100

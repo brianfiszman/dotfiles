@@ -289,6 +289,11 @@ startup() {
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
 
+  printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
+  run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/scrolling.lua" \
+    "+qa!"
+
   printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
   run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \
