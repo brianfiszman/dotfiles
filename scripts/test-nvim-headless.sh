@@ -103,7 +103,11 @@ run_nvim() {
     printf '[startup] Diagnostic trace: %s\n' "$startup_verbose_file"
   fi
 
-  printf '\n[%s] Starting Neovim headless (limit: %s).\n' "$label" "$time_limit"
+  if ((use_pty)); then
+    printf '\n[%s] Starting Neovim in a PTY-backed TUI (limit: %s).\n' "$label" "$time_limit"
+  else
+    printf '\n[%s] Starting Neovim headless (limit: %s).\n' "$label" "$time_limit"
+  fi
   printf '[%s] Live output follows; the full log is saved to %s\n' "$label" "$log_file"
 
   # Stream output to the Actions console while preserving a complete log file.
@@ -117,8 +121,13 @@ run_nvim() {
   set +e
   if command -v timeout >/dev/null 2>&1; then
     if ((use_pty)); then
-      TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
-        script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+      if [[ "${OSTYPE:-}" == darwin* ]]; then
+        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+          script -qef /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
+      else
+        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+          script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+      fi
     else
       timeout --signal=TERM --kill-after=30s "$time_limit" \
         "${nvim_command[@]}" 2>&1 | tee "$log_file"
@@ -127,7 +136,11 @@ run_nvim() {
   else
     printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
     if ((use_pty)); then
-      TERM=xterm-256color script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+      if [[ "${OSTYPE:-}" == darwin* ]]; then
+        TERM=xterm-256color script -qef /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
+      else
+        TERM=xterm-256color script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+      fi
     else
       "${nvim_command[@]}" 2>&1 | tee "$log_file"
     fi
