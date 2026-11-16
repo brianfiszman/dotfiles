@@ -58,8 +58,9 @@ end
 local function close_picker()
   local picker = current_picker()
   assert(picker ~= nil, "Expected an open Telescope picker before closing it")
-  vim.api.nvim_set_current_win(picker.prompt_win)
-  feed("<Esc>")
+  -- This is test cleanup, not the mapping under test. Use Telescope's close
+  -- action directly so cleanup does not depend on the prompt's current mode.
+  require("telescope.actions").close(picker.prompt_bufnr)
   wait_for("Telescope picker to close", 10000, function()
     return current_picker() == nil
   end)
@@ -119,15 +120,11 @@ vim.cmd("cd " .. vim.fn.fnameescape(workspace))
 vim.cmd("edit " .. vim.fn.fnameescape(fixture))
 vim.cmd("enew")
 
-print("STEP: invoking the real <leader>ff mapping")
-feed(leader .. "ff")
-local file_picker = wait_for_picker("Find Files")
-wait_for("find_files to return the fixture", 30000, function()
-  return picker_has_entry(function(entry)
-    return tostring(entry.filename or entry.value or ""):find("needle-telescope-result.txt", 1, true) ~= nil
-  end)
-end)
-pass("the real <leader>ff mapping opens find_files and returns the expected file")
+print("STEP: invoking <leader>fp as the first Telescope action")
+feed(leader .. "fp")
+wait_for_picker("Recent Projects")
+pass("<leader>fp is a working first-use trigger for the project.nvim extension")
+close_picker()
 
 local telescope = require("telescope")
 local config = require("telescope.config").values
@@ -150,6 +147,17 @@ end
 pass("all nine documented picker mappings remain available after Telescope loads")
 close_picker()
 
+print("STEP: invoking the real <leader>ff mapping")
+feed(leader .. "ff")
+wait_for_picker("Find Files")
+wait_for("find_files to return the fixture", 30000, function()
+  return picker_has_entry(function(entry)
+    return tostring(entry.filename or entry.value or ""):find("needle-telescope-result.txt", 1, true) ~= nil
+  end)
+end)
+pass("the real <leader>ff mapping opens find_files and returns the expected file")
+close_picker()
+
 print("STEP: invoking the real <leader>ft mapping and typing a search query")
 feed(leader .. "ft")
 local grep_picker = wait_for_picker("Live Grep")
@@ -162,12 +170,6 @@ wait_for("live_grep to return the fixture marker", 30000, function()
   end)
 end)
 pass("the real <leader>ft mapping runs ripgrep and returns the expected file/content")
-close_picker()
-
-print("STEP: invoking the existing <leader>fp project picker mapping")
-feed(leader .. "fp")
-wait_for_picker("Recent Projects")
-pass("<leader>fp still opens the project.nvim Telescope extension")
 close_picker()
 
 print("STEP: invoking the existing <C-p> project navigation mapping")
