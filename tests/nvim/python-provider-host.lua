@@ -30,14 +30,10 @@ local health_buffer = vim.fn.bufnr("health://")
 check("checkhealth created its report buffer", true, health_buffer > 0)
 local health_lines = vim.api.nvim_buf_get_lines(health_buffer, 0, -1, true)
 local report = table.concat(health_lines, "\n")
-print(("INFO: checkhealth buffer=%s line_count=%d current_buffer=%s current_line_count=%d report=%s")
-  :format(
-    vim.api.nvim_buf_get_name(health_buffer),
-    #health_lines,
-    vim.api.nvim_buf_get_name(0),
-    vim.api.nvim_buf_line_count(0),
-    vim.inspect(report)
-  ))
+print(("INFO: checkhealth buffer=%s line_count=%d"):format(
+  vim.api.nvim_buf_get_name(health_buffer),
+  #health_lines
+))
 -- Health may canonicalize the interpreter path and compares the installed
 -- pynvim version with live PyPI metadata. Assert provider health itself, while
 -- exact path selection and the real :python3 host are verified above.
