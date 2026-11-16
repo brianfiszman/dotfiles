@@ -61,9 +61,6 @@ local function exercise_motion(key, expected_delta, description)
   local before = vim.api.nvim_win_get_cursor(0)[1]
 
   local starts_before = animation_starts
-  local mapping = vim.fn.maparg(key, "n", false, true)
-  print(("INFO: %s mapping=%s"):format(description, vim.inspect(mapping)))
-
   feed_key(key)
   local started = animation_starts > starts_before
     or vim.wait(100, function() return animation_starts > starts_before end, 1)
