@@ -61,6 +61,10 @@ print("INFO: provider test uses " .. vim.trim(python_version.stdout or ""))
 vim.fn.mkdir(test_dir, "p")
 invoke_and_wait("installed", "first real provider installation")
 check("first real provider installation", "installed", provider.state.status)
+check("first install reports the exact interpreter",
+  true, provider.state.message:find(target .. "/bin/python", 1, true) ~= nil)
+check("first install exposes the exact interpreter path", target .. "/bin/python",
+  provider.state.path)
 check("provisioned pynvim imports", true, run_python("provisioned pynvim and neovim modules") ~= "")
 check("Neovim host is not changed before restart", nil, vim.g.python3_host_prog)
 

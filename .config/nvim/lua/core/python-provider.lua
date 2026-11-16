@@ -149,8 +149,8 @@ local function publish_stage(data_dir, stage, target)
 
   finish(
     "installed",
-    ("Python provider installed and verified at:\n%s\nRestart Neovim to activate it.%s")
-      :format(target, cleanup_note),
+    ("Python provider installed and verified.\nInterpreter: %s\nRestart Neovim to activate it.%s")
+      :format(target .. "/bin/python", cleanup_note),
     target .. "/bin/python"
   )
 end
