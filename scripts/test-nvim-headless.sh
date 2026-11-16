@@ -17,7 +17,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee script; do
+for required_command in "$NVIM_BIN" git find grep tee script make rustc cargo; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -78,6 +78,18 @@ export XDG_DATA_HOME="$WORK_DIR/data"
 export XDG_STATE_HOME="$WORK_DIR/state"
 export XDG_CACHE_HOME="$WORK_DIR/cache"
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
+
+# Verify Rustup still sees the host toolchain after HOME has been isolated.
+if command -v rustup >/dev/null 2>&1; then
+  if ! rustup show active-toolchain >/dev/null 2>&1; then
+    printf 'Error: Rustup has no active toolchain under RUSTUP_HOME=%s. Install/set a stable toolchain before running the Neovim tests.\n' "${RUSTUP_HOME:-<unset>}" >&2
+    exit 1
+  fi
+fi
+printf '[environment] Rust toolchain: '
+rustc --version
+printf '[environment] Cargo: '
+cargo --version
 
 PREPARED_MARKER="$WORK_DIR/.prepared"
 RESTORE_MARKER="$WORK_DIR/.restore-passed"
