@@ -98,9 +98,9 @@ local function exercise_mouse_wheel(direction, comparison, description, next_ste
   -- nvim_input_mouse(grid=0) expects screen-global, zero-based coordinates.
   -- Aim in the middle of the actual text area, not the number/sign gutter.
   local row = expected_row + math.floor(info.height / 2)
-  local col = expected_col + (info.textoff or 0) + math.max(
-    1, math.floor((info.width - (info.textoff or 0)) / 2)
-  )
+  -- Keep the pointer near the left edge of the text area. Mason/Noice can
+  -- display floating notifications over the middle of the editor grid.
+  local col = expected_col + (info.textoff or 0) + 2
   print(("INFO: %s before_top=%d winid=%d winrow=%d wincol=%d width=%d height=%d textoff=%d position=%d,%d screenpos=%d,%d mouse=%d,%d"):format(
     description, before, winid, info.winrow, info.wincol, info.width, info.height,
     info.textoff or 0, position[1], position[2],
