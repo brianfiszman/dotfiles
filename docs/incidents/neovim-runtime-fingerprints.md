@@ -116,3 +116,23 @@ configured and lazy; its adapter install list is owned by
 `dap.mason-nvim-dap.lua`. Keep the idle-startup assertion in
 `tests/nvim/neotest-lazy-loading.lua` and verify explicit DAP command triggers
 separately.
+
+
+## Keep Mason Treesitter provisioning out of Lazy restore
+
+The headless harness uses separate processes for locked plugin restoration and
+normal startup. Because Lazy may execute dependency config/build hooks during
+`:Lazy! restore`, the Mason Tool Installer can otherwise install
+`tree-sitter-cli`, emit `MasonToolsUpdateCompleted`, and compile the parser set
+inside the restore process. That work is not part of restoring plugin
+revisions, and a following `:qa!` risks aborting async package/parser jobs.
+
+For the restore-only process, set
+`DOTFILES_SKIP_TREESITTER_PROVISIONING=1`. The Treesitter dependency still
+sets up Mason Tool Installer and registers its completion listener, but does
+not schedule `check_install(false)`. The next normal-startup process runs with
+the variable unset; it installs the CLI, observes the real completion event,
+and awaits parser readiness. Keep the DAP adapter provisioning test on the
+explicit first-use `:DapInstall` path in
+`tests/nvim/dap-mason-command-trigger.lua`, where its event listeners are
+registered before the install is triggered.
