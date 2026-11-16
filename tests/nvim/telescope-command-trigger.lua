@@ -10,7 +10,26 @@ local function wait_for(description, timeout_ms, predicate)
 end
 
 local function enter_headless_ui()
-  enter_headless_ui()
+  if vim.v.vim_did_enter == 0 then
+    print("STEP: dispatching VimEnter in the headless process")
+    vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
+  end
+
+  -- lazy.nvim waits for UIEnter before emitting VeryLazy when VimEnter ran
+  -- without a UI. Wait until its LazyDone callback has installed that barrier.
+  wait_for("lazy.nvim LazyDone startup barrier", 30000, function()
+    return #vim.api.nvim_get_autocmds({ event = "User", pattern = "LazyDone" }) == 0
+  end)
+
+  if vim.g.did_very_lazy ~= true then
+    print("STEP: dispatching UIEnter so lazy.nvim can emit VeryLazy")
+    vim.api.nvim_exec_autocmds("UIEnter", { modeline = false })
+  end
+  wait_for("lazy.nvim VeryLazy event", 30000, function()
+    return vim.g.did_very_lazy == true
+  end)
+end
+
 local function current_picker()
   if not package.loaded["telescope.state"] then
     return nil
@@ -38,10 +57,7 @@ local function picker_has_file(name)
   return false
 end
 
-if vim.v.vim_did_enter == 0 then
-  vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
-end
-local leader = vim.g.mapleader or "\\"
+enter_headless_ui()local leader = vim.g.mapleader or "\\"
 wait_for("VeryLazy project and LazyGit integrations to initialize", 30000, function()
   return package.loaded["project_nvim"] ~= nil
     and vim.fn.maparg(leader .. "gg", "n") ~= ""
