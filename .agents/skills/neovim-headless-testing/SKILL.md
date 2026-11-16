@@ -164,6 +164,23 @@ The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
 - Keep parser compilation in an isolated HOME/XDG environment. Never install
   tools or modify the maintainer's real Mac from CI.
 
+## Preserve combined Vim and Treesitter highlighting
+
+The legacy Treesitter highlight module could enable both Tree-sitter and Vim
+regex syntax highlighting through `additional_vim_regex_highlighting`. In the
+current Neovim API, `vim.treesitter.start()` marks the buffer with
+`b:ts_highlight`; Neovim's normal FileType syntax hook then skips loading the
+Vim syntax file. To preserve the combined behavior, set
+`vim.bo[bufnr].syntax = "ON"` after `vim.treesitter.start()` succeeds and
+test both `b:ts_highlight` and `b:current_syntax`.
+
+Do not restrict buffer activation to the list passed to automatic parser
+provisioning. The old modules attach to any installed parser with the relevant
+queries. Resolve the filetype's language, confirm the parser is available, and
+check its `highlights` / `indents` query groups independently. Add a test
+that installs an extra parser outside the managed list and opens a matching
+buffer; this catches regressions hidden by testing only ensured parsers.
+
 ## Mason Tool Installer optional integrations and Lazy
 
 Disable an integration when its module should remain lazy. In particular,
