@@ -91,6 +91,14 @@ end
 - Do not add a probe notebook. Keep diagnostics as assertions in the test file
   and remove temporary prints before review.
 
+- Wrap the test entrypoint in `xpcall()`; on an uncaught assertion or runtime
+  error, print the traceback and terminate Neovim with a non-zero exit (for
+  example, `:cquit 1`). Do not let an exception skip the final `:qa!` and
+  leave a headless process alive until the workflow timeout.
+- In platform-specific shell runners, stream Neovim output through `tee` while
+  preserving the Neovim and log-writer exit statuses. File-only capture hides
+  the last successful assertion when a process hangs or is cancelled.
+
 ## Asynchronous errors and unrelated integrations
 
 A headless Neovim process can exit with status 0 after an exception in a
