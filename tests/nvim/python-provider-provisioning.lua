@@ -31,12 +31,27 @@ local function run_python(label)
 end
 
 local function invoke_and_wait(expected_status, label)
-  vim.api.nvim_cmd({ cmd = "DotfilesInstallPythonProvider" }, {})
-  local completed = vim.wait(8 * 60 * 1000, function()
+  -- An ERROR-level notification may be surfaced by Neovim as a synchronous
+  -- command error on some platforms. That is an expected failure only when
+  -- the command has already recorded the corresponding failed state/message.
+  local invoked, invocation_error = pcall(vim.api.nvim_cmd, {
+    cmd = "DotfilesInstallPythonProvider",
+  }, {})
+  if not invoked and expected_status ~= "failed" then
+    error(("%s: command unexpectedly raised: %s"):format(label, tostring(invocation_error)))
+  end
+
+  local completed = provider.state.status ~= "running" or vim.wait(8 * 60 * 1000, function()
     return provider.state.status ~= "running"
   end, 100)
   check(label .. " completion", true, completed)
   check(label .. " result", expected_status, provider.state.status)
+
+  if not invoked then
+    check(label .. " synchronous error matches reported failure", true,
+      tostring(invocation_error):find(provider.state.message, 1, true) ~= nil)
+  end
+
   return provider.state.message
 end
 
