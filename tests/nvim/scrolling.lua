@@ -167,9 +167,14 @@ local function run()
   check("scroll-wheel up has no plugin mapping", "", vim.fn.maparg("<ScrollWheelUp>", "n"))
 
   local neoscroll_config = require("neoscroll.config").opts
-  check("Neoscroll owns the normal page and alignment mappings", {
-    "<C-u>", "<C-d>", "<C-b>", "<C-f>", "<C-y>", "<C-e>", "zt", "zz", "zb",
+  check("Neoscroll owns the normal line and alignment mappings", {
+    "<C-u>", "<C-d>", "<C-b>", "<C-y>", "<C-e>", "zt", "zz", "zb",
   }, neoscroll_config.mappings)
+  check("PageDown and PageUp are dedicated smooth page mappings", true,
+    vim.fn.maparg("<PageDown>", "n", false, true).desc == "Smooth page down"
+      and vim.fn.maparg("<PageUp>", "n", false, true).desc == "Smooth page up")
+  check("Ctrl-F remains assigned to formatting", "<cmd>Format<cr>",
+    vim.fn.maparg("<C-f>", "n", false, true).rhs)
   check("all Neoscroll motions use one easing curve", "sine", neoscroll_config.easing)
 
   animation = require("neoscroll.scroll")
@@ -185,7 +190,8 @@ local function run()
   local window_height = vim.api.nvim_win_get_height(0)
   exercise_motion("<C-d>", 10, "Ctrl-D")
   exercise_motion("<C-u>", -10, "Ctrl-U")
-  exercise_motion("<C-f>", window_height, "Ctrl-F")
+  exercise_motion("<PageDown>", window_height, "PageDown")
+  exercise_motion("<PageUp>", -window_height, "PageUp")
   exercise_motion("<C-b>", -window_height, "Ctrl-B")
   exercise_motion("<S-Down>", 10, "Shift-Down")
   exercise_motion("<S-Up>", -10, "Shift-Up")
@@ -193,7 +199,7 @@ local function run()
   exercise_mouse_wheel("down", "down", "Mouse wheel down", function()
     exercise_mouse_wheel("up", "up", "Mouse wheel up", function()
       test_finished = true
-      print("PASS: one Neoscroll animation engine, six real keyboard motions, and native wheel scrolling")
+      print("PASS: one Neoscroll animation engine, eight real keyboard motions, preserved Ctrl-F formatting, and native wheel scrolling")
       vim.cmd("qa!")
     end)
   end)
