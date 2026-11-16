@@ -109,13 +109,32 @@ local function open_fixture(fixture)
   parser:parse()
   assert(vim.b.ts_highlight == true,
     fixture.filetype .. " buffer did not activate Neovim's Treesitter highlighter")
-  print("PASS: " .. fixture.filetype .. " parsed and highlighted with " .. fixture.language)
+  assert(vim.bo.syntax == "ON",
+    fixture.filetype .. " lost the legacy Vim regex highlighting layer")
+  assert(vim.b.current_syntax ~= nil,
+    fixture.filetype .. " did not load its Vim regex syntax definitions")
+  print("PASS: " .. fixture.filetype .. " parsed with Treesitter and Vim regex highlighting")
   return filename
 end
 
 for _, fixture in ipairs(fixtures) do
   open_fixture(fixture)
 end
+
+-- The old nvim-treesitter modules attached to every installed parser with
+-- matching queries, not only the ensure_installed list. Keep that behavior for
+-- parsers users install later through :TSInstall or another source.
+assert(not vim.tbl_contains(parser_languages, "python"),
+  "Python is intentionally outside the managed parser set for this regression test")
+local python_installed = treesitter.install({ "python" }, { summary = true }):wait(5 * 60 * 1000)
+assert(python_installed, "could not install the manually requested Python parser")
+open_fixture({
+  filetype = "python",
+  extension = ".py",
+  language = "python",
+  source = { "def build():", "    return {", "        \"enabled\": True", "    }" },
+})
+print("PASS: a manually installed Python parser outside the managed list is configured")
 
 -- Exercise Neovim's native incremental selection through the configured keys.
 local function feed_keys(keys)
