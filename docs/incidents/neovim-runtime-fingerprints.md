@@ -38,11 +38,15 @@ a reliable async completion signal. Subscribe to the registry-level
 `package:install:success` and `package:install:failed` events and wait on an
 in-memory result table.
 
-Do not listen for a registry-level `package:handle` event. The install handle is
-exposed by each `Package` instance, not emitted as a registry lifecycle event; a
-registry listener for it never fires. Incident: a test timed out despite Mason
-completing installs. Replacing the listener with terminal events passed the five
-adapter installations in run
+Do not listen for a registry-level `package:handle` event: Mason does not emit
+that event. The actual handle event is `package:install:handle`, whose single
+argument is an `InstallHandle` with a `.package` field. The terminal events
+`package:install:success` and `package:install:failed` receive
+`(Package, receipt_or_error)` and fire after the handle is closed. Subscribe
+before triggering installation, then wait on an in-memory result table; use a
+one-time `is_installed()` scan only to account for packages already installed
+before the observer attached. Never poll `is_installed()` inside `vim.wait()`.
+The event-driven adapter test passed in run
 [#43525656228](https://github.com/brianfiszman/dotfiles/actions/runs/43525656228).
 
 ## Mason DAP command entry points
@@ -72,3 +76,104 @@ assertion group so phase logs explain what ran.
 See also:
 - [`ci-failure-fingerprints.md`](ci-failure-fingerprints.md)
 - [`.agents/skills/neovim-headless-testing/SKILL.md`](../../.agents/skills/neovim-headless-testing/SKILL.md)
+
+
+## Mason Tool Installer and Lazy startup ordering
+
+The Mason Tool Installer plugin's internal `VimEnter` hook is unsafe when the
+plugin is a Lazy dependency that is itself loaded during the `VimEnter` event.
+The plugin script can register and execute that hook before Lazy calls the
+plugin's `config()`; `run_on_start()` then sees the default empty
+`ensure_installed` table and returns without provisioning the configured CLI.
+Symptoms: startup waits for `dotfiles_treesitter_ready`, but no
+`tree-sitter-cli` package appears in `mason.log`.
+
+Set `run_on_start = false`, call `mason-tool-installer.setup(opts)`, and
+schedule `check_install(false)` after setup. The Treesitter config must
+register its `MasonToolsUpdateCompleted` listener before the scheduled check
+runs. This makes the first CLI install deterministic even when Lazy loads the
+dependency during `VimEnter`.
+
+A cold-install integration test must allow the complete first-run parser
+provisioning window, not a warm-start deadline. Use the test's 20-minute parser
+install timeout and a 30-minute startup phase deadline within the 60-minute
+workflow job.
+
+
+## Mason Tool Installer must not eagerly activate Mason DAP
+
+The Mason Tool Installer's default `integrations.mason-nvim-dap = true`
+requires `mason-nvim-dap.mappings.source` during setup. Under Lazy module
+autoload, that module belongs to the `mason-nvim-dap.nvim` plugin, so requiring
+it loads the DAP plugin and its dependencies even when no debug action was
+requested. This violates the repository's lazy-DAP contract and makes the
+Neotest idle-startup test fail before its first test action.
+
+When Mason Tool Installer is used only for unrelated packages such as
+`tree-sitter-cli`, disable just that bridge:
+`integrations = { ["mason-nvim-dap"] = false }`. Mason DAP remains independently
+configured and lazy; its adapter install list is owned by
+`dap.mason-nvim-dap.lua`. Keep the idle-startup assertion in
+`tests/nvim/neotest-lazy-loading.lua` and verify explicit DAP command triggers
+separately.
+
+
+## Keep Mason Treesitter provisioning out of Lazy restore
+
+The headless harness uses separate processes for locked plugin restoration and
+normal startup. Because Lazy may execute dependency config/build hooks during
+`:Lazy! restore`, the Mason Tool Installer can otherwise install
+`tree-sitter-cli`, emit `MasonToolsUpdateCompleted`, and compile the parser set
+inside the restore process. That work is not part of restoring plugin
+revisions, and a following `:qa!` risks aborting async package/parser jobs.
+
+For the restore-only process, set
+`DOTFILES_SKIP_TREESITTER_PROVISIONING=1`. The Treesitter dependency still
+sets up Mason Tool Installer and registers its completion listener, but does
+not schedule `check_install(false)`. The next normal-startup process runs with
+the variable unset; it installs the CLI, observes the real completion event,
+and awaits parser readiness. Keep the DAP adapter provisioning test on the
+explicit first-use `:DapInstall` path in
+`tests/nvim/dap-mason-command-trigger.lua`, where its event listeners are
+registered before the install is triggered.
+
+
+## Go.nvim and standalone current-API textobjects
+
+The locked go.nvim revision
+`0d426e87227dd14584881ecc595c173121456111` loaded
+`nvim-treesitter.configs` from `lua/go/ts/textobjects.lua` whenever a Go
+buffer loaded. That module does not exist in `nvim-treesitter/main`, so the
+Go lazy-loading smoke test failed in the scheduled go.nvim setup callback.
+
+The latest go.nvim master adds a guarded require so the optional legacy
+textobjects hook no longer crashes, but it still does not implement the
+current standalone textobjects API. Update the lockfile to that upstream
+revision and explicitly set `textobjects = false` in `go.setup()`. Preserve
+the actual Go textobject behavior through
+`nvim-treesitter/nvim-treesitter-textobjects/main`: configure its standalone
+`setup()` API and buffer-local Go mappings for `af`, `if`, `ac`, `ic`,
+`]]`, `][`, `[[`, and `[]`.
+
+Keep an end-to-end Go fixture that asserts the module
+`nvim-treesitter.configs` remains unloaded, then exercises selection of
+functions/structs and movement between function boundaries through real
+Neovim input.
+
+
+## Current Tree-sitter migration: preserve legacy syntax and manual parser support
+
+The legacy configuration used `additional_vim_regex_highlighting = true`.
+After `vim.treesitter.start()`, Neovim marks the buffer with
+`b:ts_highlight`; the standard FileType syntax autocommand checks that flag
+and skips loading the normal Vim syntax file. Therefore the current API must
+explicitly set `vim.bo[bufnr].syntax = "ON"` after Treesitter starts
+successfully to preserve the old combined regex + Tree-sitter highlighting.
+
+Do not gate activation on the static automatic-install list. The legacy
+highlight/indent modules supported any installed parser with the corresponding
+queries. Resolve the filetype language, verify that its parser is available,
+and activate highlight/indent independently based on the `highlights` and
+`indents` query groups. A regression test should install a parser outside the
+managed list (e.g. Python), open a matching buffer, and assert the current
+Treesitter highlighter, Vim syntax file, and indentexpr are active.

@@ -79,12 +79,11 @@ jobs:
     needs: integration-decision
     if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         neovim-version:
-          - v0.11.3
           - v0.12.6
     env:
       NEOVIM_VERSION: ${{ matrix.neovim-version }}
@@ -205,7 +204,7 @@ jobs:
       - name: Start Neovim normally after plugin restore
         run: bash ./scripts/test-nvim-headless.sh startup
         env:
-          NVIM_STARTUP_TIMEOUT: 5m
+          NVIM_STARTUP_TIMEOUT: 30m
 
       - name: Upload headless logs
         if: always()

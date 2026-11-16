@@ -42,7 +42,9 @@ require("lazy").setup({
       "neovim/nvim-lspconfig",
       "nvim-treesitter/nvim-treesitter",
     },
-    config = function() require("go").setup() end,
+    -- Go's bundled textobject hook still targets nvim-treesitter.configs.
+    -- The standalone current-API integration is configured by treesitter.lua.
+    config = function() require("go").setup({ textobjects = false }) end,
     -- Load Go tooling only for Go source and module files, not every command line.
     ft = { "go", 'gomod' },
     -- Optional Go helper binaries are installed on demand, not during every plugin restore.

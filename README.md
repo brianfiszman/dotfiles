@@ -10,7 +10,7 @@ dein.vim or run a manual plugin-manager command.
 
 ### Requirements
 
-- Neovim 0.11.3 or newer.
+- Neovim 0.12.0 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
 - A terminal with a Nerd Font is recommended for icons, but the font is not
@@ -109,47 +109,49 @@ automatic provider launcher is unavailable. Creating the dedicated venv above
 gives this configuration an explicit interpreter path. Do not install
 `pynvim` into a global Python environment just to silence the warning.
 
-### Optional: Tree-sitter CLI
+### Tree-sitter
 
-The current configuration uses the legacy `nvim-treesitter` API. Its
-healthcheck says the `tree-sitter` executable is only needed for
-`:TSInstallFromGrammar`; it is not required for ordinary `:TSInstall` or for
-the parser binaries already installed by this configuration.
+This configuration uses the current `nvim-treesitter/main` API, not the
+legacy `master` API. It requires:
 
-When grammar regeneration is needed, install the CLI from inside Neovim through
-Mason:
+- Neovim 0.12.0 or newer.
+- `tree-sitter-cli` 0.26.1 or newer.
+- `tar`, `curl`, and a C compiler on PATH to build parser libraries.
 
-```vim
-:MasonInstall tree-sitter-cli
-```
+Mason manages `tree-sitter-cli` automatically. On first startup it installs or
+updates the CLI, then the Treesitter integration installs and compiles the
+configured parser set. No npm installation or system package-manager command
+is needed. The dotfiles installer itself never uses `sudo` or modifies OS
+packages.
 
-Verify that Neovim can find it:
+Inspect Mason's status with `:Mason`, and check parser/CLI health with
+`:checkhealth nvim-treesitter`. From inside Neovim, `:TSInstall` installs a
+parser and `:TSUpdate` updates installed parsers. If automatic setup reports
+a missing CLI, verify that Mason's package is installed and that
+`vim.fn.exepath("tree-sitter")` returns its executable path.
 
-```vim
-:lua print(vim.fn.executable("tree-sitter"))
-:checkhealth nvim-treesitter
-:checkhealth lspsaga
-```
+Highlighting uses Neovim's `vim.treesitter.start()` alongside Vim's
+regex syntax highlighting, preserving the previous combined behavior.
+Indentation uses the current Treesitter `indentexpr` (upstream describes this
+feature as experimental). Any installed parser with matching highlight or
+indent queries is configured when its filetype opens, including parsers added
+manually with `:TSInstall`; the 41 parsers in the managed list are installed
+and updated automatically. `<leader>V` selects/expands the current syntax node
+and `<BS>` contracts the selection to its child node. Rainbow delimiters and
+HTML/JSX/TSX autotagging use their standalone plugins.
 
-A result of `1` means the executable is on Neovim's PATH. This is an optional
-Mason-managed tool, not a prerequisite for JavaScript/TypeScript indentation.
-Do not install it with a system package manager merely to make ordinary parser
-installation work.
+Go buffers also use the standalone `nvim-treesitter-textobjects/main` plugin:
+`af`/`if` select functions, `ac`/`ic` select type declarations, and
+`]]`, `][`, `[[`, `[]` navigate function boundaries. These mappings use
+the plugin's current `setup()` API; go.nvim's legacy textobject hook is disabled
+because it depends on the removed `nvim-treesitter.configs` module. Go.nvim
+itself remains enabled for Go tooling, LSP and commands.
 
-### Existing Treesitter installations on Neovim 0.12
-
-The compatibility layer is restricted to the legacy `nvim-treesitter` revision
-pinned in `lazy-lock.json`. Its plugin spec also declares the exact compatible
-commit, so `:Lazy update` does not silently advance this API-dependent plugin
-before a separately tested migration. It adapts query capture lists in memory, so it does
-not leave modifications in the plugin's Git checkout.
-
-When moving from the previous dotfiles revision, the next normal startup
-recognizes and reverses only the exact compatibility patch that the earlier
-version applied to `query_predicates.lua`. It refuses to overwrite unrelated
-local edits. The query handlers are then registered through the in-memory
-adapter before Treesitter loads. No manual `:Lazy build`, plugin deletion, or
-source editing is required.
+The old `highlight_definitions` refactor extension was removed with the
+legacy API. The current upstream rewrite exposes locals queries but does not
+provide a maintained equivalent for that feature, so the configuration does
+not pretend that LSP semantic tokens or reference navigation are the same
+behavior.
 
 ### Updating installed plugins
 

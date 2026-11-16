@@ -4,8 +4,9 @@ set -Eeuo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN:-nvim}"
 PHASE="${1:-all}"
-NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-20m}"
-NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-5m}"
+NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-40m}"
+NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-30m}"
+NVIM_TREESITTER_TIMEOUT="${NVIM_TREESITTER_TIMEOUT:-20m}"
 VIM_ERROR_CODE_PATTERN='E[0-9]{3,4}:'
 
 case "$PHASE" in
@@ -144,7 +145,7 @@ run_nvim() {
 
   # Neovim can report Lua/Vimscript errors while still returning exit status 0.
   # The verbose trace captures messages that do not reach stdout/stderr.
-  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|Failed to run .*config|module .+ not found" "$log_file"; then
+  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$log_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
@@ -250,55 +251,11 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  local nvim_version
-  nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
-  local -a restore_checks=("+Lazy! restore")
-  if [[ "$nvim_version" == v0.12.* ]]; then
-    restore_checks+=("+lua assert(type(package.preload['nvim-treesitter.query_predicates']) == 'function', 'Treesitter adapter was not preloaded before Lazy installed/loaded plugins')")
-  fi
-  restore_checks+=("+qa!")
-  run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
+  local -a restore_checks=("+Lazy! restore" "+qa!")
+  DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
+    run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
-}
-
-prepare_preinstalled_treesitter_compatibility_fixture() {
-  local nvim_version plugin_dir patch_file plugin_head
-
-  nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
-  case "$nvim_version" in
-    v0.12.*) ;;
-    *) return 0 ;;
-  esac
-
-  plugin_dir="$XDG_DATA_HOME/nvim/lazy/nvim-treesitter"
-  patch_file="$NVIM_CONFIG/patches/nvim-treesitter-neovim-0.12.patch"
-
-  [[ -d "$plugin_dir" ]] || {
-    printf 'Error: restored nvim-treesitter checkout is missing: %s\n' "$plugin_dir" >&2
-    return 1
-  }
-  [[ -f "$patch_file" ]] || {
-    printf 'Error: Neovim 0.12 compatibility patch is missing: %s\n' "$patch_file" >&2
-    return 1
-  }
-
-  plugin_head="$(git -C "$plugin_dir" rev-parse HEAD)"
-  if [[ "$plugin_head" != "85168f15808d89b0222313652b9d2777eda3cb08" ]]; then
-    printf 'Error: expected locked nvim-treesitter revision, got %s\n' "$plugin_head" >&2
-    return 1
-  fi
-
-  # Simulate a checkout left dirty by the previous release. Normal startup
-  # must reverse this exact old patch and install the in-memory adapter without
-  # changing the plugin's tracked working tree.
-  if ! git -C "$plugin_dir" apply --check "$patch_file"; then
-    printf 'Error: pristine restored checkout cannot accept the previous compatibility patch.\n' >&2
-    return 1
-  fi
-  git -C "$plugin_dir" apply "$patch_file"
-
-  printf '[startup] Applied the previous on-disk patch to simulate an existing checkout that needs migration.\n'
 }
 
 startup() {
@@ -317,17 +274,22 @@ startup() {
     "+lua assert(#vim.api.nvim_get_runtime_file('parser/norg_meta.so', true) > 0, 'Neorg norg_meta parser is missing from runtimepath')"
     "+lua assert(pcall(vim.treesitter.language.add, 'norg'), 'Neorg norg parser could not be loaded')"
     "+lua assert(pcall(vim.treesitter.language.add, 'norg_meta'), 'Neorg norg_meta parser could not be loaded')"
+    "+lua assert(vim.wait(20 * 60 * 1000, function() return vim.g.dotfiles_treesitter_ready == true or vim.g.dotfiles_treesitter_error ~= nil end, 100), 'Mason did not finish current Treesitter setup'); assert(vim.g.dotfiles_treesitter_error == nil, 'Treesitter setup failed: ' .. tostring(vim.g.dotfiles_treesitter_error))"
   )
 
-  local nvim_version
-  nvim_version="$("$NVIM_BIN" --version | sed -n '1s/^NVIM //p')"
-  if [[ "$nvim_version" == v0.12.* ]]; then
-    prepare_preinstalled_treesitter_compatibility_fixture
-    startup_checks+=("+luafile $REPO_ROOT/tests/nvim/treesitter-compat-preinstalled.lua")
-  fi
   startup_checks+=("+qa!")
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
+
+  printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
+  run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying current-API Go textobjects and function navigation.\n'
+  run_nvim "treesitter-go-textobjects" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/treesitter-go-textobjects.lua" \
+    "+qa!"
 
   printf '\n[behavior] Verifying Lazy update preflight handles generated help-tag collisions.\n'
   run_nvim "lazy-update-preflight" "$NVIM_STARTUP_TIMEOUT" \

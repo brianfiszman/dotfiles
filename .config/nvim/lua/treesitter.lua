@@ -1,213 +1,334 @@
-local legacy_treesitter_commit = "85168f15808d89b0222313652b9d2777eda3cb08"
-local legacy_compat_patch = "patches/nvim-treesitter-neovim-0.12.patch"
-local query_predicates_module = "nvim-treesitter.query_predicates"
-local query_predicates_file = "lua/nvim-treesitter/query_predicates.lua"
+local parser_languages = {
+  "c",
+  "lua",
+  "luadoc",
+  "go",
+  "javascript",
+  "typescript",
+  "json",
+  "json5",
+  "jsdoc",
+  "yaml",
+  "xml",
+  "vim",
+  "vimdoc",
+  "tsx",
+  "scheme",
+  "make",
+  "dot",
+  "dockerfile",
+  "csv",
+  "diff",
+  "gitignore",
+  "gitcommit",
+  "git_config",
+  "git_rebase",
+  "gitattributes",
+  "css",
+  "comment",
+  "gomod",
+  "gosum",
+  "gowork",
+  "html",
+  "ini",
+  "markdown",
+  "markdown_inline",
+  "passwd",
+  "proto",
+  "scss",
+  "sql",
+  "regex",
+  "bash",
+  "helm",
+}
 
--- Register the adapter while the plugin spec is imported, before lazy.nvim
--- installs missing plugins. Lazy's install path loads a plugin before running
--- its build callback, so registering only from init/build is too late on the
--- very first startup of a clean installation.
-local function register_legacy_query_predicates_adapter()
-  if package.loaded[query_predicates_module] or package.preload[query_predicates_module] then
+local indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+local install_timeout_ms = 20 * 60 * 1000
+local updating_parsers = false
+
+local function has_query(language, query_name)
+  local ok, query = pcall(vim.treesitter.query.get, language, query_name)
+  return ok and query ~= nil
+end
+
+local function configure_buffer(bufnr)
+  if not vim.api.nvim_buf_is_loaded(bufnr) then
     return
   end
 
-  package.preload[query_predicates_module] = function()
-    local query = require("vim.treesitter.query")
-    local add_predicate = query.add_predicate
-    local add_directive = query.add_directive
-
-    local function adapt_handler(handler)
-      return function(match, ...)
-        local single_node_captures = {}
-        for capture_id, captured in pairs(match) do
-          if type(captured) == "table" then
-            single_node_captures[capture_id] = captured[#captured]
-          else
-            single_node_captures[capture_id] = captured
-          end
-        end
-        return handler(single_node_captures, ...)
-      end
-    end
-
-    query.add_predicate = function(name, handler, opts)
-      return add_predicate(name, adapt_handler(handler), opts)
-    end
-    query.add_directive = function(name, handler, opts)
-      return add_directive(name, adapt_handler(handler), opts)
-    end
-
-    -- Lazy adds the plugin to runtimepath before sourcing its plugin files.
-    -- Resolve the module then, because the plugin may not exist when this
-    -- config/spec module is first evaluated on a clean installation.
-    local candidates = vim.api.nvim_get_runtime_file(query_predicates_file, false)
-    local source_file = candidates[1]
-    if not source_file then
-      source_file = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/" .. query_predicates_file
-    end
-
-    local chunk, load_error = loadfile(source_file)
-    if not chunk then
-      query.add_predicate = add_predicate
-      query.add_directive = add_directive
-      error("Could not load the locked nvim-treesitter query-predicate module: " .. tostring(load_error))
-    end
-
-    local ok, result = xpcall(chunk, debug.traceback)
-    query.add_predicate = add_predicate
-    query.add_directive = add_directive
-    if not ok then
-      error("Could not register the nvim-treesitter compatibility predicates: " .. tostring(result))
-    end
-    return true
-  end
-end
-
-if vim.fn.has("nvim-0.12") == 1 then
-  register_legacy_query_predicates_adapter()
-end
-
-local function git(plugin, args)
-  local command = { "git", "-C", plugin.dir }
-  vim.list_extend(command, args)
-  return vim.system(command, { text = true }):wait()
-end
-
-local function install_legacy_query_predicates_adapter(plugin)
-  if vim.fn.isdirectory(plugin.dir) ~= 1 then
+  local filetype = vim.bo[bufnr].filetype
+  local language = vim.treesitter.language.get_lang(filetype)
+  if not language then
     return
   end
 
-  local revision = git(plugin, { "rev-parse", "HEAD" })
-  if revision.code ~= 0 then
-    error("Could not inspect the nvim-treesitter checkout: " .. (revision.stderr or "unknown Git error"))
+  -- Preserve the legacy modules' capability checks. Parsers installed outside
+  -- the managed 41-language set must remain usable when their queries exist.
+  local has_indents = has_query(language, "indents")
+  local has_highlights = has_query(language, "highlights")
+  if not has_indents and not has_highlights then
+    return
   end
 
-  local head = (revision.stdout or ""):gsub("%s+$", "")
-  -- The plugin spec pins this exact legacy revision. Refuse a checkout
-  -- mismatch rather than silently starting without the compatibility adapter.
-  if head ~= legacy_treesitter_commit then
-    error(("Unsupported nvim-treesitter revision %s; expected pinned commit %s"):format(
-      head, legacy_treesitter_commit
-    ))
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr, language)
+  if not ok or not parser then
+    return
   end
 
-  local source_file = plugin.dir .. "/" .. query_predicates_file
-  if vim.fn.filereadable(source_file) ~= 1 then
-    error("The locked nvim-treesitter query-predicate module is missing: " .. source_file)
+  if has_indents then
+    vim.bo[bufnr].indentexpr = indentexpr
   end
 
-  -- Do not touch a path with staged edits. The migration only owns the
-  -- unstaged patch introduced by the previous dotfiles revision.
-  local staged = git(plugin, { "diff", "--cached", "--quiet", "--", query_predicates_file })
-  if staged.code == 1 then
-    error("The nvim-treesitter query-predicate file has staged changes; refusing to migrate it.")
-  elseif staged.code ~= 0 then
-    error("Could not inspect staged nvim-treesitter changes: " .. (staged.stderr or "unknown Git error"))
+  -- Preserve the previous 100 KiB Treesitter highlighting limit without
+  -- disabling parser-backed indentation for larger files.
+  local filename = vim.api.nvim_buf_get_name(bufnr)
+  local stat = filename ~= "" and (vim.uv or vim.loop).fs_stat(filename) or nil
+  if stat and stat.size > 100 * 1024 then
+    return
   end
 
-  -- Migrate installations that received the previous on-disk patch. Reverse
-  -- only that exact patch; if the file has unrelated local edits, leave them
-  -- untouched and fail with an actionable message.
-  local patch = vim.fn.stdpath("config") .. "/" .. legacy_compat_patch
-  local reverse_check = git(plugin, { "apply", "--reverse", "--check", patch })
-  if reverse_check.code == 0 then
-    local reverse = git(plugin, { "apply", "--reverse", patch })
-    if reverse.code ~= 0 then
-      error("Could not restore the upstream nvim-treesitter query-predicate file: "
-        .. (reverse.stderr or "unknown Git error"))
-    end
-  else
-    local forward_check = git(plugin, { "apply", "--check", patch })
-    if forward_check.code ~= 0 then
-      error("The nvim-treesitter query-predicate file differs from both the upstream and "
-        .. "previous dotfiles-patched versions. No further local edits were made. "
-        .. (reverse_check.stderr or reverse_check.stdout or ""))
+  if has_highlights then
+    local started, err = pcall(vim.treesitter.start, bufnr, language)
+    if not started then
+      vim.notify(
+        ("Could not enable Treesitter highlighting for %s: %s"):format(filetype, tostring(err)),
+        vim.log.levels.ERROR,
+        { title = "dotfiles Treesitter" }
+      )
+    else
+      -- The legacy configuration enabled additional Vim regex highlighting
+      -- alongside Treesitter. The FileType syntax hook skips buffers marked
+      -- b:ts_highlight, so explicitly retain that second highlighting layer.
+      vim.bo[bufnr].syntax = "ON"
     end
   end
+end
 
-  local clean = git(plugin, { "diff", "--quiet", "--", query_predicates_file })
-  if clean.code ~= 0 then
-    error("The nvim-treesitter query-predicate file still has local changes after migration; "
-      .. "refusing to install the compatibility adapter.")
+local function update_parsers()
+  if updating_parsers then
+    return
+  end
+  updating_parsers = true
+
+  local ok, err = xpcall(function()
+    local executable = vim.fn.exepath("tree-sitter")
+    assert(executable ~= "", "tree-sitter-cli is missing from Neovim's PATH")
+
+    local version_result = vim.system({ executable, "--version" }, { text = true }):wait()
+    assert(version_result.code == 0,
+      "tree-sitter --version failed: " .. (version_result.stderr or "unknown error"))
+    local major, minor, patch = (version_result.stdout or ""):match("(%d+)%.(%d+)%.(%d+)")
+    assert(major, "Could not parse tree-sitter version: " .. (version_result.stdout or ""))
+    local version_number = tonumber(major) * 1000000 + tonumber(minor) * 1000 + tonumber(patch)
+    assert(version_number >= 26001,
+      "tree-sitter-cli 0.26.1 or newer is required; found " .. vim.trim(version_result.stdout))
+
+    local treesitter = require("nvim-treesitter")
+    local installed = {}
+    for _, language in ipairs(treesitter.get_installed("parsers")) do
+      installed[language] = true
+    end
+
+    local missing = vim.tbl_filter(function(language)
+      return not installed[language]
+    end, parser_languages)
+
+    if #missing > 0 then
+      local installed_ok = treesitter.install(missing, { summary = true }):wait(install_timeout_ms)
+      assert(installed_ok ~= false, "nvim-treesitter failed to install missing parsers")
+    end
+
+    local updated_ok = treesitter.update(parser_languages, { summary = true }):wait(install_timeout_ms)
+    assert(updated_ok ~= false, "nvim-treesitter failed to update parsers")
+
+    vim.g.dotfiles_treesitter_ready = true
+    vim.g.dotfiles_treesitter_error = nil
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+      configure_buffer(bufnr)
+    end
+
+    print(("[treesitter] CLI %s; %d parsers requested; parser install/update complete")
+      :format(vim.trim(version_result.stdout), #parser_languages))
+  end, debug.traceback)
+
+  updating_parsers = false
+  if not ok then
+    vim.g.dotfiles_treesitter_ready = false
+    vim.g.dotfiles_treesitter_error = tostring(err)
+    vim.notify(
+      "Treesitter parser setup failed. See :messages.\n" .. tostring(err),
+      vim.log.levels.ERROR,
+      { title = "dotfiles Treesitter" }
+    )
+  end
+end
+
+local function update_existing_parsers()
+  -- lazy.nvim runs build hooks before Mason's first VimEnter installation.
+  -- The MasonToolsUpdateCompleted callback below performs the first install.
+  if vim.fn.executable("tree-sitter") ~= 1 then
+    print("[treesitter] tree-sitter-cli is not installed yet; parser setup will run after Mason installs it")
+    return
   end
 
-  -- The adapter was registered when this spec module was imported, before
-  -- Lazy's clean-install path can load nvim-treesitter during its build task.
-  register_legacy_query_predicates_adapter()
+  local ok, err = pcall(update_parsers)
+  if not ok then
+    error("Could not update Treesitter parsers after plugin update: " .. tostring(err))
+  end
+  assert(vim.g.dotfiles_treesitter_ready,
+    "Treesitter parser update failed: " .. tostring(vim.g.dotfiles_treesitter_error))
 end
 
 local M = {
-  'nvim-treesitter/nvim-treesitter',
-  -- Freeze the legacy API at the exact revision covered by the compatibility adapter.
-  commit = legacy_treesitter_commit,
+  "nvim-treesitter/nvim-treesitter",
+  branch = "main",
+  lazy = false,
   dependencies = {
-    -- Additional text objects for treesitter
-    "nvim-treesitter/nvim-treesitter-textobjects",
-  },
-  -- init migrates the old disk patch and installs the in-memory adapter for
-  -- existing checkouts before plugin modules load. build handles fresh clones
-  -- created during the first startup. Neither path modifies plugin source.
-  init = vim.fn.has("nvim-0.12") == 1 and install_legacy_query_predicates_adapter or nil,
-  -- Keep the original parser update path on Neovim 0.11.3.
-  build = vim.fn.has("nvim-0.12") == 1 and install_legacy_query_predicates_adapter or ":TSUpdate",
-}
-
-
-function M.config()
-  require 'nvim-treesitter.configs'.setup {
-    -- A list of parser names, or "all"
-    ensure_installed = { "c", "lua", "luadoc", "go", "javascript", "typescript", "json", "json5", "jsdoc", "yaml", "xml", "vim", "vimdoc", "tsx", "scheme", "make", "dot", "dockerfile", "csv", "diff", "gitignore", "gitcommit", "git_config", "git_rebase", "gitattributes", "css", "comment", "gomod", "gosum", "gowork", "html", "ini", "markdown", "markdown_inline", "passwd", "proto", "scss", "sql", "regex", "bash", "helm" },
-
-    -- Install parsers synchronously (only applied to `ensure_installed`)
-    sync_install = false,
-    indent = {
-      enable = true
-    },
-
-    highlight = {
-      -- `false` will disable the whole extension
-      enable = true,
-      disable = function(lang, buf)
-        local max_filesize = 100 * 1024 -- 100 KB
-        local ok, stats = pcall((vim.uv or vim.loop).fs_stat, vim.api.nvim_buf_get_name(buf))
-        if ok and stats and stats.size > max_filesize then
-          return true
+    "mason-org/mason.nvim",
+    {
+      "WhoIsSethDaniel/mason-tool-installer.nvim",
+      config = function(_, opts)
+        local installer = require("mason-tool-installer")
+        installer.setup(vim.tbl_deep_extend("force", opts, {
+          -- The plugin's VimEnter hook can fire before Lazy applies this
+          -- config when the dependency itself is loaded during VimEnter.
+          -- Start explicitly after setup so ensure_installed is populated and
+          -- the parent Treesitter completion listener is already registered.
+          run_on_start = false,
+        }))
+        -- CI's plugin-restore phase only restores revisions/build hooks.
+        -- Defer Mason CLI provisioning and parser compilation to the following
+        -- normal-startup process, where their completion is awaited explicitly.
+        if vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING ~= "1" then
+          vim.schedule(function()
+            installer.check_install(false)
+          end)
+        else
+          print("[treesitter] CLI/parser provisioning deferred until normal startup")
         end
       end,
+      opts = {
+        ensure_installed = { "tree-sitter-cli" },
+        auto_update = true,
+        run_on_start = false,
+        start_delay = 0,
+        -- The installer otherwise requires mason-nvim-dap.mappings.source.
+        -- Lazy treats that module require as a plugin trigger, which eagerly
+        -- loads the DAP stack during every normal startup.
+        integrations = {
+          ["mason-nvim-dap"] = false,
+        },
+      },
+    },
+    {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+      branch = "main",
+      config = function()
+        require("nvim-treesitter-textobjects").setup({
+          select = { lookahead = true },
+          move = { set_jumps = true },
+        })
 
-      -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-      -- Using this option may slow down your editor, and you may see some duplicate highlights.
-      -- Instead of true it can also be a list of languages
-      additional_vim_regex_highlighting = true,
-      use_languagetree = true,
+        local select = require("nvim-treesitter-textobjects.select")
+        local move = require("nvim-treesitter-textobjects.move")
+        local group = vim.api.nvim_create_augroup("DotfilesGoTextobjects", { clear = true })
+
+        vim.api.nvim_create_autocmd("FileType", {
+          group = group,
+          pattern = "go",
+          callback = function(args)
+            local function map(modes, lhs, callback, description)
+              vim.keymap.set(modes, lhs, callback, {
+                buffer = args.buf,
+                silent = true,
+                desc = description,
+              })
+            end
+
+            map({ "x", "o" }, "af", function()
+              select.select_textobject("@function.outer", "textobjects")
+            end, "Select Go function")
+
+            map({ "x", "o" }, "if", function()
+              select.select_textobject("@function.inner", "textobjects")
+            end, "Select Go function body")
+
+            map({ "x", "o" }, "ac", function()
+              select.select_textobject("@class.outer", "textobjects")
+            end, "Select Go type declaration")
+
+            map({ "x", "o" }, "ic", function()
+              select.select_textobject("@class.inner", "textobjects")
+            end, "Select Go type body")
+
+            map({ "n", "x", "o" }, "]]", function()
+              move.goto_next_start("@function.outer", "textobjects")
+            end, "Go to next Go function start")
+
+            map({ "n", "x", "o" }, "][", function()
+              move.goto_next_end("@function.outer", "textobjects")
+            end, "Go to next Go function end")
+
+            map({ "n", "x", "o" }, "[[", function()
+              move.goto_previous_start("@function.outer", "textobjects")
+            end, "Go to previous Go function start")
+
+            map({ "n", "x", "o" }, "[]", function()
+              move.goto_previous_end("@function.outer", "textobjects")
+            end, "Go to previous Go function end")
+          end,
+          desc = "Configure current-API Treesitter textobjects for Go buffers",
+        })
+      end,
     },
-    refactor = {
-      highlight_definitions = { enable = true },
-      highlight_current_scope = { enable = false },
+    {
+      "windwp/nvim-ts-autotag",
+      config = function()
+        require("nvim-ts-autotag").setup()
+      end,
     },
-    rainbow = {
-      enable = true,
-      -- disable = { "jsx", "cpp" }, list of languages you want to disable the plugin for
-      extended_mode = true, -- Also highlight non-bracket delimiters like html tags, boolean or table: lang -> boolean
-      max_file_lines = nil, -- Do not enable for files with more than n lines, int
-      -- colors = {}, -- table of hex strings
-      -- termcolors = {} -- table of colour name strings
-    },
-    autotag = {
-      enable = true,
-    },
-    incremental_selection = {
-      enable = true,
-      keymaps = {
-        init_selection = '<leader>V',
-        node_incremental = '<leader>V',
-        scope_incremental = false,
-        node_decremental = '<bs>'
-      }
-    }
-  }
-end
+  },
+  build = update_existing_parsers,
+  config = function()
+    require("nvim-treesitter").setup({
+      install_dir = vim.fn.stdpath("data") .. "/site",
+    })
+
+    vim.api.nvim_create_augroup("DotfilesTreesitter", { clear = true })
+    vim.api.nvim_create_autocmd("FileType", {
+      group = "DotfilesTreesitter",
+      callback = function(args)
+        configure_buffer(args.buf)
+      end,
+      desc = "Enable current Neovim Treesitter highlighting and indentation",
+    })
+
+    -- mason-tool-installer installs tree-sitter-cli after VimEnter on a clean
+    -- setup. Wait for its real completion event before compiling parsers.
+    vim.api.nvim_create_autocmd("User", {
+      group = "DotfilesTreesitter",
+      pattern = "MasonToolsUpdateCompleted",
+      callback = update_parsers,
+      desc = "Install and update the configured Treesitter parsers",
+    })
+
+    vim.keymap.set({ "n", "x" }, "<leader>V", function()
+      if vim.fn.mode():sub(1, 1) == "n" then
+        vim.cmd.normal({ args = { "v" }, bang = true })
+      end
+      vim.treesitter.select("parent")
+    end, {
+      desc = "Select Treesitter parent node",
+      silent = true,
+    })
+
+    vim.keymap.set("x", "<BS>", function()
+      vim.treesitter.select("child")
+    end, {
+      desc = "Select Treesitter child node",
+      silent = true,
+    })
+  end,
+}
 
 return M

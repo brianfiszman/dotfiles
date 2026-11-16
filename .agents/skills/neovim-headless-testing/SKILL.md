@@ -13,12 +13,14 @@ plugin/LSP/tool trigger. Report the level actually reached.
 
 ## Environment parity
 
-- Use the Neovim version pinned by CI and the committed `lazy-lock.json`.
-- Local plugin checkouts can drift. A local Neovim 0.12.6 with a newer
-  nvim-treesitter could not compute TypeScript indent while the pinned 0.11.3
-  environment could. When local and CI disagree, check versions before changing
-  the product.
-- Restore locked plugins; do not silently upgrade them.
+- Use the latest stable Neovim release pinned by CI and the committed
+  `lazy-lock.json`. Do not add older stable versions to the matrix solely for
+  backward compatibility; only add them when the maintainer explicitly asks.
+- Keep plugin branches and lockfile revisions aligned with the current upstream
+  APIs under test. Restore locked plugins; do not silently upgrade them during
+  a test.
+- When local and CI disagree, compare Neovim, plugin SHA, parser revisions,
+  installed external tools, and XDG paths before changing product code.
 - Keep test-only environment flags unset for the normal-startup phase.
 
 ## Local-versus-CI dependency diagnosis
@@ -89,6 +91,23 @@ end
 - Do not add a probe notebook. Keep diagnostics as assertions in the test file
   and remove temporary prints before review.
 
+## Asynchronous errors and unrelated integrations
+
+A headless Neovim process can exit with status 0 after an exception in a
+scheduled callback. The runner must treat visible asynchronous callback errors
+such as `vim.schedule callback` and `Invalid buffer id:` as test failures;
+do not rely only on Neovim's exit status or synchronous Lua error patterns.
+
+Keep each behavioral test's scope narrow. When a test repeatedly creates and
+deletes temporary buffers to verify editing or indentation, disable unrelated
+LSP auto-activation in that disposable process with
+`vim.lsp.enable(configured_servers, false)` and assert that no clients remain.
+Plugins such as Lspsaga can schedule document-symbol requests after buffer
+changes; those callbacks may outlive a temporary buffer and produce misleading
+failures in a test that does not exercise LSP. Do not apply this isolation to
+tests whose purpose is to verify LSP attachment, requests, completion, or
+diagnostics, and do not globally suppress the resulting callback errors.
+
 ## Fixture isolation
 
 Before asserting line or editing behavior, reset every option that can move the
@@ -124,6 +143,14 @@ workspace for LSP and Treesitter tests.
 - Verify that a real closed fold still follows native behavior if the mapping
   special-cases folds.
 
+When a test invokes `nvim_input()`, do not immediately block in
+`vim.wait()` in the same synchronous `+luafile` chunk and assume the editor
+will consume queued typeahead. Either return to the main loop and assert from a
+`vim.defer_fn()` callback, or use
+`nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx", false)`
+to synchronously drain real typed keys while still honoring user mappings.
+The `"m"` flag is important: `"n"` would bypass the mapping under test.
+
 ## Lazy-loading assertions
 
 - Start from an unrelated empty buffer and assert the target module is not
@@ -135,6 +162,119 @@ workspace for LSP and Treesitter tests.
 - Test each positive filetype in its own process.
 - For Insert-mode integrations, separate the deterministic lazy-load assertion
   from any network or external-service bootstrap.
+
+## Current nvim-treesitter integration
+
+The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
+`tree-sitter-cli` 0.26.1+ plus a C compiler.
+
+- Use the real Mason registry/package and assert that
+  `vim.fn.exepath("tree-sitter")` resolves the installed executable.
+- Parse and assert the CLI's actual version; do not mock its output.
+- Exercise the real parser installation/update path and assert the expected
+  parser libraries are discoverable through Neovim's runtimepath.
+- Open real files for JavaScript, TypeScript, JSX, TSX, HTML, Lua, JSON and YAML;
+  assert language mapping, parsing, active highlighting and configured
+  `indentexpr`.
+- Exercise editing mappings and standalone autotag behavior through real
+  Neovim input, not direct helper function calls.
+- Keep parser compilation in an isolated HOME/XDG environment. Never install
+  tools or modify the maintainer's real Mac from CI.
+
+## Preserve combined Vim and Treesitter highlighting
+
+The legacy Treesitter highlight module could enable both Tree-sitter and Vim
+regex syntax highlighting through `additional_vim_regex_highlighting`. In the
+current Neovim API, `vim.treesitter.start()` marks the buffer with
+`b:ts_highlight`; Neovim's normal FileType syntax hook then skips loading the
+Vim syntax file. To preserve the combined behavior, set
+`vim.bo[bufnr].syntax = "ON"` after `vim.treesitter.start()` succeeds and
+test both `b:ts_highlight` and `b:current_syntax`.
+
+Do not restrict buffer activation to the list passed to automatic parser
+provisioning. The old modules attach to any installed parser with the relevant
+queries. Resolve the filetype's language, confirm the parser is available, and
+check its `highlights` / `indents` query groups independently. Add a test
+that installs an extra parser outside the managed list and opens a matching
+buffer; this catches regressions hidden by testing only ensured parsers.
+
+When a behavioral fixture positions the cursor inside code, explicitly
+establish the fold state first. The real config may enable `foldmethod=syntax`
+and leave folds closed by default; Neovim can move a cursor set inside a closed
+fold to its boundary, so a textobject test may select a different declaration
+even though the query/mapping is correct. Disable folds for tests of textobject
+semantics, and cover fold-boundary behavior in a separate focused test when
+that behavior is under review.
+
+## Mason Tool Installer optional integrations and Lazy
+
+Disable an integration when its module should remain lazy. In particular,
+`mason-tool-installer` enables `mason-nvim-dap` integration by default and
+requires `mason-nvim-dap.mappings.source` during setup. With Lazy's module
+autoload, that require can activate the entire `mason-nvim-dap.nvim` plugin and
+its `nvim-dap` dependencies during ordinary startup. Set
+`integrations = { ["mason-nvim-dap"] = false }` when the installer only needs
+to provision unrelated packages such as `tree-sitter-cli`. This does not
+disable Mason DAP itself: the dedicated DAP spec still loads it on explicit
+debugger commands or mappings, and its own `ensure_installed` list remains the
+source of debugger-adapter provisioning.
+
+## Standalone nvim-treesitter-textobjects on main
+
+The current textobjects plugin is configured independently of
+`nvim-treesitter.configs`:
+
+- Pin `nvim-treesitter/nvim-treesitter-textobjects` to `main`.
+- Call `require("nvim-treesitter-textobjects").setup({...})`.
+- Add mappings through `nvim-treesitter-textobjects.select` and
+  `nvim-treesitter-textobjects.move`; keep filetype-specific mappings
+  buffer-local when replacing a plugin's old integration.
+- Test real parser-backed selections and cursor movement on fixture files.
+- Do not reintroduce `nvim-treesitter.configs` or assume go.nvim's bundled
+  textobjects hook supports the current API. Its latest code still treats that
+  legacy hook as optional; disable it and configure the standalone plugin.
+
+## Mason Tools startup ordering
+
+When a Mason Tool Installer plugin is a Lazy dependency, do not rely on its
+internal `VimEnter` hook to read `ensure_installed`: Lazy may source the
+plugin script during the `VimEnter` event and invoke that hook before its
+`config()` function applies the options. Set `run_on_start = false`, call
+`setup(opts)`, and schedule `check_install(false)` after setup. Register
+consumers of `MasonToolsUpdateCompleted` before scheduling that installation.
+This guarantees the initial CLI install actually runs and its completion is
+observed by the dependent plugin configuration.
+
+Keep Lazy plugin restoration separate from first-run tool provisioning. A
+headless `:Lazy! restore` process should set
+`DOTFILES_SKIP_TREESITTER_PROVISIONING=1`; the Treesitter config then skips the
+scheduled Mason installation and parser compilation in that process. The
+subsequent normal-startup process must run without that variable and wait for
+the real `MasonToolsUpdateCompleted` event and parser readiness. This avoids
+doing long async provisioning immediately before a restore-only `:qa!`. DAP
+adapter installation is covered independently by the first-use
+`:DapInstall` scenario, not by plugin restoration.
+
+The startup phase must have a deadline consistent with first-run provisioning:
+Mason installation plus compilation/update of the configured parser set can
+take materially longer than a warm startup. Keep it below the workflow job
+deadline and above the configured parser-install timeout.
+
+## Mason package lifecycle tests
+
+Mason 2.x registry lifecycle events are:
+- `package:install:handle`: receives one `InstallHandle`; resolve the package
+  through `handle.package`.
+- `package:install:success` and `package:install:failed`: receive
+  `(Package, receipt_or_error)` after the handle closes.
+
+Register listeners before triggering installation. For tests that attach after
+an existing startup/restore operation, do one upfront `is_installed()` scan
+after listener registration to account for already-completed installs; any
+remaining work must be observed through terminal events. Wait on an in-memory
+result table, never by polling `Package:is_installed()` inside `vim.wait()`.
+Keep the wait timeout below the enclosing shell phase deadline, and report
+missing terminal events separately from explicit package-install failures.
 
 ## LSP and Treesitter assertions
 
