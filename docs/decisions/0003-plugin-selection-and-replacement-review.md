@@ -48,6 +48,25 @@ backend. No runtime removal or replacement has been made pending a trial.
 
 ### Candidates worth testing
 
+- **[Avante](https://github.com/avante-corp/avante.nvim):** add this as a serious
+  all-in-one candidate, not just another completion plugin. It combines Cursor-like
+  chat/edit/diff and agentic workflows (including ACP/MCP integrations) with an
+  optional ghost-text auto-suggestion engine. Its `behaviour.auto_suggestions`
+  feature is currently **experimental and disabled by default**. Unlike a
+  dedicated next-token completion service, its implementation sends the current
+  buffer and diagnostics to the selected LLM after `InsertEnter`/`CursorMovedI`,
+  then renders structured, potentially multi-block edits as virtual text. The
+  default debounce and throttle are each 600 ms. Its own config warns that using
+  the Copilot provider for these high-frequency suggestions is dangerous because
+  of token-refresh/rate/account-suspension reports. The plugin is active (latest
+  tagged release v0.5.0 on 2026-10-31; commits continued on 2026-11-16), Apache-2.0,
+  and supports a broad provider/ACP model ecosystem. Trade-offs: experimental
+  suggestion quality/latency, higher request cost from repeated whole-buffer
+  prompts, extra runtime/build dependencies (Plenary, Nui, mega.cmdparse/logging,
+  and prebuilt Rust libraries or Cargo when building from source), and a broader
+  security surface. Current defaults enable prompt logging and auto-approve agent
+  tool permissions; those must be explicitly reviewed/disabled or scoped before
+  enabling agentic use.
 - **[Minuet](https://github.com/milanglacier/minuet-ai.nvim):** currently
   maintained, supports cloud providers and local Ollama/llama.cpp, and provides
   its own virtual-text ghost-completion frontend with incremental acceptance.
@@ -74,13 +93,19 @@ backend. No runtime removal or replacement has been made pending a trial.
 
 ### Current recommendation
 
-Trial Minuet and Copilot first because both are direct candidates for the existing
-inline ghost-text role but represent different trade-offs: provider choice and
-local inference versus a turnkey hosted service. Include Tabby if self-hosting or
-code privacy becomes a deciding requirement. Measure suggestion relevance,
-time-to-first-suggestion, throughput/latency, acceptance ergonomics, false
-positives, interruption rate, startup impact, authentication reliability, and
-cost. Do not choose on feature lists or popularity alone.
+Trial Avante, Minuet, and Copilot in a controlled comparison, but do not
+pretend their suggestion engines are equivalent. Avante is the strongest
+all-in-one candidate and merits testing for both inline suggestions and agentic
+editing; Minuet is the provider-flexible dedicated completion candidate; Copilot
+is the turnkey hosted-completion baseline. Evaluate Avante's experimental
+auto-suggestions separately from its chat/agent workflows. Do not configure
+Avante's auto-suggestion provider as Copilot until its high-frequency auth/cost
+risk is resolved. Include Tabby if self-hosting or code privacy becomes a deciding
+requirement. Measure suggestion relevance, time-to-first-suggestion,
+throughput/latency, acceptance ergonomics, false positives, interruption rate,
+startup impact, authentication reliability, request volume, and cost. For Avante
+agent workflows, also test tool safety, diff review, multi-file correctness, and
+prompt-history privacy. Do not choose on feature lists or popularity alone.
 
 ## Sources checked on 2026-11-16
 
@@ -88,6 +113,11 @@ cost. Do not choose on feature lists or popularity alone.
 - [Exafunction/windsurf.nvim archive](https://github.com/Exafunction/windsurf.nvim)
 - [NeoCodeium archived repository and service notice](https://github.com/monkoose/neocodeium)
 - [NeoCodeium service failure report and maintainer confirmation](https://github.com/monkoose/neocodeium/issues/74)
+- [Avante README and installation/dependency requirements](https://github.com/avante-corp/avante.nvim)
+- [Avante current configuration and suggestion defaults](https://github.com/avante-corp/avante.nvim/blob/main/lua/avante/config.lua)
+- [Avante automatic suggestion implementation](https://github.com/avante-corp/avante.nvim/blob/main/lua/avante/suggestion.lua)
+- [Avante v0.5.0 release and Rust/ACP build changes](https://github.com/avante-corp/avante.nvim/releases/tag/v0.5.0)
+- [Avante Copilot high-frequency token refresh issue #1048](https://github.com/yetone/avante.nvim/issues/1048)
 - [Minuet README and provider/frontend documentation](https://github.com/milanglacier/minuet-ai.nvim)
 - [Minuet release history](https://github.com/milanglacier/minuet-ai.nvim/releases)
 - [Copilot Lua README](https://github.com/zbirenbaum/copilot.lua)
