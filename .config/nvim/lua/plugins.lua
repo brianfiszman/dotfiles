@@ -3,7 +3,6 @@ require("core.lazy-maintenance").setup()
 require("lazy").setup({
   {
     'ryanoasis/powerline-extra-symbols',
-    'yuttie/comfortable-motion.vim',
     'nvim-lua/plenary.nvim',
   },
   -- SNIPPETS --
@@ -155,40 +154,6 @@ require("lazy").setup({
   {
     'yamatsum/nvim-cursorline',
     opts = {}
-  },
-  {
-    'echasnovski/mini.animate',
-    version = '*',
-    opts = function()
-      -- don't use animate when scrolling with the mouse
-      local mouse_scrolled = false
-      for _, scroll in ipairs({ "up", "down" }) do
-        local key = "<scrollwheel" .. scroll .. ">"
-        vim.keymap.set({ "", "i" }, key, function()
-          mouse_scrolled = true
-          return key
-        end, { expr = true })
-      end
-
-      local animate = require("mini.animate")
-      return {
-        resize = {
-          timing = animate.gen_timing.linear({ duration = 100, unit = "total" }),
-        },
-        scroll = {
-          timing = animate.gen_timing.linear({ duration = 150, unit = "total" }),
-          subscroll = animate.gen_subscroll.equal({
-            predicate = function(total_scroll)
-              if mouse_scrolled then
-                mouse_scrolled = false
-                return false
-              end
-              return total_scroll > 1
-            end,
-          }),
-        },
-      }
-    end,
   },
   "mg979/vim-visual-multi",
   --- LSP ---

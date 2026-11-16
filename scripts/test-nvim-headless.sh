@@ -17,7 +17,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee; do
+for required_command in "$NVIM_BIN" git find grep tee script; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -84,6 +84,13 @@ run_nvim() {
   local tee_status=0
   local -a pipeline_status=()
   local -a nvim_args=(--headless)
+  local use_pty=0
+  if [[ "$label" == "scrolling" ]]; then
+    # Native mouse input needs an attached UI; a PTY-backed TUI gives the
+    # integration test a real screen grid without manual interaction.
+    nvim_args=()
+    use_pty=1
+  fi
   local startup_verbose_file="$WORK_DIR/startup-verbose.log"
   local startup_timing_file="$WORK_DIR/startup-startuptime.log"
 
@@ -96,19 +103,47 @@ run_nvim() {
     printf '[startup] Diagnostic trace: %s\n' "$startup_verbose_file"
   fi
 
-  printf '\n[%s] Starting Neovim headless (limit: %s).\n' "$label" "$time_limit"
+  if ((use_pty)); then
+    printf '\n[%s] Starting Neovim in a PTY-backed TUI (limit: %s).\n' "$label" "$time_limit"
+  else
+    printf '\n[%s] Starting Neovim headless (limit: %s).\n' "$label" "$time_limit"
+  fi
   printf '[%s] Live output follows; the full log is saved to %s\n' "$label" "$log_file"
 
   # Stream output to the Actions console while preserving a complete log file.
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
+  local -a nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
+  local pty_command=""
+  if ((use_pty)); then
+    printf -v pty_command '%q ' "${nvim_command[@]}"
+  fi
+
   set +e
   if command -v timeout >/dev/null 2>&1; then
-    timeout --signal=TERM --kill-after=30s "$time_limit" \
-      "$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
+    if ((use_pty)); then
+      if [[ "${OSTYPE:-}" == darwin* ]]; then
+        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+          script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
+      else
+        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+          script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+      fi
+    else
+      timeout --signal=TERM --kill-after=30s "$time_limit" \
+        "${nvim_command[@]}" 2>&1 | tee "$log_file"
+    fi
     pipeline_status=("${PIPESTATUS[@]}")
   else
     printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
-    "$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@" 2>&1 | tee "$log_file"
+    if ((use_pty)); then
+      if [[ "${OSTYPE:-}" == darwin* ]]; then
+        TERM=xterm-256color script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
+      else
+        TERM=xterm-256color script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
+      fi
+    else
+      "${nvim_command[@]}" 2>&1 | tee "$log_file"
+    fi
     pipeline_status=("${PIPESTATUS[@]}")
   fi
   set -e
@@ -145,7 +180,17 @@ run_nvim() {
 
   # Neovim can report Lua/Vimscript errors while still returning exit status 0.
   # The verbose trace captures messages that do not reach stdout/stderr.
-  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$log_file"; then
+  local error_scan_file="$log_file"
+  if [[ "$label" == "scrolling" ]]; then
+    # The PTY has no terminal emulator to answer Neovim's OSC 11 background
+    # query. Ignore only this exact synthetic-terminal warning; all other
+    # Vim/Lua errors remain fatal and the original log is preserved.
+    error_scan_file="$WORK_DIR/scrolling-error-scan.log"
+    grep -Fv -e "E1568: Terminal did not respond to DSR request for 'background' color" \
+      -e "E216: No such group or event: FileExplorer *" \
+      "$log_file" > "$error_scan_file" || true
+  fi
+  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$error_scan_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
@@ -288,6 +333,10 @@ startup() {
   startup_checks+=("+qa!")
 
   run_nvim "startup" "$NVIM_STARTUP_TIMEOUT" "${startup_checks[@]}"
+
+  printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
+  run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/scrolling.lua"
 
   printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
   run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
