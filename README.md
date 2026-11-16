@@ -98,8 +98,8 @@ ollama pull qwen3:8b
 Skip `ollama serve` when the Ollama app/service is already running. Open Neovim
 and use:
 
-- `<leader>aa`: open or close the Avante assistant sidebar.
-- `<leader>aq`: ask about the current code.
+- `<leader>at`: open or close the Avante assistant sidebar.
+- `<leader>aa`: ask about the current code.
 - `<leader>ae` (Visual mode): edit the selected code.
 
 Override the local endpoint or model before launching Neovim:
@@ -113,6 +113,11 @@ The model is downloaded and run by Ollama; local inference has no per-request
 API fee, but it uses local memory, compute, storage, and power. The default
 endpoint is loopback. Changing it to a remote endpoint sends the selected
 project context to that host.
+
+The assistant's conversation/session history is still stored locally under
+Neovim's state directory (`stdpath("state")/avante`). Disabling prompt logging
+turns off the separate timestamped prompt replay/debug log; it does not disable
+the normal local conversation history.
 
 Avante's defaults are tightened in this configuration: tool use requires
 permission prompts, generated diffs are not auto-applied, access to Git-ignored

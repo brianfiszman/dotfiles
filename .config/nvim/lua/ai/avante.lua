@@ -16,8 +16,8 @@ return {
     "AvanteSwitchProvider",
   },
   keys = {
-    { "<leader>aa", "<cmd>Avante toggle<cr>", desc = "Avante: Toggle assistant" },
-    { "<leader>aq", "<cmd>AvanteAsk<cr>", desc = "Avante: Ask about code" },
+    { "<leader>at", "<cmd>Avante toggle<cr>", desc = "Avante: Toggle assistant" },
+    { "<leader>aa", "<cmd>AvanteAsk<cr>", desc = "Avante: Ask about code" },
     { "<leader>ae", "<cmd>AvanteEdit<cr>", mode = "v", desc = "Avante: Edit selection" },
   },
   dependencies = {

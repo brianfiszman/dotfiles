@@ -12,8 +12,8 @@ assert(package.loaded["avante"] == nil, "Avante loaded during ordinary startup")
 assert(package.loaded["avante.config"] == nil, "Avante configuration loaded during ordinary startup")
 
 local leader = vim.g.mapleader or "\\"
-assert(vim.fn.maparg(leader .. "aa", "n") ~= "", "Avante toggle keymap is missing")
-assert(vim.fn.maparg(leader .. "aq", "n") ~= "", "Avante ask keymap is missing")
+assert(vim.fn.maparg(leader .. "at", "n") ~= "", "Avante toggle keymap is missing")
+assert(vim.fn.maparg(leader .. "aa", "n") ~= "", "Avante ask keymap is missing")
 assert(vim.fn.maparg(leader .. "ae", "v") ~= "", "Avante visual-edit keymap is missing")
 assert(vim.fn.exists(":Avante") == 2, "Avante command is not registered as a lazy trigger")
 assert(type(avante_spec.opts) == "table", "Avante opts were not registered with lazy.nvim")
@@ -21,7 +21,7 @@ assert(type(avante_spec.opts) == "table", "Avante opts were not registered with 
 print("PASS: Avante stays unloaded during idle startup and exposes its user keymaps/command")
 
 -- Replay the real normal-mode mapping, including lazy.nvim's remapping handler.
-local keys = vim.api.nvim_replace_termcodes(leader .. "aa", true, false, true)
+local keys = vim.api.nvim_replace_termcodes(leader .. "at", true, false, true)
 vim.api.nvim_feedkeys(keys, "mtx", false)
 wait_for("the Avante module to load from <leader>aa", 30000, function()
   return package.loaded["avante"] ~= nil and package.loaded["avante.config"] ~= nil
