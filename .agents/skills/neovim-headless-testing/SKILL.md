@@ -164,6 +164,19 @@ The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
 - Keep parser compilation in an isolated HOME/XDG environment. Never install
   tools or modify the maintainer's real Mac from CI.
 
+## Mason Tool Installer optional integrations and Lazy
+
+Disable an integration when its module should remain lazy. In particular,
+`mason-tool-installer` enables `mason-nvim-dap` integration by default and
+requires `mason-nvim-dap.mappings.source` during setup. With Lazy's module
+autoload, that require can activate the entire `mason-nvim-dap.nvim` plugin and
+its `nvim-dap` dependencies during ordinary startup. Set
+`integrations = { ["mason-nvim-dap"] = false }` when the installer only needs
+to provision unrelated packages such as `tree-sitter-cli`. This does not
+disable Mason DAP itself: the dedicated DAP spec still loads it on explicit
+debugger commands or mappings, and its own `ensure_installed` list remains the
+source of debugger-adapter provisioning.
+
 ## Mason Tools startup ordering
 
 When a Mason Tool Installer plugin is a Lazy dependency, do not rely on its
