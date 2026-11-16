@@ -177,6 +177,21 @@ disable Mason DAP itself: the dedicated DAP spec still loads it on explicit
 debugger commands or mappings, and its own `ensure_installed` list remains the
 source of debugger-adapter provisioning.
 
+## Standalone nvim-treesitter-textobjects on main
+
+The current textobjects plugin is configured independently of
+`nvim-treesitter.configs`:
+
+- Pin `nvim-treesitter/nvim-treesitter-textobjects` to `main`.
+- Call `require("nvim-treesitter-textobjects").setup({...})`.
+- Add mappings through `nvim-treesitter-textobjects.select` and
+  `nvim-treesitter-textobjects.move`; keep filetype-specific mappings
+  buffer-local when replacing a plugin's old integration.
+- Test real parser-backed selections and cursor movement on fixture files.
+- Do not reintroduce `nvim-treesitter.configs` or assume go.nvim's bundled
+  textobjects hook supports the current API. Its latest code still treats that
+  legacy hook as optional; disable it and configure the standalone plugin.
+
 ## Mason Tools startup ordering
 
 When a Mason Tool Installer plugin is a Lazy dependency, do not rely on its
