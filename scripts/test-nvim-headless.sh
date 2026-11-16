@@ -61,6 +61,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Preserve the host Rustup installation before isolating HOME. Rustup resolves
+# its toolchains from RUSTUP_HOME; without this, its default would move into the
+# empty test HOME and native plugin builds would fail despite host rustc/cargo
+# being on PATH.
+HOST_HOME="${HOME:-}"
+if [[ -z "${RUSTUP_HOME:-}" && -n "$HOST_HOME" && -d "$HOST_HOME/.rustup" ]]; then
+  export RUSTUP_HOME="$HOST_HOME/.rustup"
+fi
+
 # Every Neovim path is redirected into a disposable home. This test never reads
 # or writes the developer's real ~/.config/nvim, plugin cache, or state files.
 export HOME="$WORK_DIR/home"
