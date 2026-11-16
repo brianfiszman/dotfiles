@@ -76,6 +76,15 @@ grow into a second transcript.
 - Worklogs are append-only per monthly file. Corrections are new entries that
   link to the corrected record.
 
+## Version policy
+
+Default to the latest stable Neovim release and current upstream-supported
+plugin APIs. Do not maintain older-version compatibility, legacy branches, or
+fallback shims unless Brian explicitly requests them or a current upstream
+contract makes them unavoidable. Prefer migrating to the supported API. Keep CI
+focused on latest stable; add nightly where useful, not older stable versions by
+default. Exact pins are for reproducibility, not for preserving obsolete APIs.
+
 ## Change workflow
 
 - Work on a topic branch; keep the default branch untouched until a reviewed PR
