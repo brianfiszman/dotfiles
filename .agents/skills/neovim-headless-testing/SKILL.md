@@ -188,6 +188,16 @@ consumers of `MasonToolsUpdateCompleted` before scheduling that installation.
 This guarantees the initial CLI install actually runs and its completion is
 observed by the dependent plugin configuration.
 
+Keep Lazy plugin restoration separate from first-run tool provisioning. A
+headless `:Lazy! restore` process should set
+`DOTFILES_SKIP_TREESITTER_PROVISIONING=1`; the Treesitter config then skips the
+scheduled Mason installation and parser compilation in that process. The
+subsequent normal-startup process must run without that variable and wait for
+the real `MasonToolsUpdateCompleted` event and parser readiness. This avoids
+doing long async provisioning immediately before a restore-only `:qa!`. DAP
+adapter installation is covered independently by the first-use
+`:DapInstall` scenario, not by plugin restoration.
+
 The startup phase must have a deadline consistent with first-run provisioning:
 Mason installation plus compilation/update of the configured parser set can
 take materially longer than a warm startup. Keep it below the workflow job
