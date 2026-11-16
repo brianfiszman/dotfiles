@@ -68,6 +68,29 @@ uncertain, timebox an investigation or mark the uncertainty explicitly. Follow
 attempt.
 For `:checkhealth` triage, external tool/provider provisioning, and local-versus-CI dependency drift, follow `.agents/skills/neovim-dependency-management/SKILL.md`.
 
+## Plugin selection and replacement review
+
+This review is mandatory before adding, removing, replacing, upgrading, or materially
+reconfiguring a plugin. Scale its depth to the change, but do not skip it.
+
+1. Define the exact user-visible role and behavior in use. Do not conflate inline
+   AI completion, popup completion, LSP features, chat, and agent workflows.
+2. Inspect the exact upstream project and service: archive/maintenance status,
+   recent meaningful commits/releases, unresolved regressions, supported Neovim
+   and API versions, license, authentication, and service availability.
+3. Compare the current choice, maintained alternatives, native Neovim/LSP
+   capabilities, existing components, and removing the dependency.
+4. Evaluate behavior/quality, latency and startup cost, runtime/download/build
+   burden, privacy and data routing, API/service cost, portability, license,
+   migration/rollback effort, and long-term maintenance risk.
+5. Record keep/replace/remove/defer with evidence, links, trade-offs, and unknowns
+   before changing the plugin spec or lockfile. Do not decide on star count alone
+   or bulk-upgrade unrelated dependencies.
+
+For external AI backends, prove authentication and real completion responses
+before treating startup or keymaps as validated. A lazy-loading change cannot
+repair an archived client or unavailable service.
+
 ## Review every change as code
 
 - Read the full diff, not just the title, issue, commit message, or summary.
@@ -114,26 +137,15 @@ planned only after checking the implementation or source that disproves it.
 
 ## Behavior-first testing
 
-Testing is part of every issue's scope and estimate. Do not defer it or mark an
-implementation complete before its required tests pass.
+Testing belongs to every issue's scope and estimate. Before implementation,
+define observable success, failure/edge, and non-regression scenarios; name the
+unit, integration, or end-to-end proof. For editor behavior, use a real headless
+Neovim process with the actual config/plugins/LSP/tools, trigger the user path,
+and assert its result. Mocks, syntax checks, startup success, and module-loaded
+flags do not prove interactive behavior. Run focused and regression checks in CI
+with explicit path triggers; isolate HOME/XDG. Manual Mac checks supplement
+automation only where it is impractical.
 
-When creating or refining an issue:
-
-1. Define observable scenarios before implementation: the normal path,
-   failure/edge paths, and behavior that must not regress.
-2. Name the automated proof. Use unit tests for isolated logic, integration tests
-   for real boundaries, and end-to-end tests for complete workflows.
-3. For editor behavior, automate the local usage path with a real headless
-   Neovim process and the actual configuration/plugins/LSP/tools. Trigger the
-   same event, mapping, command, or completion request the maintainer would use,
-   then assert the observable result.
-4. Syntax checks, mocks, package-loaded flags, command registration, or startup
-   success are not proof that an interactive feature works.
-5. Include focused tests and the relevant regression suite in CI with explicit
-   PR/path triggers. If a test moves to a scheduled/manual workflow, preserve
-   equivalent coverage and document the trigger.
-6. Isolate HOME/XDG and generated state. Manual Mac verification supplements
-   automation; document exact steps only where automation is not reasonable.
 
 ## Select tests by change impact
 
@@ -152,32 +164,13 @@ acceptance criteria.
 
 ## Test levels
 
-Choose the strongest available level and report the level actually reached:
+Choose the strongest available level and report it explicitly: environment and
+version discovery; shell/static checks; isolated installer checks; mocked
+harnesses (clearly labeled); real locked-plugin restore; normal headless startup;
+direct behavioral assertions; and interactive macOS checks. A successful plugin
+download does not prove setup, and startup does not prove lazy workflows. Never
+silently downgrade required acceptance criteria.
 
-1. **Environment discovery:** real Neovim binary and required tools; record
-   versions.
-2. **Shell syntax:** `bash -n install.sh` and
-   `bash -n scripts/test-nvim-headless.sh` separately.
-3. **Static checks:** Lua syntax, changed paths, generated files, installer
-   behavior. Do not claim runtime coverage.
-4. **Isolated installer checks:** temporary HOME/XDG; dry-run leaves files
-   untouched, existing configs are backed up, Neovim-only mode leaves Emacs
-   alone, virtualenvs are excluded.
-5. **Mocked harness:** only orchestration or installer logic when a real
-   dependency is unavailable. Label it mocked; it does not prove Neovim started.
-6. **Plugin restore with real Neovim:** use the documented restore/sync command
-   against `lazy-lock.json`. Do not silently upgrade. Record network, build, and
-   dependency failures separately from configuration failures.
-7. **Real headless startup:** launch the installed configuration and fail on
-   Lua/plugin startup errors.
-8. **Behavioral assertions:** assert the specific plugin or behavior directly.
-   Checking that lazy.nvim loaded is insufficient.
-9. **Interactive macOS check:** terminal rendering, font, clipboard, keymaps, LSP
-   attachment, completion, and perceived latency.
-
-A successful plugin download does not prove plugin configuration works; a
-successful startup does not prove every lazy-loaded plugin or user workflow
-works.
 
 ## Real LuaLS and Lazydev integration tests
 
@@ -273,10 +266,9 @@ network/bootstrap check.
 
 ## Startup side effects and deferred integrations
 
-- Keep optional external integrations lazy until the user performs the action
-  that needs them. In this repo, Codeium's language server must not download or
-  start because Neovim entered an empty buffer; defer it to `InsertEnter` and
-  explicitly start its server from the plugin config.
+- Keep AI completion providers lazy until the user begins typing, but verify
+  that the selected client and backend are still supported and return real
+  suggestions before tuning lazy-loading triggers.
 - If a lazy plugin's own autocmd registers only after the triggering event, do
   not assume it will run retroactively. Invoke the intended entry point from the
   plugin config when required.
