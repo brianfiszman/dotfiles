@@ -108,10 +108,10 @@ run_nvim() {
 
   # Stream output to the Actions console while preserving a complete log file.
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
-  local -a nvim_command=("$NVIM_BIN" "\${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
+  local -a nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
   local pty_command=""
   if ((use_pty)); then
-    printf -v pty_command '%q ' "\${nvim_command[@]}"
+    printf -v pty_command '%q ' "${nvim_command[@]}"
   fi
 
   set +e
@@ -121,17 +121,17 @@ run_nvim() {
         script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
     else
       timeout --signal=TERM --kill-after=30s "$time_limit" \
-        "\${nvim_command[@]}" 2>&1 | tee "$log_file"
+        "${nvim_command[@]}" 2>&1 | tee "$log_file"
     fi
-    pipeline_status=("\${PIPESTATUS[@]}")
+    pipeline_status=("${PIPESTATUS[@]}")
   else
     printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
     if ((use_pty)); then
       TERM=xterm-256color script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
     else
-      "\${nvim_command[@]}" 2>&1 | tee "$log_file"
+      "${nvim_command[@]}" 2>&1 | tee "$log_file"
     fi
-    pipeline_status=("\${PIPESTATUS[@]}")
+    pipeline_status=("${PIPESTATUS[@]}")
   fi
   set -e
 
