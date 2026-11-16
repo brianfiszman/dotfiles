@@ -57,7 +57,8 @@ local function picker_has_file(name)
   return false
 end
 
-enter_headless_ui()local leader = vim.g.mapleader or "\\"
+enter_headless_ui()
+local leader = vim.g.mapleader or "\\"
 wait_for("VeryLazy project and LazyGit integrations to initialize", 30000, function()
   return package.loaded["project_nvim"] ~= nil
     and vim.fn.maparg(leader .. "gg", "n") ~= ""
