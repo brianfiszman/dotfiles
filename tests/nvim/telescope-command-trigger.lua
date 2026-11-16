@@ -10,6 +10,13 @@ local function wait_for(description, timeout_ms, predicate)
 end
 
 local function enter_headless_ui()
+  -- core.general.lua targets the maintainer's macOS shell. This isolated Linux
+  -- process uses Bash so unrelated BufEnter integrations can start their jobs.
+  local bash = vim.fn.exepath("bash")
+  assert(bash ~= "", "headless integration test requires bash")
+  vim.o.shell = bash
+  vim.env.SHELL = bash
+
   if vim.v.vim_did_enter == 0 then
     print("STEP: dispatching VimEnter in the headless process")
     vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
