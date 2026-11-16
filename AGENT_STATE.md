@@ -1,38 +1,36 @@
 # Agent execution state
 
-_Last updated: 2026-11-15 (America/Argentina/Buenos_Aires)_
+_Last updated: 2026-11-16 (America/Argentina/Buenos_Aires)_
 
 Canonical copy lives on `master`. Functional branches must not edit this file;
 state updates land through a dedicated docs change. Keep this file at 40 lines or fewer.
 
 ## Current focus
 
-- **Repository:** `brianfiszman/dotfiles`; PRs #95 and #98 are merged.
-- **Functional fix:** [PR #95](https://github.com/brianfiszman/dotfiles/pull/95),
-  Neovim 0.12 legacy Treesitter compatibility; merge commit `f5b2a1f`.
-- **Dependency guidance:** [PR #98](https://github.com/brianfiszman/dotfiles/pull/98),
-  dependency triage, optional setup paths, skills, README, backlog, and worklog.
+- **Repository:** `brianfiszman/dotfiles`; no functional PR is in flight.
+- **Latest merge:** PR #102, current Treesitter API migration, commit
+  [`a0242f4`](https://github.com/brianfiszman/dotfiles/commit/a0242f42b01028e897d2229b2015d9dd7c5446e1).
+- **Policy:** latest stable Neovim/upstream APIs by default; no older-version
+  compatibility unless Brian explicitly requests it.
 
-## Verified evidence
+## Verified
 
-- PR #95 workflow
-  [#43749144164](https://github.com/brianfiszman/dotfiles/actions/runs/43749144164)
-  passed Neovim 0.11.3 and 0.12.6, including pre-existing checkout repair.
-- PR #98 latest-base workflow
-  [#43752267360](https://github.com/brianfiszman/dotfiles/actions/runs/43752267360)
-  passed all four jobs on a branch based on the merged #95 commit.
-- The local Mac's active config revision and installed Treesitter SHA/patch state
-  remain unverified; CI does not establish them.
+- Post-merge push workflow [#43789711206](https://github.com/brianfiszman/dotfiles/actions/runs/43789711206)
+  passed on exact `master` commit `a0242f42b01028e897d2229b2015d9dd7c5446e1`.
+- PR #102 pre-merge workflow [#43788985875](https://github.com/brianfiszman/dotfiles/actions/runs/43788985875)
+  passed on exact head; Brian confirmed the editing behavior works.
+- Issues #44 and #89 are closed completed. #44 absorbed the CLI work from #97.
 
 ## Pending
 
-- Issue [#66](https://github.com/brianfiszman/dotfiles/issues/66): optional,
-  explicit Python provider setup and verification.
-- Issue [#97](https://github.com/brianfiszman/dotfiles/issues/97): optional
-  Tree-sitter CLI installation through Mason.
-- No files or dependencies have been installed on the local Mac.
+- [#76](https://github.com/brianfiszman/dotfiles/issues/76): Telescope first-use
+  lazy-loading; only remaining child of parent #43, not committed to Sprint 1.
+- [#66](https://github.com/brianfiszman/dotfiles/issues/66): optional Python
+  provider provisioning; useful for a clean local provider healthcheck.
+- [#91](https://github.com/brianfiszman/dotfiles/issues/91): PR #92's first CI
+  optimization slice is merged; broad caching/parallelism remain deferred.
 
 ## Next action
 
-- Prioritize #66 or #97 only when useful; neither blocks ordinary Lua editing
-  or the CI-validated JavaScript/TypeScript indentation fix.
+- Finish this documentation reconciliation, then ask Brian to prioritize #76
+  for a sprint before opening its functional branch.
