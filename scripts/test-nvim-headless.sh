@@ -286,7 +286,7 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \
     "+qa!"
 
-  printf '\\n[behavior] Verifying current-API Go textobjects and function navigation.\\n'
+  printf '\n[behavior] Verifying current-API Go textobjects and function navigation.\n'
   run_nvim "treesitter-go-textobjects" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/treesitter-go-textobjects.lua" \
     "+qa!"
