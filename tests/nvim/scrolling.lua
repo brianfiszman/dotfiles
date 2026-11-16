@@ -13,10 +13,16 @@ local function check(label, expected, actual)
 end
 
 local animation
+local test_finished = false
 
-local function wait_until(label, timeout_ms, predicate)
-  local completed = vim.wait(timeout_ms, predicate, 10)
-  check(label, true, completed)
+local function fail(err)
+  if test_finished then
+    return
+  end
+  test_finished = true
+  io.stderr:write("[scrolling] FAIL: " .. debug.traceback(tostring(err), 2) .. "\n")
+  io.stderr:flush()
+  vim.cmd("cquit 1")
 end
 
 local function feed_key(key)
@@ -42,48 +48,87 @@ local function prepare_buffer()
   vim.cmd("normal! zz")
 end
 
+local function wait_for_animation(description)
+  local completed = vim.wait(5000, function()
+    return not animation.scrolling
+  end, 10)
+  check(description .. " completes its animation", true, completed)
+end
+
 local function exercise_motion(key, expected_delta, description)
   prepare_buffer()
   local before = vim.api.nvim_win_get_cursor(0)[1]
 
   feed_key(key)
   check(description .. " starts the Neoscroll animation", true, animation.scrolling)
-  wait_until(description .. " completes its animation", 5000, function()
-    return not animation.scrolling
-  end)
+  wait_for_animation(description)
 
   local after = vim.api.nvim_win_get_cursor(0)[1]
   check(description .. " moves the cursor by the expected number of lines",
     expected_delta, after - before)
 end
 
-local function exercise_mouse_wheel(direction, comparison, description)
+local function exercise_mouse_wheel(direction, comparison, description, next_step)
   prepare_buffer()
+  local winid = vim.api.nvim_get_current_win()
   local before = vim.fn.line("w0")
-  local position = vim.api.nvim_win_get_position(0)
-  local row = position[1] + math.floor(vim.api.nvim_win_get_height(0) / 2)
-  local col = position[2] + 2
+  local position = vim.api.nvim_win_get_position(winid)
+  local info = vim.fn.getwininfo(winid)[1]
+  local row = position[1] + math.floor(vim.api.nvim_win_get_height(winid) / 2)
+  local col = position[2] + (info.textoff or 0) + 1
 
-  local ok, err = pcall(
-    vim.api.nvim_input_mouse,
-    "wheel",
-    direction,
-    "",
-    0,
-    row,
-    col
-  )
-  check(description .. " sends a real mouse-wheel event", true, ok)
-  if not ok then
-    error(description .. " mouse input failed: " .. tostring(err))
-  end
+  print(("INFO: %s before_top=%d row=%d col=%d textoff=%d"):format(
+    description, before, row, col, info.textoff or 0
+  ))
 
-  wait_until(description .. " changes the visible top line", 2000, function()
-    local current = vim.fn.line("w0")
-    return comparison == "down" and current > before
-      or comparison == "up" and current < before
-  end)
-  check(description .. " does not start a Neoscroll animation", false, animation.scrolling)
+  -- nvim_input_mouse() is non-blocking. Return to Neovim's main loop after
+  -- queueing it so the input event is consumed before the assertion runs.
+  vim.defer_fn(function()
+    if test_finished then
+      return
+    end
+
+    local sent, send_error = pcall(
+      vim.api.nvim_input_mouse,
+      "wheel",
+      direction,
+      "",
+      0,
+      row,
+      col
+    )
+    if not sent then
+      fail(description .. " could not queue a real mouse-wheel event: " .. tostring(send_error))
+      return
+    end
+
+    vim.defer_fn(function()
+      if test_finished then
+        return
+      end
+
+      local after = vim.fn.line("w0")
+      print(("INFO: %s after_top=%d cursor=%d"):format(
+        description, after, vim.api.nvim_win_get_cursor(winid)[1]
+      ))
+
+      local ok, err = xpcall(function()
+        local moved = comparison == "down" and after > before
+          or comparison == "up" and after < before
+        check(description .. " changes the viewport in the expected direction",
+          true, moved)
+        check(description .. " does not start a Neoscroll animation",
+          false, animation.scrolling)
+      end, debug.traceback)
+
+      if not ok then
+        fail(err)
+        return
+      end
+
+      next_step()
+    end, 150)
+  end, 0)
 end
 
 local function run()
@@ -122,15 +167,22 @@ local function run()
   exercise_motion("<S-Down>", 10, "Shift-Down")
   exercise_motion("<S-Up>", -10, "Shift-Up")
 
-  exercise_mouse_wheel("down", "down", "Mouse wheel down")
-  exercise_mouse_wheel("up", "up", "Mouse wheel up")
-
-  print("PASS: one Neoscroll animation engine, six real keyboard motions, and native wheel scrolling")
+  exercise_mouse_wheel("down", "down", "Mouse wheel down", function()
+    exercise_mouse_wheel("up", "up", "Mouse wheel up", function()
+      test_finished = true
+      print("PASS: one Neoscroll animation engine, six real keyboard motions, and native wheel scrolling")
+      vim.cmd("qa!")
+    end)
+  end)
 end
 
 local ok, err = xpcall(run, debug.traceback)
 if not ok then
-  io.stderr:write("[scrolling] FAIL: " .. tostring(err) .. "\n")
-  io.stderr:flush()
-  vim.cmd("cquit 1")
+  fail(err)
 end
+
+vim.defer_fn(function()
+  if not test_finished then
+    fail("scroll integration test exceeded its 15-second deadline")
+  end
+end, 15000)

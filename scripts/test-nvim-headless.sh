@@ -180,7 +180,16 @@ run_nvim() {
 
   # Neovim can report Lua/Vimscript errors while still returning exit status 0.
   # The verbose trace captures messages that do not reach stdout/stderr.
-  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$log_file"; then
+  local error_scan_file="$log_file"
+  if [[ "$label" == "scrolling" ]]; then
+    # The PTY has no terminal emulator to answer Neovim's OSC 11 background
+    # query. Ignore only this exact synthetic-terminal warning; all other
+    # Vim/Lua errors remain fatal and the original log is preserved.
+    error_scan_file="$WORK_DIR/scrolling-error-scan.log"
+    grep -Fv "E1568: Terminal did not respond to DSR request for 'background' color" \
+      "$log_file" > "$error_scan_file" || true
+  fi
+  if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$error_scan_file"; then
     printf 'Error: Neovim reported an error during %s. Last 80 log lines follow:\n' "$label" >&2
     tail -n 80 "$log_file" >&2
     return 1
@@ -326,8 +335,7 @@ startup() {
 
   printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
   run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/scrolling.lua" \
-    "+qa!"
+    "+luafile $REPO_ROOT/tests/nvim/scrolling.lua"
 
   printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
   run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
