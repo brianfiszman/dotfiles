@@ -140,6 +140,7 @@ jobs:
             lua5.1
             python3-venv
             ripgrep
+            zsh
           )
           missing_packages=()
 
@@ -160,6 +161,8 @@ jobs:
 
           command -v fdfind >/dev/null
           command -v rg >/dev/null
+          command -v zsh >/dev/null
+          test -x /bin/zsh
           python3 -m venv --help > /dev/null
           test -f /usr/include/readline/readline.h
           test -f /usr/include/lua5.1/lua.h

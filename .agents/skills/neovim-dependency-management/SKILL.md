@@ -133,6 +133,13 @@ Examples:
 A green CI run proves only the exact source SHA and isolated environment that
 ran. It does not install a patch or dependency on the maintainer's Mac.
 
+A full `:checkhealth vim.provider` runs several optional providers in sequence.
+An earlier provider can abort the aggregate before Python is reached; for
+example, the Node check uses Neovim's configured `&shell`, so CI must provide
+the configured shell executable (this repository uses `/bin/zsh`). When the
+Python section is absent, inspect the whole report and fix the missing runtime
+prerequisite rather than weakening the Python assertion.
+
 Before changing dependencies or updating plugins, capture:
 
 - `nvim --version` and the actual `:echo stdpath("config")` / data path;
