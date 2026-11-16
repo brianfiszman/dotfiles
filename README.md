@@ -130,10 +130,14 @@ parser and `:TSUpdate` updates installed parsers. If automatic setup reports
 a missing CLI, verify that Mason's package is installed and that
 `vim.fn.exepath("tree-sitter")` returns its executable path.
 
-Highlighting uses Neovim's `vim.treesitter.start()`; indentation uses the
-current Treesitter `indentexpr` (upstream describes this feature as
-experimental). `<leader>V` selects/expands the current syntax node and
-`<BS>` contracts the selection to its child node. Rainbow delimiters and
+Highlighting uses Neovim's `vim.treesitter.start()` alongside Vim's
+regex syntax highlighting, preserving the previous combined behavior.
+Indentation uses the current Treesitter `indentexpr` (upstream describes this
+feature as experimental). Any installed parser with matching highlight or
+indent queries is configured when its filetype opens, including parsers added
+manually with `:TSInstall`; the 41 parsers in the managed list are installed
+and updated automatically. `<leader>V` selects/expands the current syntax node
+and `<BS>` contracts the selection to its child node. Rainbow delimiters and
 HTML/JSX/TSX autotagging use their standalone plugins.
 
 Go buffers also use the standalone `nvim-treesitter-textobjects/main` plugin:
