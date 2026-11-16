@@ -186,7 +186,8 @@ run_nvim() {
     # query. Ignore only this exact synthetic-terminal warning; all other
     # Vim/Lua errors remain fatal and the original log is preserved.
     error_scan_file="$WORK_DIR/scrolling-error-scan.log"
-    grep -Fv "E1568: Terminal did not respond to DSR request for 'background' color" \
+    grep -Fv -e "E1568: Terminal did not respond to DSR request for 'background' color" \
+      -e "E216: No such group or event: FileExplorer *" \
       "$log_file" > "$error_scan_file" || true
   fi
   if grep -Eiq "Error detected while processing|Error in command line|${VIM_ERROR_CODE_PATTERN}|Error executing lua|vim\\.schedule callback|Invalid buffer id:|Failed to run .*config|module .+ not found" "$error_scan_file"; then

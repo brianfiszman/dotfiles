@@ -76,11 +76,16 @@ end
 local function exercise_mouse_wheel(direction, comparison, description, next_step)
   -- The synthetic PTY cannot answer Neovim's OSC 11 background-color query.
   -- Dismiss its hit-enter prompt before queuing a non-blocking mouse event.
-  print("INFO: pending Vim error before wheel: " .. vim.inspect(vim.v.errmsg))
-  feed_key("<CR>")
-  check(description .. " leaves Neovim in Normal mode after PTY prompt dismissal", "n",
-    vim.fn.mode():sub(1, 1))
   prepare_buffer()
+  -- NvimTree 1.18.0 leaves a known FileExplorer autocmd cleanup prompt on
+  -- this Neovim version. Dismiss it after enew! (which can retrigger BufEnter),
+  -- then restore the fixture cursor before sending the mouse event.
+  feed_key("<CR>")
+  check(description .. " leaves Neovim in Normal mode after buffer reset", "n",
+    vim.fn.mode():sub(1, 1))
+  vim.cmd("messages clear")
+  vim.api.nvim_win_set_cursor(0, { 800, 0 })
+  vim.cmd("normal! zz")
   local winid = vim.api.nvim_get_current_win()
   local before = vim.fn.line("w0")
   local position = vim.api.nvim_win_get_position(winid)
