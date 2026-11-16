@@ -26,7 +26,9 @@ check("real :python3 host imports pynvim and neovim",
     and vim.g.dotfiles_python_provider_version ~= "")
 
 vim.cmd("checkhealth vim.provider")
-local report = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, true), "\n")
+local health_buffer = vim.fn.bufnr("health://")
+check("checkhealth created its report buffer", true, health_buffer > 0)
+local report = table.concat(vim.api.nvim_buf_get_lines(health_buffer, 0, -1, true), "\n")
 check("Python provider health reports installed pynvim",
   true, report:find("Latest pynvim is installed.", 1, true) ~= nil)
 check("Python provider health does not report a missing pynvim module",
