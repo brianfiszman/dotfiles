@@ -76,6 +76,13 @@ end
 
 local function exercise_mouse_wheel(direction, comparison, description, next_step)
   prepare_buffer()
+  -- The synthetic PTY may leave a hit-enter prompt after querying terminal
+  -- background color. Dismiss it before queuing non-blocking mouse input; then
+  -- restore the fixture position so the prompt cannot affect the assertion.
+  feed_key("<CR>")
+  check(description .. " leaves Neovim in Normal mode before mouse input", "n",
+    vim.fn.mode():sub(1, 1))
+  vim.cmd("messages clear")
   vim.api.nvim_win_set_cursor(0, { 800, 0 })
   vim.cmd("normal! zz")
   local winid = vim.api.nvim_get_current_win()
@@ -96,10 +103,14 @@ local function exercise_mouse_wheel(direction, comparison, description, next_ste
       return
     end
 
+    -- Neovim 0.12.6 maps API action "down" to K_MOUSEUP and "up" to
+    -- K_MOUSEDOWN (src/nvim/api/vim.c). Invert the API action to inject the
+    -- native TUI wheel direction that corresponds to this requested motion.
+    local api_action = comparison == "down" and "up" or "down"
     local sent, send_error = pcall(
       vim.api.nvim_input_mouse,
       "wheel",
-      direction,
+      api_action,
       "",
       0,
       row,
@@ -123,8 +134,9 @@ local function exercise_mouse_wheel(direction, comparison, description, next_ste
       local ok, err = xpcall(function()
         local moved = comparison == "down" and after > before
           or comparison == "up" and after < before
-        check(description .. " changes the viewport in the expected direction",
-          true, moved)
+        check(("%s changes the viewport in the expected direction (topline %d -> %d)"):format(
+          description, before, after
+        ), true, moved)
         check(description .. " does not start a Neoscroll animation",
           false, animation.scrolling)
       end, debug.traceback)
