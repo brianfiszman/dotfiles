@@ -98,3 +98,21 @@ A cold-install integration test must allow the complete first-run parser
 provisioning window, not a warm-start deadline. Use the test's 20-minute parser
 install timeout and a 30-minute startup phase deadline within the 60-minute
 workflow job.
+
+
+## Mason Tool Installer must not eagerly activate Mason DAP
+
+The Mason Tool Installer's default `integrations.mason-nvim-dap = true`
+requires `mason-nvim-dap.mappings.source` during setup. Under Lazy module
+autoload, that module belongs to the `mason-nvim-dap.nvim` plugin, so requiring
+it loads the DAP plugin and its dependencies even when no debug action was
+requested. This violates the repository's lazy-DAP contract and makes the
+Neotest idle-startup test fail before its first test action.
+
+When Mason Tool Installer is used only for unrelated packages such as
+`tree-sitter-cli`, disable just that bridge:
+`integrations = { ["mason-nvim-dap"] = false }`. Mason DAP remains independently
+configured and lazy; its adapter install list is owned by
+`dap.mason-nvim-dap.lua`. Keep the idle-startup assertion in
+`tests/nvim/neotest-lazy-loading.lua` and verify explicit DAP command triggers
+separately.
