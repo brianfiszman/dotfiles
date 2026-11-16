@@ -130,19 +130,29 @@ local function exercise_mouse_wheel(direction, description, next_step)
       return
     end
 
-    vim.defer_fn(function()
+    local deadline = vim.uv.hrtime() + 1_000_000_000
+
+    local function verify_wheel_input()
       if test_finished then
         return
       end
 
       local after = vim.fn.line("w0")
+      local moved = direction == "down" and after > before
+        or direction == "up" and after < before
+
+      -- The mouse API only queues input. Keep returning to Neovim's TUI loop
+      -- between polls so it can consume the event before checking the screen.
+      if not moved and vim.uv.hrtime() < deadline then
+        vim.defer_fn(verify_wheel_input, 25)
+        return
+      end
+
       print(("INFO: %s after_top=%d cursor=%d"):format(
         description, after, vim.api.nvim_win_get_cursor(winid)[1]
       ))
 
       local ok, err = xpcall(function()
-        local moved = direction == "down" and after > before
-          or direction == "up" and after < before
         check(("%s changes the viewport in the expected direction (topline %d -> %d)"):format(
           description, before, after
         ), true, moved)
@@ -156,7 +166,11 @@ local function exercise_mouse_wheel(direction, description, next_step)
       end
 
       next_step()
-    end, 150)
+    end
+
+    -- Let this callback return to the real TUI event loop after enqueueing the
+    -- wheel event. The next poll runs only after Neovim has had time to read it.
+    vim.defer_fn(verify_wheel_input, 25)
   end, 0)
 end
 
