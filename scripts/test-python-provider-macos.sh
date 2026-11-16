@@ -9,7 +9,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 2
 fi
 
-for required_command in "$NVIM_BIN" python3 git tar grep; do
+for required_command in "$NVIM_BIN" python3 git tar grep tee; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -62,11 +62,11 @@ run_provider_test() {
   DOTFILES_NVIM_CONFIG="$NVIM_CONFIG" \
     DOTFILES_NVIM_TEST_SCRIPT="$test_file" \
     "$NVIM_BIN" --headless -u "$REPO_ROOT/tests/nvim/python-provider-test-init.lua" \
-    >"$log_file" 2>&1 || status=$?
+    2>&1 | tee "$log_file" || status=$?
 
-  cat "$log_file"
   if ((status != 0)); then
-    printf 'Error: Neovim exited %s during %s.\n' "$status" "$label" >&2
+    printf 'Error: Neovim or the log stream exited %s during %s.\n' "$status" "$label" >&2
+    tail -n 80 "$log_file" >&2 || true
     return "$status"
   fi
 
