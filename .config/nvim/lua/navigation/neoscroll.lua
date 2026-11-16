@@ -13,6 +13,7 @@ return {
         "zt", "zz", "zb",
       },
       easing = "sine",
+      duration_multiplier = 0.65,
     })
 
     local modes = { "n", "v", "x" }

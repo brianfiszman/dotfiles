@@ -69,6 +69,12 @@ local function exercise_motion(key, expected_delta, description)
 end
 
 local function exercise_mouse_wheel(direction, comparison, description, next_step)
+  -- The synthetic PTY cannot answer Neovim's OSC 11 background-color query.
+  -- Dismiss its hit-enter prompt before queuing a non-blocking mouse event.
+  print("INFO: pending Vim error before wheel: " .. vim.inspect(vim.v.errmsg))
+  feed_key("<CR>")
+  check(description .. " leaves Neovim in Normal mode after PTY prompt dismissal", "n",
+    vim.fn.mode():sub(1, 1))
   prepare_buffer()
   local winid = vim.api.nvim_get_current_win()
   local before = vim.fn.line("w0")
@@ -157,6 +163,7 @@ local function run()
     "<C-u>", "<C-d>", "<C-b>", "<C-f>", "<C-y>", "<C-e>", "zt", "zz", "zb",
   }, neoscroll_config.mappings)
   check("all Neoscroll motions use one easing curve", "sine", neoscroll_config.easing)
+  check("page animations stay responsive", 0.65, neoscroll_config.duration_multiplier)
 
   animation = require("neoscroll.scroll")
   local window_height = vim.api.nvim_win_get_height(0)
