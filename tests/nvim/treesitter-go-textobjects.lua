@@ -129,24 +129,24 @@ vim.api.nvim_win_set_cursor(0, { 1, 0 })
 feed("]]")
 local cursor = vim.api.nvim_win_get_cursor(0)
 assert(cursor[1] == build_start,
-  ("] ] did not move to the first Go function: expected row %d, got %d"):format(build_start, cursor[1]))
+  ("]] did not move to the first Go function: expected row %d, got %d"):format(build_start, cursor[1]))
 feed("]]")
 cursor = vim.api.nvim_win_get_cursor(0)
 assert(cursor[1] == run_start,
-  ("] ] did not move to the next Go function: expected row %d, got %d"):format(run_start, cursor[1]))
+  ("]] did not move to the next Go function: expected row %d, got %d"):format(run_start, cursor[1]))
 feed("[[")
 cursor = vim.api.nvim_win_get_cursor(0)
 assert(cursor[1] == build_start,
-  ("[ [ did not return to the previous Go function: expected row %d, got %d"):format(build_start, cursor[1]))
+  ("[[ did not return to the previous Go function: expected row %d, got %d"):format(build_start, cursor[1]))
 feed("][")
 cursor = vim.api.nvim_win_get_cursor(0)
 assert(cursor[1] == build_end,
-  ("] [ did not move to the Go function end: expected row %d, got %d"):format(build_end, cursor[1]))
+  ("][ did not move to the Go function end: expected row %d, got %d"):format(build_end, cursor[1]))
 vim.api.nvim_win_set_cursor(0, { run_start, 0 })
 feed("[]")
 cursor = vim.api.nvim_win_get_cursor(0)
 assert(cursor[1] == build_end,
-  ("[ ] did not move to the previous Go function end: expected row %d, got %d"):format(build_end, cursor[1]))
+  ("[] did not move to the previous Go function end: expected row %d, got %d"):format(build_end, cursor[1]))
 print("PASS: ]], ][, [[ and [] navigate Go function boundaries")
 
 vim.fn.delete(path)
