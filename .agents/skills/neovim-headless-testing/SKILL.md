@@ -163,34 +163,15 @@ The `"m"` flag is important: `"n"` would bypass the mapping under test.
 - For Insert-mode integrations, separate the deterministic lazy-load assertion
   from any network or external-service bootstrap.
 
-## Telescope lazy-loading through keys, commands, and module imports
+## Telescope lazy-loading tests
 
-Telescope can be reached through more than one Lazy trigger. When a plugin
-exposes all of these paths, test them independently in fresh Neovim processes:
-
-- A `keys` spec with an LHS-only entry installs a temporary first-key mapping.
-  Dispatch the real mapping and assert the picker opens; checking `maparg()`
-  alone proves only that the stub exists.
-- A `cmd = "Telescope"` trigger must preserve command arguments and open a real
-  picker when `:Telescope find_files` is entered directly.
-- A plugin mapping that calls `require("telescope")` exercises Lazy's module
-  autoload path. Test that route separately, before any command or key trigger
-  has loaded Telescope.
-
-Audit indirect integrations before marking a plugin lazy. A dependency edge or
-an unconditional `require()` in another plugin's `VeryLazy` config can still
-load it. Keep independent integrations such as Scope setup active, but defer
-their Telescope extension registration until Telescope itself initializes.
-Call `telescope.setup()` before `telescope.load_extension()`: extension setup
-reads the extension configuration and may modify Telescope's configured
-sorters. Test that optional extension exports are present on first use without
-loading them during idle startup.
-
-For real picker behavior, create temporary file/content fixtures and inspect the
-actual Telescope result manager for expected file and grep entries. Do not infer
-success merely from an open picker window or a loaded module. External preview
-tools (for example Chafa for media-files previews) must be checked explicitly;
-report a skipped preview interaction separately from extension registration.
+Test each Lazy path in a fresh process: an LHS-only `keys` stub (real key
+dispatch), the `cmd` trigger with arguments, and a plugin mapping that
+`require()`s Telescope. Audit indirect dependencies and `VeryLazy` configs for
+eager imports. Keep integrations such as Scope active but defer their Telescope
+extensions until first use. Call `telescope.setup()` before
+`telescope.load_extension()`. Assert real picker results, not only module state;
+check optional preview executables and report skipped interactions separately.
 
 ## Current nvim-treesitter integration
 
@@ -263,47 +244,14 @@ The current textobjects plugin is configured independently of
   textobjects hook supports the current API. Its latest code still treats that
   legacy hook as optional; disable it and configure the standalone plugin.
 
-## Mason Tools startup ordering
+## Mason provisioning and lifecycle
 
-When a Mason Tool Installer plugin is a Lazy dependency, do not rely on its
-internal `VimEnter` hook to read `ensure_installed`: Lazy may source the
-plugin script during the `VimEnter` event and invoke that hook before its
-`config()` function applies the options. Set `run_on_start = false`, call
-`setup(opts)`, and schedule `check_install(false)` after setup. Register
-consumers of `MasonToolsUpdateCompleted` before scheduling that installation.
-This guarantees the initial CLI install actually runs and its completion is
-observed by the dependent plugin configuration.
-
-Keep Lazy plugin restoration separate from first-run tool provisioning. A
-headless `:Lazy! restore` process should set
-`DOTFILES_SKIP_TREESITTER_PROVISIONING=1`; the Treesitter config then skips the
-scheduled Mason installation and parser compilation in that process. The
-subsequent normal-startup process must run without that variable and wait for
-the real `MasonToolsUpdateCompleted` event and parser readiness. This avoids
-doing long async provisioning immediately before a restore-only `:qa!`. DAP
-adapter installation is covered independently by the first-use
-`:DapInstall` scenario, not by plugin restoration.
-
-The startup phase must have a deadline consistent with first-run provisioning:
-Mason installation plus compilation/update of the configured parser set can
-take materially longer than a warm startup. Keep it below the workflow job
-deadline and above the configured parser-install timeout.
-
-## Mason package lifecycle tests
-
-Mason 2.x registry lifecycle events are:
-- `package:install:handle`: receives one `InstallHandle`; resolve the package
-  through `handle.package`.
-- `package:install:success` and `package:install:failed`: receive
-  `(Package, receipt_or_error)` after the handle closes.
-
-Register listeners before triggering installation. For tests that attach after
-an existing startup/restore operation, do one upfront `is_installed()` scan
-after listener registration to account for already-completed installs; any
-remaining work must be observed through terminal events. Wait on an in-memory
-result table, never by polling `Package:is_installed()` inside `vim.wait()`.
-Keep the wait timeout below the enclosing shell phase deadline, and report
-missing terminal events separately from explicit package-install failures.
+Register terminal package-event listeners before scheduling Mason Tool Installer
+`check_install(false)`; never poll `is_installed()` in `vim.wait()`. Keep initial
+CLI/parser provisioning out of restore-only `:Lazy! restore` with
+`DOTFILES_SKIP_TREESITTER_PROVISIONING=1`; normal startup runs without it and
+waits for parser readiness. Event details:
+`docs/incidents/neovim-runtime-fingerprints.md`.
 
 ## LSP and Treesitter assertions
 
