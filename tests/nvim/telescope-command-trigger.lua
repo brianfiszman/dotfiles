@@ -39,7 +39,7 @@ end
 if vim.v.vim_did_enter == 0 then
   vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
 end
-local leader = vim.g.mapleader or "\\\\"
+local leader = vim.g.mapleader or "\\"
 wait_for("VeryLazy project and LazyGit integrations to initialize", 30000, function()
   return package.loaded["project_nvim"] ~= nil
     and vim.fn.maparg(leader .. "gg", "n") ~= ""
