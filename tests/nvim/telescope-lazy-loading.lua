@@ -10,6 +10,8 @@ local function wait_for(description, timeout_ms, predicate)
   assert(vim.wait(timeout_ms, predicate, 25), ("Timed out waiting for %s"):format(description))
 end
 
+local function enter_headless_ui()
+  enter_headless_ui()
 local function termcodes(keys)
   return vim.api.nvim_replace_termcodes(keys, true, false, true)
 end
