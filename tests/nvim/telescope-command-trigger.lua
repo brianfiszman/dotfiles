@@ -39,9 +39,12 @@ end
 if vim.v.vim_did_enter == 0 then
   vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
 end
-wait_for("VeryLazy LazyGit integration to initialize", 30000, function()
-  return vim.fn.exists(":LazyGit") == 2
+local leader = vim.g.mapleader or "\\\\"
+wait_for("VeryLazy project and LazyGit integrations to initialize", 30000, function()
+  return package.loaded["project_nvim"] ~= nil
+    and vim.fn.maparg(leader .. "gg", "n") ~= ""
 end)
+assert(vim.fn.exists(":LazyGit") == 2, "LazyGit command is missing after VeryLazy")
 
 assert(package.loaded["telescope"] == nil, "Telescope loaded before the direct command test")
 assert(vim.fn.exists(":Telescope") == 2, ":Telescope command trigger is missing")
@@ -70,4 +73,9 @@ assert(vim.fn.exists(":Telescope") == 2, "Telescope command disappeared after lo
 assert(type(require("telescope").extensions.media_files.media_files) == "function",
   "media-files extension was not initialized by direct command trigger")
 pass(":Telescope loads Telescope on demand and returns the expected file")
+local picker = current_picker()
+require("telescope.actions").close(picker.prompt_bufnr)
+wait_for("direct command picker cleanup", 10000, function()
+  return current_picker() == nil
+end)
 vim.fn.delete(workspace, "rf")
