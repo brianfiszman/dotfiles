@@ -178,9 +178,16 @@ local M = {
           -- the parent Treesitter completion listener is already registered.
           run_on_start = false,
         }))
-        vim.schedule(function()
-          installer.check_install(false)
-        end)
+        -- CI's plugin-restore phase only restores revisions/build hooks.
+        -- Defer Mason CLI provisioning and parser compilation to the following
+        -- normal-startup process, where their completion is awaited explicitly.
+        if vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING ~= "1" then
+          vim.schedule(function()
+            installer.check_install(false)
+          end)
+        else
+          print("[treesitter] CLI/parser provisioning deferred until normal startup")
+        end
       end,
       opts = {
         ensure_installed = { "tree-sitter-cli" },
