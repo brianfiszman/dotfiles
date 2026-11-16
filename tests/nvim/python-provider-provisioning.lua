@@ -48,6 +48,12 @@ end
 assert(python ~= "", "python3 is required in the isolated CI runner")
 check("Python provider command is registered", 2, vim.fn.exists(":DotfilesInstallPythonProvider"))
 check("provider remains optional before explicit install", nil, vim.g.python3_host_prog)
+vim.g.python3_host_prog = "/custom/python-host"
+provider.configure_host()
+check("manual Python host override is preserved", "/custom/python-host", vim.g.python3_host_prog)
+vim.g.python3_host_prog = nil
+provider.configure_host()
+check("missing optional provider remains unset", nil, vim.g.python3_host_prog)
 check("provider environment is absent before explicit install", false, uv.fs_lstat(target) ~= nil)
 
 local python_version = vim.system({

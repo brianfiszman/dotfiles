@@ -155,6 +155,17 @@ local function publish_stage(data_dir, stage, target)
   )
 end
 
+function M.configure_host()
+  if vim.g.python3_host_prog ~= nil then
+    return
+  end
+
+  local python_host = vim.fn.stdpath("data") .. "/" .. provider_dir_name .. "/bin/python"
+  if vim.fn.executable(python_host) == 1 then
+    vim.g.python3_host_prog = python_host
+  end
+end
+
 function M.install()
   if M.state.status == "running" then
     notify("Python provider installation is already running.", vim.log.levels.WARN)
