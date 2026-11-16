@@ -159,3 +159,21 @@ Keep an end-to-end Go fixture that asserts the module
 `nvim-treesitter.configs` remains unloaded, then exercises selection of
 functions/structs and movement between function boundaries through real
 Neovim input.
+
+
+## Current Tree-sitter migration: preserve legacy syntax and manual parser support
+
+The legacy configuration used `additional_vim_regex_highlighting = true`.
+After `vim.treesitter.start()`, Neovim marks the buffer with
+`b:ts_highlight`; the standard FileType syntax autocommand checks that flag
+and skips loading the normal Vim syntax file. Therefore the current API must
+explicitly set `vim.bo[bufnr].syntax = "ON"` after Treesitter starts
+successfully to preserve the old combined regex + Tree-sitter highlighting.
+
+Do not gate activation on the static automatic-install list. The legacy
+highlight/indent modules supported any installed parser with the corresponding
+queries. Resolve the filetype language, verify that its parser is available,
+and activate highlight/indent independently based on the `highlights` and
+`indents` query groups. A regression test should install a parser outside the
+managed list (e.g. Python), open a matching buffer, and assert the current
+Treesitter highlighter, Vim syntax file, and indentexpr are active.
