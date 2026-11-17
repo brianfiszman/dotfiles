@@ -4,7 +4,8 @@ local endpoint = vim.env.AVANTE_OLLAMA_ENDPOINT or "http://127.0.0.1:11434"
 return {
   "yetone/avante.nvim",
   version = false,
-  build = "make",
+  -- Download release-matched native libraries instead of compiling the Rust workspace locally.
+  build = ":AvanteBuild",
   event = "InsertEnter",
   cmd = {
     "Avante",
