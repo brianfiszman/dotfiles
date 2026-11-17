@@ -314,15 +314,15 @@ restore_plugins() {
   local avante_lua_dir="$XDG_DATA_HOME/nvim/lazy/avante.nvim/lua"
   local avante_native_libraries
   if [[ ! -d "$avante_lua_dir" ]]; then
-    printf 'Error: Avante Lua directory is missing after plugin restore: %s\\n' "$avante_lua_dir" >&2
+    printf 'Error: Avante Lua directory is missing after plugin restore: %s\n' "$avante_lua_dir" >&2
     return 1
   fi
   avante_native_libraries="$(find "$avante_lua_dir" -maxdepth 1 -type f -name 'avante_*.so' -print)"
   if [[ -z "$avante_native_libraries" ]]; then
-    printf 'Error: Avante prebuilt native libraries were not installed in %s\\n' "$avante_lua_dir" >&2
+    printf 'Error: Avante prebuilt native libraries were not installed in %s\n' "$avante_lua_dir" >&2
     return 1
   fi
-  printf '[restore] Avante native libraries installed:\\n%s\\n' "$avante_native_libraries"
+  printf '[restore] Avante native libraries installed:\n%s\n' "$avante_native_libraries"
 
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
