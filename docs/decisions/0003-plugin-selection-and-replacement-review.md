@@ -150,10 +150,13 @@ That is a **selection and implementation decision, not proof that the complete
 local workflow is healthy**. The exact PR #110 head passed the clean Linux
 plugin restore, native build, and Neovim startup workflow, but the maintainer
 reported that installing Avante on their local macOS setup is currently failing.
-The precise local error has not yet been recorded here. Authentication to local
-Ollama, actual suggestions while typing, acceptance/dismissal, latency, and
-quality remain unverified. Keep the integration issue open until those checks
-are completed. CodeCompanion remains the strongest all-in-one alternative;
+The local error was captured on 2026-11-17: Avante's source build was
+terminated with signal 15 after reaching the build timeout, without a Rust
+compiler or linker diagnostic. PR [#111](https://github.com/brianfiszman/dotfiles/pull/111)
+proposes using Avante's release-matched prebuilt libraries instead. Authentication
+to local Ollama, actual suggestions while typing, acceptance/dismissal, latency,
+and quality remain unverified. Keep the integration issue open until those
+checks are completed. CodeCompanion remains the strongest all-in-one alternative;
 copilot.lua and Minuet remain dedicated-completion alternatives if Avante's
 experimental suggestions prove unsuitable.
 
@@ -225,13 +228,22 @@ Neovim 0.12.6 install that restored locked plugins, ran their build hooks
 that CI's Linux installation/build path works; it does not prove a local macOS
 installation or a live Ollama completion.
 
-On 2026-11-16 the maintainer reported that Avante installation is currently
-failing on the local macOS machine. The exact error output is still needed to
-identify whether the cause is the build toolchain, native compilation, download,
-or another local dependency. Do not infer a cause from the successful Linux
-workflow. Issue [#69](https://github.com/brianfiszman/dotfiles/issues/69)
-therefore remains open for local installation diagnosis and a real interactive
-Ollama smoke test.
+On 2026-11-17 the maintainer supplied the local Lazy build log. It shows
+`cargo build --workspace --release --no-default-features --features=luajit`
+compiling the Avante Rust dependency graph until
+`make: *** [luajit] Terminated: 15`; the log explicitly says the process was
+killed because it reached the timeout. The visible Cargo dependency warnings
+are non-fatal. This identifies the local failure as a source-build timeout,
+not a compiler/linker error.
+
+Avante 0.5.0's `:AvanteBuild` command defaults to `source=false` and downloads
+the prebuilt release libraries. PR
+[#111](https://github.com/brianfiszman/dotfiles/pull/111) proposes changing the
+Lazy build hook to that command, asserting the native artifacts after restore,
+and exercising the real locked-plugin restore on macOS CI. Until that PR's
+macOS/Linux checks and a local install pass, issue
+[#69](https://github.com/brianfiszman/dotfiles/issues/69) remains open for the
+installation fix and the separate live Ollama/suggestion smoke tests.
 
 
 ### macOS installation path verification — 2026-11-17
@@ -292,9 +304,10 @@ remains open for that diagnosis and the separate live Ollama/suggestion tests.
 ## Scope boundary
 
 This ADR records the research, selection rationale, and subsequent implementation
-status. The actual Avante plugin specification, lockfile, and automated
-configuration checks were changed in PR #110, not in this documentation PR.
-The local macOS installation failure and live Ollama behavior remain separate
-validation work; this ADR does not claim those checks have passed. Any later
-change of provider or replacement plugin must be separately scoped and tested
-against the actual user workflow.
+status. The initial Avante plugin specification, lockfile, and automated
+configuration checks were changed in PR #110. The prebuilt-install change and
+macOS plugin-restore coverage are proposed separately in PR #111, not in this
+documentation PR. The local build timeout is diagnosed, but the proposed
+prebuilt path still needs its CI and local verification; live Ollama behavior
+also remains unverified. Any later change of provider or replacement plugin
+must be separately scoped and tested against the actual user workflow.
