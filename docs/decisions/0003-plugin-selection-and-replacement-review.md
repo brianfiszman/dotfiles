@@ -233,6 +233,62 @@ workflow. Issue [#69](https://github.com/brianfiszman/dotfiles/issues/69)
 therefore remains open for local installation diagnosis and a real interactive
 Ollama smoke test.
 
+
+### macOS installation path verification — 2026-11-17
+
+The current lockfile pins Avante to
+[`045fc71`](https://github.com/avante-corp/avante.nvim/commit/045fc710fe2dfbe77c4b5aae58974f09953dd997).
+At that exact revision, `lua/avante/version.lua` returns `0.5.0`, and the active
+plugin specification sets `build = "make"`.
+
+The pinned upstream
+[Makefile](https://github.com/avante-corp/avante.nvim/blob/045fc710fe2dfbe77c4b5aae58974f09953dd997/Makefile)
+defines `all: luajit`; that target runs
+`cargo build --workspace --release --no-default-features --features=luajit`
+and copies the compiled Rust libraries into Avante's `lua/` directory. Thus
+the current Lazy build hook is a **source build**, not a prebuilt-binary
+download. It requires `make`, Rust/`cargo`, and a working native C/linker
+toolchain on macOS. The local dotfiles README currently documents these
+requirements, including Xcode Command Line Tools.
+
+There is also a viable prebuilt route. The v0.5.0
+[release notes](https://github.com/avante-corp/avante.nvim/releases/tag/v0.5.0)
+state that `:AvanteBuild --version=v0.5.0` downloads the native libraries
+rather than compiling them. The pinned upstream
+[build.sh](https://github.com/avante-corp/avante.nvim/blob/045fc710fe2dfbe77c4b5aae58974f09953dd997/build.sh)
+maps macOS `arm64` to `aarch64`, supports `x86_64`, and selects the
+LuaJIT archive by default. The v0.5.0 release asset mirror lists both
+`avante_lib-darwin-aarch64-luajit.tar.gz` and
+`avante_lib-darwin-x86_64-luajit.tar.gz`
+([asset index](https://sourceforge.net/projects/avante-nvim.mirror/files/v0.5.0/)).
+This path can avoid a local Rust/C compilation, while still requiring network
+access plus `curl` and `tar`.
+
+There is an upstream documentation inconsistency worth preserving: the current
+README's Lazy example discusses `make BUILD_FROM_SOURCE=true`, but the Makefile
+at the exact locked commit has no `BUILD_FROM_SOURCE` switch and its default
+target compiles from source. The pinned Makefile and observed Lazy hook therefore
+determine the behavior of this configuration.
+
+**CI coverage correction:** the successful job named
+`Python provider provisioning (macOS)` runs
+[`scripts/test-python-provider-macos.sh`](https://github.com/brianfiszman/dotfiles/blob/master/scripts/test-python-provider-macos.sh);
+it does not install Avante or execute its build hook. The actual locked-plugin
+restore and build-hook run is the separate Ubuntu
+`Fresh install and headless startup` job, which does include Avante's
+`make` hook. Consequently, the passing workflow does not demonstrate that
+Avante's native libraries build on macOS.
+
+This narrows the likely failure classes but does not identify the user's actual
+failure. Missing Cargo/Rustup or Xcode Command Line Tools is one plausible cause;
+a compiler/linker error or network/build-hook problem is also possible. Do not
+change the build strategy or attribute the failure until the original local
+command and error output are available. If the output points to the native
+toolchain, evaluate switching the plugin hook to the version-matched prebuilt
+release path and add a macOS Avante install test. Issue [#69](https://github.com/brianfiszman/dotfiles/issues/69)
+remains open for that diagnosis and the separate live Ollama/suggestion tests.
+
+
 ## Scope boundary
 
 This ADR records the research, selection rationale, and subsequent implementation
