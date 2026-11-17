@@ -13,8 +13,11 @@ dein.vim or run a manual plugin-manager command.
 - Neovim 0.12.0 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
-- `make`, Rust/`cargo`, and a C build toolchain for Avante's native components.
+- `make` and a C build toolchain for other native plugin build hooks.
   On macOS, install the Xcode Command Line Tools separately.
+- `curl` and `tar` for Avante's release-matched prebuilt native libraries.
+  Rust/`cargo` are only needed when explicitly building Avante from source with
+  `:AvanteBuild source=true`.
 - A terminal with a Nerd Font is recommended for icons, but the font is not
   required to start Neovim.
 
@@ -137,9 +140,12 @@ Tool use still requires explicit permission prompts, generated diffs are not
 auto-applied, access to Git-ignored files is disabled, and prompt replay logging
 is off.
 
-The plugin's lazy.nvim `make` build hook compiles its native Rust components,
-so install `make`, Rust/Cargo, and a C toolchain before restoring plugins. The
-project does not install Ollama or operating-system packages for you.
+The plugin's lazy.nvim build hook runs `:AvanteBuild` to download the
+release-matched prebuilt native libraries. This avoids compiling Avante's Rust
+workspace during plugin installation; `curl`, `tar`, and internet access are
+required. Building from source remains available with
+`:AvanteBuild source=true` and requires Rust/Cargo plus a native C toolchain.
+The project does not install Ollama or operating-system packages for you.
 
 ### Optional: Python provider
 
