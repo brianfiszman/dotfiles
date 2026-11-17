@@ -17,6 +17,7 @@ local function has_event(event)
 end
 
 assert(has_event("InsertEnter"), "Avante must load on the first InsertEnter for automatic completion")
+assert(avante_spec.build == ":AvanteBuild", "Avante must download release-matched native libraries instead of compiling from source")
 assert(vim.fn.maparg("<Space>at", "n") ~= "", "Avante toggle keymap is missing")
 assert(vim.fn.maparg("<Space>aa", "n") ~= "", "Avante ask keymap is missing")
 assert(vim.fn.maparg("<Space>ae", "v") ~= "", "Avante visual-edit keymap is missing")
