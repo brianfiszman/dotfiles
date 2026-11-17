@@ -180,7 +180,7 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          for tool in git curl cmake gcc g++ make node npm python3 rustc cargo go \
+          for tool in git curl cmake gcc g++ make node npm python3 go \
             sha256sum timeout find grep tee tar unzip; do
             command -v "$tool" >/dev/null || {
               printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
@@ -192,8 +192,6 @@ jobs:
           printf 'Node: '; node --version
           printf 'npm: '; npm --version
           printf 'Go: '; go version
-          printf 'Rust: '; rustc --version
-          printf 'Cargo: '; cargo --version
           printf 'CMake: '; cmake --version | sed -n '1p'
           printf 'GCC: '; gcc --version | sed -n '1p'
           printf 'G++: '; g++ --version | sed -n '1p'
