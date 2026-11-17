@@ -78,11 +78,11 @@ jobs:
 
 
   python-provider-macos:
-    name: Python provider provisioning (macOS)
+    name: macOS plugin restore and Python provider
     needs: integration-decision
     if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -130,6 +130,17 @@ jobs:
           nvim --version | sed -n '1,3p'
           python3 --version
           command -v git
+
+      - name: Prepare isolated Neovim install for macOS plugin restore
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
+        run: bash ./scripts/test-nvim-headless.sh prepare
+
+      - name: Restore locked plugins and verify Avante prebuilt libraries on macOS
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
+          NVIM_RESTORE_TIMEOUT: 25m
+        run: bash ./scripts/test-nvim-headless.sh restore
 
       - name: Run isolated real provider provisioning and fresh-start checks
         run: bash ./scripts/test-python-provider-macos.sh
