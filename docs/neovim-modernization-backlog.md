@@ -31,9 +31,9 @@ independently testable behavior.
   lint runs while typing/opening files.
 - [#39](https://github.com/brianfiszman/dotfiles/issues/39) — define Tab and
   Shift-Tab once.
-- [#69](https://github.com/brianfiszman/dotfiles/issues/69) — original Codeium
-  InsertEnter work is superseded pending provider selection; its upstream client
-  is archived and users report that completions no longer respond.
+- [#69](https://github.com/brianfiszman/dotfiles/issues/69) — Avante replaced
+  retired Codeium in merged PR #110; local macOS installation diagnosis and a
+  real Ollama suggestion/acceptance smoke test remain open.
 
 
 ## Open — P1: reliable language and navigation tools

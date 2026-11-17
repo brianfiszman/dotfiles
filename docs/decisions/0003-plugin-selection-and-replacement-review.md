@@ -139,17 +139,23 @@ maintenance.
 
 ### Recommendation for Brian's criteria
 
-Avante is the clear first candidate to try as a **general AI coding assistant**:
-it is by far the most popular in the discovered set, its main branch was updated
-on the research date, it provides the broadest combined utility, and it has a
-genuinely free local-inference path. That is the result of the blind search, not
-a conclusion based on starting with its name.
+Avante was selected as the first general AI coding assistant and has now
+been integrated into the active Neovim configuration through
+[PR #110](https://github.com/brianfiszman/dotfiles/pull/110), merged on
+2026-11-16. This follows the blind discovery result rather than a search seeded
+with Avante's name. The integration uses local Ollama by default and deliberately
+enables Avante's experimental automatic suggestions as the Codeium replacement.
 
-For the exact old Codeium autocomplete workflow, do not call Avante a proven
-drop-in replacement yet. Compare its experimental suggestions in a real editing
-session against copilot.lua and Minuet. If the goal is one general-purpose AI
-assistant rather than continuous completion, prioritize an Avante trial with
-safe tool/logging defaults; keep CodeCompanion as the serious alternative.
+That is a **selection and implementation decision, not proof that the complete
+local workflow is healthy**. The exact PR #110 head passed the clean Linux
+plugin restore, native build, and Neovim startup workflow, but the maintainer
+reported that installing Avante on their local macOS setup is currently failing.
+The precise local error has not yet been recorded here. Authentication to local
+Ollama, actual suggestions while typing, acceptance/dismissal, latency, and
+quality remain unverified. Keep the integration issue open until those checks
+are completed. CodeCompanion remains the strongest all-in-one alternative;
+copilot.lua and Minuet remain dedicated-completion alternatives if Avante's
+experimental suggestions prove unsuitable.
 
 ### Pricing and free-use sources
 
@@ -185,22 +191,54 @@ The Gemini free API tier has limited model/rate access and Google states that co
 - [CopilotChat.nvim README](https://github.com/CopilotC-Nvim/CopilotChat.nvim)
 - [Tabby vim-tabby README](https://github.com/TabbyML/vim-tabby)
 
-## Earlier Codeium/Windsurf decision
+## Earlier Codeium/Windsurf decision and implementation outcome
 
-The current `ai/codeium.lua` spec uses `Exafunction/codeium.vim`. Its
-canonical Vim/Neovim repositories (`Exafunction/windsurf.vim` and
-`Exafunction/windsurf.nvim`) were archived on 2026-10-13. The community
-replacement `monkoose/neocodeium` was archived on 2026-11-08; its README says
-Codeium/Windsurf/Devin server access was discontinued in November 2026. Its
-maintainer confirmed that completions no longer worked in
-[NeoCodeium issue #74](https://github.com/monkoose/neocodeium/issues/74).
-Therefore the old [#69 InsertEnter-only change](https://github.com/brianfiszman/dotfiles/issues/69)
-must not be implemented as written. Lazy-loading does not restore a retired
-backend. No runtime removal or replacement has been made.
+The retired `Exafunction/codeium.vim` integration was not a viable path to
+preserve. Its canonical Vim/Neovim repositories
+(`Exafunction/windsurf.vim` and `Exafunction/windsurf.nvim`) were archived on
+2026-10-13. The community replacement `monkoose/neocodeium` was archived on
+2026-11-08; its README says Codeium/Windsurf/Devin server access was
+discontinued in November 2026. Its maintainer confirmed that completions no
+longer worked in [NeoCodeium issue #74](https://github.com/monkoose/neocodeium/issues/74).
+Lazy-loading alone could not restore that retired backend.
+
+The selected replacement was implemented in
+[PR #110](https://github.com/brianfiszman/dotfiles/pull/110), merged into
+`master` on 2026-11-16 as
+[`5b0808f`](https://github.com/brianfiszman/dotfiles/commit/5b0808f2f86de558c7384fe36e5d43fc31746da8).
+The active configuration is now `.config/nvim/lua/ai/avante.lua`:
+
+- Avante loads on `InsertEnter`, keeping ordinary startup lazy.
+- Chat and automatic suggestions use the local Ollama provider by default,
+  with `qwen3:8b` and `127.0.0.1:11434` as defaults.
+- Automatic suggestions are explicitly enabled, with an 800 ms debounce and
+  1200 ms throttle.
+- Tool approval remains interactive, generated diffs are not auto-applied,
+  Git-ignored files are not exposed to tools, and prompt replay logging is off.
+
+The exact PR #110 head
+[`647c817`](https://github.com/brianfiszman/dotfiles/commit/647c817f9fea50a6dbc66cf9bb0f6c46b3d44cf0)
+passed workflow [#43976964232](https://github.com/brianfiszman/dotfiles/actions/runs/43976964232):
+fast checks, macOS provider-provisioning checks, and a fresh isolated Linux
+Neovim 0.12.6 install that restored locked plugins, ran their build hooks
+(including Avante's Rust/Cargo build), and started Neovim normally. This proves
+that CI's Linux installation/build path works; it does not prove a local macOS
+installation or a live Ollama completion.
+
+On 2026-11-16 the maintainer reported that Avante installation is currently
+failing on the local macOS machine. The exact error output is still needed to
+identify whether the cause is the build toolchain, native compilation, download,
+or another local dependency. Do not infer a cause from the successful Linux
+workflow. Issue [#69](https://github.com/brianfiszman/dotfiles/issues/69)
+therefore remains open for local installation diagnosis and a real interactive
+Ollama smoke test.
 
 ## Scope boundary
 
-This record is research and decision guidance only. No plugin specification,
-lockfile, runtime behavior, installed dependency, or test harness was changed.
-A later Avante/CodeCompanion/Copilot/Minuet trial or migration must be separately
-scoped and validated against the actual user workflow.
+This ADR records the research, selection rationale, and subsequent implementation
+status. The actual Avante plugin specification, lockfile, and automated
+configuration checks were changed in PR #110, not in this documentation PR.
+The local macOS installation failure and live Ollama behavior remain separate
+validation work; this ADR does not claim those checks have passed. Any later
+change of provider or replacement plugin must be separately scoped and tested
+against the actual user workflow.
