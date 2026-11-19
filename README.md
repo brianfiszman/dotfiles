@@ -145,6 +145,15 @@ release-matched prebuilt native libraries. This avoids compiling Avante's Rust
 workspace during plugin installation; `curl`, `tar`, and internet access are
 required. Building from source remains available with
 `:AvanteBuild source=true` and requires Rust/Cargo plus a native C toolchain.
+
+If Avante was already installed before this build hook was added or changed,
+updating the dotfiles alone does not necessarily rerun the plugin build. Run
+`:AvanteBuild` once inside Neovim, then restart Neovim. The default command
+downloads the prebuilt libraries; do not add `source=true` unless you
+intentionally want a local Rust build. The headless restore test also loads
+`avante_templates` to verify that the native module is usable, not merely
+present on disk.
+
 The project does not install Ollama or operating-system packages for you.
 
 ### Optional: Python provider
