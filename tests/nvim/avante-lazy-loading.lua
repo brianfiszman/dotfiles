@@ -23,6 +23,8 @@ assert(vim.fn.maparg("<Space>aa", "n") ~= "", "Avante ask keymap is missing")
 assert(vim.fn.maparg("<Space>ae", "v") ~= "", "Avante visual-edit keymap is missing")
 assert(vim.fn.exists(":Avante") == 2, "Avante command is not registered as a lazy trigger")
 assert(type(avante_spec.opts) == "table", "Avante opts were not registered with lazy.nvim")
+assert(type(avante_spec.config) == "function",
+  "Avante must use a custom config to load native libraries before setup")
 
 print("PASS: Avante stays unloaded during idle startup and is registered for InsertEnter")
 
