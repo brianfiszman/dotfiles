@@ -17,6 +17,7 @@ local function has_event(event)
 end
 
 assert(has_event("InsertEnter"), "Avante must load on the first InsertEnter for automatic completion")
+assert(avante_spec.build == ":AvanteBuild", "Avante must download release-matched native libraries instead of compiling from source")
 assert(vim.fn.maparg("<Space>at", "n") ~= "", "Avante toggle keymap is missing")
 assert(vim.fn.maparg("<Space>aa", "n") ~= "", "Avante ask keymap is missing")
 assert(vim.fn.maparg("<Space>ae", "v") ~= "", "Avante visual-edit keymap is missing")
@@ -37,7 +38,7 @@ assert(vim.fn.exists(":AvanteBuild") == 2, "AvanteBuild command was not register
 
 local config = require("avante.config")
 local expected_endpoint = vim.env.AVANTE_OLLAMA_ENDPOINT or "http://127.0.0.1:11434"
-local expected_model = vim.env.AVANTE_OLLAMA_MODEL or "qwen3:8b"
+local expected_model = vim.env.AVANTE_OLLAMA_MODEL or "gemma4:12b"
 
 assert(config.provider == "ollama", "expected local Ollama provider, got " .. tostring(config.provider))
 assert(config.auto_suggestions_provider == "ollama", "automatic suggestions provider must remain local")

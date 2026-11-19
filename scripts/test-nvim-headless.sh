@@ -17,7 +17,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee script make rustc cargo; do
+for required_command in "$NVIM_BIN" git find grep tee script make curl tar; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -61,15 +61,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Preserve the host Rustup installation before isolating HOME. Rustup resolves
-# its toolchains from RUSTUP_HOME; without this, its default would move into the
-# empty test HOME and native plugin builds would fail despite host rustc/cargo
-# being on PATH.
-HOST_HOME="${HOME:-}"
-if [[ -z "${RUSTUP_HOME:-}" && -n "$HOST_HOME" && -d "$HOST_HOME/.rustup" ]]; then
-  export RUSTUP_HOME="$HOST_HOME/.rustup"
-fi
-
 # Every Neovim path is redirected into a disposable home. This test never reads
 # or writes the developer's real ~/.config/nvim, plugin cache, or state files.
 export HOME="$WORK_DIR/home"
@@ -78,18 +69,6 @@ export XDG_DATA_HOME="$WORK_DIR/data"
 export XDG_STATE_HOME="$WORK_DIR/state"
 export XDG_CACHE_HOME="$WORK_DIR/cache"
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
-
-# Verify Rustup still sees the host toolchain after HOME has been isolated.
-if command -v rustup >/dev/null 2>&1; then
-  if ! rustup show active-toolchain >/dev/null 2>&1; then
-    printf 'Error: Rustup has no active toolchain under RUSTUP_HOME=%s. Install/set a stable toolchain before running the Neovim tests.\n' "${RUSTUP_HOME:-<unset>}" >&2
-    exit 1
-  fi
-fi
-printf '[environment] Rust toolchain: '
-rustc --version
-printf '[environment] Cargo: '
-cargo --version
 
 PREPARED_MARKER="$WORK_DIR/.prepared"
 RESTORE_MARKER="$WORK_DIR/.restore-passed"
@@ -328,6 +307,23 @@ restore_plugins() {
   local -a restore_checks=("+Lazy! restore" "+qa!")
   DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
     run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
+
+  # Avante's :AvanteBuild must leave release-matched native libraries in the
+  # plugin Lua directory. This catches build-command failures that Neovim may
+  # report through notifications without returning a non-zero exit code.
+  local avante_lua_dir="$XDG_DATA_HOME/nvim/lazy/avante.nvim/lua"
+  local avante_native_libraries
+  if [[ ! -d "$avante_lua_dir" ]]; then
+    printf 'Error: Avante Lua directory is missing after plugin restore: %s\n' "$avante_lua_dir" >&2
+    return 1
+  fi
+  avante_native_libraries="$(find "$avante_lua_dir" -maxdepth 1 -type f -name 'avante_*.so' -print)"
+  if [[ -z "$avante_native_libraries" ]]; then
+    printf 'Error: Avante prebuilt native libraries were not installed in %s\n' "$avante_lua_dir" >&2
+    return 1
+  fi
+  printf '[restore] Avante native libraries installed:\n%s\n' "$avante_native_libraries"
+
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
 }

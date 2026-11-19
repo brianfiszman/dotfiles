@@ -78,11 +78,11 @@ jobs:
 
 
   python-provider-macos:
-    name: Python provider provisioning (macOS)
+    name: macOS plugin restore and Python provider
     needs: integration-decision
     if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -131,6 +131,17 @@ jobs:
           python3 --version
           command -v git
 
+      - name: Prepare isolated Neovim install for macOS plugin restore
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
+        run: bash ./scripts/test-nvim-headless.sh prepare
+
+      - name: Restore locked plugins and verify Avante prebuilt libraries on macOS
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
+          NVIM_RESTORE_TIMEOUT: 25m
+        run: bash ./scripts/test-nvim-headless.sh restore
+
       - name: Run isolated real provider provisioning and fresh-start checks
         run: bash ./scripts/test-python-provider-macos.sh
 
@@ -169,7 +180,7 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          for tool in git curl cmake gcc g++ make node npm python3 rustc cargo go \
+          for tool in git curl cmake gcc g++ make node npm python3 go \
             sha256sum timeout find grep tee tar unzip; do
             command -v "$tool" >/dev/null || {
               printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
@@ -181,8 +192,6 @@ jobs:
           printf 'Node: '; node --version
           printf 'npm: '; npm --version
           printf 'Go: '; go version
-          printf 'Rust: '; rustc --version
-          printf 'Cargo: '; cargo --version
           printf 'CMake: '; cmake --version | sed -n '1p'
           printf 'GCC: '; gcc --version | sed -n '1p'
           printf 'G++: '; g++ --version | sed -n '1p'

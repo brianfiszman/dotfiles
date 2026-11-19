@@ -1,10 +1,11 @@
-local model = vim.env.AVANTE_OLLAMA_MODEL or "qwen3:8b"
+local model = vim.env.AVANTE_OLLAMA_MODEL or "gemma4:12b"
 local endpoint = vim.env.AVANTE_OLLAMA_ENDPOINT or "http://127.0.0.1:11434"
 
 return {
   "yetone/avante.nvim",
   version = false,
-  build = "make",
+  -- Download release-matched native libraries instead of compiling the Rust workspace locally.
+  build = ":AvanteBuild",
   event = "InsertEnter",
   cmd = {
     "Avante",
