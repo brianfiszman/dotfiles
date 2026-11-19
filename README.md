@@ -141,10 +141,13 @@ auto-applied, access to Git-ignored files is disabled, and prompt replay logging
 is off.
 
 The plugin's lazy.nvim build hook runs `:AvanteBuild` to download the
-release-matched prebuilt native libraries. This avoids compiling Avante's Rust
-workspace during plugin installation; `curl`, `tar`, and internet access are
-required. Building from source remains available with
-`:AvanteBuild source=true` and requires Rust/Cargo plus a native C toolchain.
+release-matched prebuilt native libraries. The lazy-loaded plugin config also
+runs `require("avante_lib").load()` before `require("avante").setup(...)`;
+this step registers the native modules for LuaJIT and is required at runtime.
+This avoids compiling Avante's Rust workspace during plugin installation;
+`curl`, `tar`, and internet access are required. Building from source remains
+available with `:AvanteBuild source=true` and requires Rust/Cargo plus a native
+C toolchain.
 
 If Avante was already installed before this build hook was added or changed,
 updating the dotfiles alone does not necessarily rerun the plugin build. Run
