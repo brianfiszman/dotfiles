@@ -29,6 +29,11 @@ return {
       dependencies = { "ColinKennedy/mega.logging" },
     },
   },
+  -- The native Rust modules must be registered before Avante initializes.
+  config = function(_, opts)
+    require("avante_lib").load()
+    require("avante").setup(opts)
+  end,
   opts = {
     mode = "agentic",
     provider = "ollama",
