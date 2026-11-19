@@ -91,12 +91,12 @@ diff review, and agentic workflows. It stays unloaded during ordinary startup
 and loads on the first InsertEnter or an Avante command/key trigger.
 
 The default backend is **local Ollama** at `http://127.0.0.1:11434`, using
-`qwen3:8b`. Install Ollama separately, then start its service and download the
+`gemma4:12b`. Install Ollama separately, then start its service and download the
 model:
 
 ```sh
 ollama serve
-ollama pull qwen3:8b
+ollama pull gemma4:12b
 ```
 
 Skip `ollama serve` when the Ollama app/service is already running. Open Neovim
@@ -114,7 +114,7 @@ Override the local endpoint or model before launching Neovim:
 
 ```sh
 export AVANTE_OLLAMA_ENDPOINT="http://127.0.0.1:11434"
-export AVANTE_OLLAMA_MODEL="qwen3:8b"
+export AVANTE_OLLAMA_MODEL="gemma4:12b"
 ```
 
 The model is downloaded and run by Ollama; local inference has no per-request
