@@ -57,6 +57,16 @@ local function wait_for_animation(description)
   check(description .. " completes its animation", true, completed)
 end
 
+local function wait_for_idle_before_mouse(description)
+  -- A prior keyboard animation must have fully torn down before native wheel
+  -- input is tested. Checking the live flag only after the wheel event can
+  -- mistake a still-running previous animation for a new mouse animation.
+  local idle = vim.wait(5000, function()
+    return not animation.scrolling
+  end, 10)
+  check(description .. " starts after the previous animation has finished", true, idle)
+end
+
 local function exercise_motion(key, expected_delta, description)
   prepare_buffer()
   local before = vim.api.nvim_win_get_cursor(0)[1]
@@ -76,6 +86,7 @@ end
 
 local function exercise_mouse_wheel(direction, description, next_step)
   prepare_buffer()
+  wait_for_idle_before_mouse(description)
   -- The synthetic PTY may leave a hit-enter prompt after querying terminal
   -- background color. Dismiss it before queuing non-blocking mouse input; then
   -- restore the fixture position so the prompt cannot affect the assertion.
@@ -101,10 +112,11 @@ local function exercise_mouse_wheel(direction, description, next_step)
   -- Keep the pointer near the left edge of the text area. Mason/Noice can
   -- display floating notifications over the middle of the editor grid.
   local col = expected_col + (info.textoff or 0) + 2
-  print(("INFO: %s before_top=%d winid=%d winrow=%d wincol=%d width=%d height=%d textoff=%d position=%d,%d screenpos=%d,%d mouse=%d,%d"):format(
+  local starts_before_mouse = animation_starts
+  print(("INFO: %s before_top=%d winid=%d winrow=%d wincol=%d width=%d height=%d textoff=%d position=%d,%d screenpos=%d,%d mouse=%d,%d animation_starts=%d"):format(
     description, before, winid, info.winrow, info.wincol, info.width, info.height,
     info.textoff or 0, position[1], position[2],
-    screen_position[1], screen_position[2], row, col
+    screen_position[1], screen_position[2], row, col, starts_before_mouse
   ))
 
   -- nvim_input_mouse() is non-blocking. Return to Neovim's main loop after
@@ -156,7 +168,9 @@ local function exercise_mouse_wheel(direction, description, next_step)
         check(("%s changes the viewport in the expected direction (topline %d -> %d)"):format(
           description, before, after
         ), true, moved)
-        check(description .. " does not start a Neoscroll animation",
+        check(description .. " does not invoke Neoscroll's animation hook",
+          starts_before_mouse, animation_starts)
+        check(description .. " does not leave a Neoscroll animation active",
           false, animation.scrolling)
       end, debug.traceback)
 
