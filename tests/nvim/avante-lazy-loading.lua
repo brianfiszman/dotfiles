@@ -38,7 +38,7 @@ assert(vim.fn.exists(":AvanteBuild") == 2, "AvanteBuild command was not register
 
 local config = require("avante.config")
 local expected_endpoint = vim.env.AVANTE_OLLAMA_ENDPOINT or "http://127.0.0.1:11434"
-local expected_model = vim.env.AVANTE_OLLAMA_MODEL or "qwen3:8b"
+local expected_model = vim.env.AVANTE_OLLAMA_MODEL or "gemma4:12b"
 
 assert(config.provider == "ollama", "expected local Ollama provider, got " .. tostring(config.provider))
 assert(config.auto_suggestions_provider == "ollama", "automatic suggestions provider must remain local")
