@@ -324,6 +324,12 @@ restore_plugins() {
   fi
   printf '[restore] Avante native libraries installed:\n%s\n' "$avante_native_libraries"
 
+  # Existence alone is not enough: Neovim must be able to dlopen the Rust
+  # template module and see the functions Avante calls at runtime. Run this
+  # on both Linux and macOS immediately after the configured build hook.
+  printf '\n[restore] Verifying the Avante template module can be loaded by Neovim.\n'
+  DOTFILES_SKIP_TREESITTER_PROVISIONING=1 run_nvim "avante-native-module" "$NVIM_STARTUP_TIMEOUT" "+luafile $REPO_ROOT/tests/nvim/avante-native-module.lua"
+
   touch "$RESTORE_MARKER"
   printf '[restore] Locked plugin restore and configured build hooks passed.\n'
 }
