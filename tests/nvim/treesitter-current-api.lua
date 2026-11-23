@@ -25,6 +25,10 @@ local treesitter_plugin = require("lazy.core.config").plugins["nvim-treesitter"]
 assert(treesitter_plugin and treesitter_plugin.branch == "main",
   "The current upstream nvim-treesitter main branch must be configured")
 
+assert(require("lazy.core.config").plugins["lua-json5"] == nil,
+  "The unused native lua-json5 Rust build dependency must not be restored")
+print("PASS: JSON5 parser coverage does not require the native lua-json5 Rust module")
+
 local treesitter = require("nvim-treesitter")
 local installed = {}
 for _, language in ipairs(treesitter.get_installed("parsers")) do
@@ -84,6 +88,20 @@ local fixtures = {
     source = { "{", '  "enabled": true', "}" },
   },
   {
+    filetype = "json5",
+    extension = ".json5",
+    language = "json5",
+    expect_indent = false,
+    expect_clean_parse = true,
+    source = {
+      "{",
+      "  // JSON5 supports comments and unquoted keys",
+      "  unquotedKey: 'single-quoted value',",
+      "  trailingComma: true,",
+      "}",
+    },
+  },
+  {
     filetype = "yaml",
     extension = ".yaml",
     language = "yaml",
@@ -101,12 +119,19 @@ local function open_fixture(fixture)
   vim.cmd("edit " .. vim.fn.fnameescape(filename))
 
   assert_equal(fixture.filetype, vim.bo.filetype, fixture.filetype .. " filetype detection")
-  assert_equal("v:lua.require'nvim-treesitter'.indentexpr()", vim.bo.indentexpr,
-    fixture.filetype .. " uses the current Treesitter indentexpr")
+  if fixture.expect_indent ~= false then
+    assert_equal("v:lua.require'nvim-treesitter'.indentexpr()", vim.bo.indentexpr,
+      fixture.filetype .. " uses the current Treesitter indentexpr")
+  end
 
   local parser = vim.treesitter.get_parser(0)
   assert_equal(fixture.language, parser:lang(), fixture.filetype .. " parser mapping")
-  parser:parse()
+  local trees = parser:parse()
+  if fixture.expect_clean_parse then
+    assert(#trees > 0, fixture.filetype .. " parser returned no syntax trees")
+    assert_equal(false, trees[1]:root():has_error(),
+      fixture.filetype .. " accepts JSON5-only syntax without parser errors")
+  end
   assert(vim.b.ts_highlight == true,
     fixture.filetype .. " buffer did not activate Neovim's Treesitter highlighter")
   assert(vim.bo.syntax == "ON",
