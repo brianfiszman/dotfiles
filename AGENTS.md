@@ -99,6 +99,7 @@ default. Exact pins are for reproducibility, not for preserving obsolete APIs.
 - Keep the functional backlog in `docs/neovim-modernization-backlog.md` as a thin
   index; the issues are canonical.
 - Follow `.agents/skills/neovim-maintenance/SKILL.md` for Neovim-specific work.
+- Follow `.agents/skills/dependency-research/SKILL.md` before selecting or migrating third-party plugins, libraries, CLIs, SDKs, providers, or hosted tools.
 - Follow `.agents/skills/neovim-dependency-management/SKILL.md` when triaging `:checkhealth`, provisioning optional tools/providers, or comparing local and CI dependency state.
 - Follow `.agents/skills/github-project-management/SKILL.md` when creating,
   updating, comparing, or closing GitHub issues and pull requests.
