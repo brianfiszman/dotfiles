@@ -33,7 +33,6 @@
   "lsp_signature.nvim": { "branch": "master", "commit": "8b681c86b0bd7f932cd91987983d91497e43d83f" },
   "lspkind.nvim": { "branch": "master", "commit": "d79a1c3299ad0ef94e255d045bed9fa26025dab6" },
   "lspsaga.nvim": { "branch": "main", "commit": "778d56ff9b387dacd14ae648ed5604394b486f51" },
-  "lua-json5": { "branch": "master", "commit": "18d8308656f79fdaa5936b4e42bb07b4bbd2354e" },
   "lua-utils.nvim": { "branch": "main", "commit": "e565749421f4bbb5d2e85e37c3cef9d56553d8bd" },
   "lualine.nvim": { "branch": "master", "commit": "9fef261b53fbe3a2ef01ee9667f6fde064b1ed10" },
   "mason-lspconfig.nvim": { "branch": "main", "commit": "a5671269a1ddfa7790cdf97c14e600e269da550f" },
