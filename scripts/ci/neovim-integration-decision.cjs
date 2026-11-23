@@ -15,6 +15,7 @@ function isIntegrationPath(path) {
     path.startsWith("scripts/ci/") ||
     path === "install.sh" ||
     path === "scripts/test-nvim-headless.sh" ||
+    path === "scripts/test-python-provider-macos.sh" ||
     path === ".github/workflows/neovim-headless.yml" ||
     path === "README.md";
 }
