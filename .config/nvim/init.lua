@@ -40,19 +40,38 @@ if not uv.fs_stat(lazy_init) then
   end
 
   vim.fn.mkdir(vim.fn.fnamemodify(lazypath, ":h"), "p")
-  local output = vim.fn.system({
+  local clone_result = vim.system({
     "git",
     "clone",
     "--filter=blob:none",
     "https://github.com/folke/lazy.nvim.git",
     "--branch=stable",
     lazypath,
-  })
+  }, { text = true }):wait()
 
-  if vim.v.shell_error ~= 0 or not uv.fs_stat(lazy_init) then
+  local clone_output_parts = {}
+  for _, stream in ipairs({
+    clone_result.stdout or "",
+    clone_result.stderr or "",
+  }) do
+    if stream ~= "" then
+      clone_output_parts[#clone_output_parts + 1] = stream
+    end
+  end
+  local clone_output = table.concat(clone_output_parts, "\n")
+
+  if clone_result.code ~= 0 or not uv.fs_stat(lazy_init) then
+    -- A failed clone may leave a partial checkout. Do not preserve it as if it
+    -- were a valid plugin-manager installation; the next launch must retry.
+    if uv.fs_lstat(lazypath) and vim.fn.delete(lazypath, "rf") ~= 0 then
+      clone_output = clone_output
+        .. "\n[dotfiles] Could not remove the incomplete lazy.nvim checkout at "
+        .. lazypath
+    end
+
     error(
       "[dotfiles] Could not bootstrap lazy.nvim. Check your internet connection and GitHub access, then restart Neovim.\n"
-      .. (output or "")
+      .. clone_output
     )
   end
 end
