@@ -291,6 +291,19 @@ test("workflow run name carries the immutable PR baseline and keeps the heavy jo
   assert.match(workflow, /- "tests\/ci\/\*\*"/);
 });
 
+test("a Python provider macOS script-only delta requires full integration", async () => {
+  const github = fakeGithub({
+    comparison: {
+      status: "ahead",
+      total_commits: 1,
+      files: [{ filename: "scripts/test-python-provider-macos.sh" }],
+    },
+  });
+  const result = await determineIntegrationRequirement({ context: makeContext(), github });
+  assert.equal(result.required, true);
+  assert.match(result.reason, /integration-relevant files changed/);
+});
+
 test("path classifier includes integration inputs but not continuity-only docs", () => {
   for (const path of [
     ".config/nvim/init.lua",
@@ -299,6 +312,7 @@ test("path classifier includes integration inputs but not continuity-only docs",
     "scripts/ci/neovim-integration-decision.cjs",
     "tests/ci/neovim-integration-decision.test.cjs",
     "scripts/test-nvim-headless.sh",
+    "scripts/test-python-provider-macos.sh",
     ".github/workflows/neovim-headless.yml",
     "install.sh",
     "README.md",
