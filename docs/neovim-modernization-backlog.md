@@ -33,7 +33,9 @@ only currently open work. Closed/superseded issues remain in the GitHub history.
   observable Tab/Shift-Tab priority path for snippets, completion, and fallback.
 - [#69](https://github.com/brianfiszman/dotfiles/issues/69) — replace retired
   Codeium with Avante inline suggestions; native-module runtime verification
-  is being reviewed in [PR #112](https://github.com/brianfiszman/dotfiles/pull/112).
+  remains blocked by the published v0.5.0 macOS asset. [PR #112](https://github.com/brianfiszman/dotfiles/pull/112)
+  was closed unmerged after its proposed `avante_lib.load()` fix was confirmed
+  to be a no-op; resume this test after a corrected upstream release is published.
 
 ## Open — P1: developer tooling and portability
 
