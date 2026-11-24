@@ -37,8 +37,18 @@ local function run()
   write_external(watcher_path, { "watcher version one" })
   vim.cmd("edit " .. vim.fn.fnameescape(watcher_path))
   local watcher_buf = vim.api.nvim_get_current_buf()
+  local global_autoread = vim.go.autoread
+  local buffer_autoread = vim.bo[watcher_buf].autoread
+  print(("INFO: autoread global=%s buffer-local=%s"):format(
+    tostring(global_autoread), tostring(buffer_autoread)))
+  assert(global_autoread == true,
+    ("configured Neovim should retain the default global autoread behavior (got %s)"):format(
+      tostring(global_autoread)))
+  -- A global-local option may have a distinct local value. Make the fixture
+  -- explicit so the native watcher path is tested independently of that value.
+  vim.bo[watcher_buf].autoread = global_autoread
   assert(vim.bo[watcher_buf].autoread == true,
-    "configured Neovim should retain the default autoread behavior")
+    "watcher fixture did not enable buffer-local autoread")
   write_external(watcher_path, { "watcher version two from outside Neovim" })
   wait_for("autoread filesystem watcher to reload a clean buffer", function()
     return buffer_lines(watcher_buf)[1] == "watcher version two from outside Neovim"
