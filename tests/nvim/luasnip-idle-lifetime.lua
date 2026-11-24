@@ -3,29 +3,11 @@
 
 local function feed(keys, after_input)
   local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
-  local accepted = vim.api.nvim_input(termcodes)
-  assert(accepted == #termcodes,
-    ("Neovim accepted %d/%d input bytes for %q"):format(accepted, #termcodes, keys))
-
-  -- +luafile is still executing here; let Neovim return to its event loop so
-  -- queued typed input and mappings run before checking the resulting state.
-  local finished, callback_error = false, nil
-  vim.defer_fn(function()
-    local ok, err = xpcall(function()
-      if after_input then
-        after_input()
-      end
-    end, debug.traceback)
-    if not ok then
-      callback_error = err
-    end
-    finished = true
-  end, 20)
-
-  assert(vim.wait(2000, function() return finished end, 10),
-    ("Timed out processing real Neovim input %q (mode=%s)"):format(keys, vim.fn.mode()))
-  if callback_error then
-    error(callback_error, 0)
+  -- The whole test is deferred until Neovim has returned to its main loop.
+  -- Drain real typed input synchronously; mappings remain enabled for Tab.
+  vim.api.nvim_feedkeys(termcodes, "mtx", false)
+  if after_input then
+    after_input()
   end
 end
 
@@ -225,10 +207,16 @@ local function run()
   print("PASS: real CursorHold events are harmless when the current buffer has no active snippet")
 end
 
-local ok, err = xpcall(run, debug.traceback)
-if not ok then
-  io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\n")
-  vim.cmd("cquit 1")
-end
+-- Return from +luafile before interacting with the editor. A timer callback
+-- lets Neovim process typed input and real Insert/CursorHold events normally.
+vim.defer_fn(function()
+  local ok, err = xpcall(run, debug.traceback)
+  if not ok then
+    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\n")
+    vim.cmd("cquit 1")
+    return
+  end
 
-print("PASS: LuaSnip idle lifetime and real editor navigation")
+  print("PASS: LuaSnip idle lifetime and real editor navigation")
+  vim.cmd("qa!")
+end, 10)
