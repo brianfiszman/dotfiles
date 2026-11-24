@@ -4,11 +4,10 @@
 local function resume_test(thread, ok, err)
   local resumed, resume_error = coroutine.resume(thread, ok, err)
   if not resumed then
-    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(resume_error) .. "\\n")
+    io.stderr:write("[luasnip-idle-lifetime] " .. debug.traceback(thread, tostring(resume_error)) .. "\\n")
     vim.cmd("cquit 1")
   end
 end
-
 local function feed(keys, after_input)
   local thread = coroutine.running()
   assert(thread, "real editor input must run from the test coroutine")
@@ -258,16 +257,10 @@ local function run()
   print("PASS: real CursorHold events are harmless when the current buffer has no active snippet")
 end
 
--- Run the scenario as a coroutine after +luafile returns. Each input/wait
--- yields to Neovim's event loop so real Insert/CursorHold events can execute.
 local thread = coroutine.create(function()
-  local ok, err = xpcall(run, debug.traceback)
-  if not ok then
-    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\\n")
-    vim.cmd("cquit 1")
-    return
-  end
-
+  -- Do not wrap this in pcall/xpcall: LuaJIT 5.1 cannot yield through those
+  -- C-call boundaries. resume_test handles errors when each yield resumes.
+  run()
   print("PASS: LuaSnip idle lifetime and real editor navigation")
   vim.cmd("qa!")
 end)
@@ -275,7 +268,7 @@ end)
 vim.defer_fn(function()
   local ok, err = coroutine.resume(thread)
   if not ok then
-    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\\n")
+    io.stderr:write("[luasnip-idle-lifetime] " .. debug.traceback(thread, tostring(err)) .. "\\n")
     vim.cmd("cquit 1")
   end
 end, 10)
