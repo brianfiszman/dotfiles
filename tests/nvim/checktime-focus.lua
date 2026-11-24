@@ -35,8 +35,11 @@ local function run()
   local focus_gained_events = 0
   local focus_lost_events = 0
   local changed_events = {}
+  local focus_history = {}
+  local buffer_entry_events = 0
   local test_started_at = vim.uv.hrtime()
   local last_focus_at
+
 
   local function cleanup()
     -- Stop the separate TUI client first so its UI channel detaches cleanly.
@@ -62,14 +65,17 @@ local function run()
     end, 2500)
 
     local before_lost = focus_lost_events
-    local before_gained = focus_gained_events
     local lost_bytes = vim.fn.chansend(ui_job, "\27[O")
     assert(lost_bytes == 3, ("remote TUI accepted %d/3 FocusLost bytes"):format(lost_bytes))
+    wait_for("native remote-TUI FocusLost", function()
+      return focus_lost_events == before_lost + 1
+    end, 2000)
+
+    local before_gained = focus_gained_events
     local gained_bytes = vim.fn.chansend(ui_job, "\27[I")
     assert(gained_bytes == 3, ("remote TUI accepted %d/3 FocusGained bytes"):format(gained_bytes))
-
-    wait_for("native remote-TUI focus loss and gain events", function()
-      return focus_lost_events == before_lost + 1 and focus_gained_events == before_gained + 1
+    wait_for("native remote-TUI FocusGained", function()
+      return focus_gained_events == before_gained + 1
     end, 2000)
     last_focus_at = vim.uv.hrtime()
   end
@@ -93,12 +99,22 @@ local function run()
       group = group,
       callback = function()
         focus_lost_events = focus_lost_events + 1
+        focus_history[#focus_history + 1] = {
+          event = "FocusLost",
+          at = vim.uv.hrtime(),
+          buffer = vim.api.nvim_get_current_buf(),
+        }
       end,
     })
     vim.api.nvim_create_autocmd("FocusGained", {
       group = group,
       callback = function()
         focus_gained_events = focus_gained_events + 1
+        focus_history[#focus_history + 1] = {
+          event = "FocusGained",
+          at = vim.uv.hrtime(),
+          buffer = vim.api.nvim_get_current_buf(),
+        }
       end,
     })
 
@@ -115,10 +131,26 @@ local function run()
     wait_for("remote TUI UIEnter", function()
       return ui_enter_events == 1
     end, 5000)
-    -- Let the remote TUI finish its startup handshake and begin reading input.
-    vim.wait(250, function() return false end, 10)
-    last_focus_at = vim.uv.hrtime()
     print("PASS: attached a separate PTY-backed Neovim remote TUI")
+
+    -- Prime the real terminal focus-reporting path while no changed file is
+    -- loaded. This consumes the TUI's initial focus transition before the
+    -- external-write assertions begin and proves both escape sequences work.
+    local initial_lost = focus_lost_events
+    local lost_bytes = vim.fn.chansend(ui_job, "\27[O")
+    assert(lost_bytes == 3, ("remote TUI accepted %d/3 initial FocusLost bytes"):format(lost_bytes))
+    wait_for("initial native remote-TUI FocusLost", function()
+      return focus_lost_events == initial_lost + 1
+    end, 2000)
+
+    local initial_gained = focus_gained_events
+    local gained_bytes = vim.fn.chansend(ui_job, "\27[I")
+    assert(gained_bytes == 3, ("remote TUI accepted %d/3 initial FocusGained bytes"):format(gained_bytes))
+    wait_for("initial native remote-TUI FocusGained", function()
+      return focus_gained_events == initial_gained + 1
+    end, 2000)
+    last_focus_at = vim.uv.hrtime()
+    print("PASS: primed the real PTY focus-loss/focus-gain path before changing the fixture")
 
     -- Use autoread=false only for this isolated fixture so the native focus
     -- timestamp check reports FileChangedShell and we can assert its result.
@@ -137,6 +169,10 @@ local function run()
           buffer = event.buf,
           file = event.file,
           reason = reason,
+          focus_gained_events = focus_gained_events,
+          focus_lost_events = focus_lost_events,
+          buffer_entry_events = buffer_entry_events,
+          at = vim.uv.hrtime(),
         }
         -- Reload clean external changes, but never discard unsaved local edits.
         vim.v.fcs_choice = reason == "conflict" and "" or "reload"
@@ -151,7 +187,6 @@ local function run()
     assert(win_a ~= win_b and focus_buf ~= other_buf,
       "window-switch fixture did not create two independent buffers")
 
-    local buffer_entry_events = 0
     vim.api.nvim_create_autocmd("BufWinEnter", {
       group = group,
       callback = function(event)
@@ -161,6 +196,8 @@ local function run()
       end,
     })
 
+    local focus_gains_before_switch = focus_gained_events
+    local focus_losses_before_switch = focus_lost_events
     write_external(path, {
       "disk version two after focus loss",
       "second line proves content changed",
@@ -183,9 +220,14 @@ local function run()
     vim.wait(300, function()
       return #changed_events > 0
     end, 10)
+    assert(focus_gained_events == focus_gains_before_switch
+        and focus_lost_events == focus_losses_before_switch,
+      ("a focus transition occurred during buffer/window switching; gained=%d->%d lost=%d->%d history=%s"):format(
+        focus_gains_before_switch, focus_gained_events,
+        focus_losses_before_switch, focus_lost_events, vim.inspect(focus_history)))
     assert(#changed_events == 0,
-      ("buffer/window switching unexpectedly triggered %d file checks: %s"):format(
-        #changed_events, vim.inspect(changed_events)))
+      ("buffer/window switching unexpectedly triggered file checks without a focus transition: events=%s focus_history=%s"):format(
+        vim.inspect(changed_events), vim.inspect(focus_history)))
     assert_lines(focus_buf, { "disk version one" },
       "BufWinEnter must not check or reload the externally changed file")
     print("PASS: repeated BufWinEnter events do not run per-window timestamp checks")
