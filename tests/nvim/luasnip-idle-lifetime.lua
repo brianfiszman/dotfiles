@@ -1,11 +1,32 @@
 -- Exercise the configured LuaSnip + nvim-cmp key path and real CursorHold events.
 -- Every scenario runs in the isolated headless Neovim process from the main suite.
 
-local function feed(keys, flags)
+local function feed(keys, after_input)
   local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
-  -- Use the repository's established "xt" path for raw typed input and
-  -- "mtx" only when a user mapping must run (Tab / Shift-Tab / C-e).
-  vim.api.nvim_feedkeys(termcodes, flags or "mtx", false)
+  local accepted = vim.api.nvim_input(termcodes)
+  assert(accepted == #termcodes,
+    ("Neovim accepted %d/%d input bytes for %q"):format(accepted, #termcodes, keys))
+
+  -- +luafile is still executing here; let Neovim return to its event loop so
+  -- queued typed input and mappings run before checking the resulting state.
+  local finished, callback_error = false, nil
+  vim.defer_fn(function()
+    local ok, err = xpcall(function()
+      if after_input then
+        after_input()
+      end
+    end, debug.traceback)
+    if not ok then
+      callback_error = err
+    end
+    finished = true
+  end, 20)
+
+  assert(vim.wait(2000, function() return finished end, 10),
+    ("Timed out processing real Neovim input %q (mode=%s)"):format(keys, vim.fn.mode()))
+  if callback_error then
+    error(callback_error, 0)
+  end
 end
 
 local function current_lines()
@@ -73,12 +94,14 @@ local function run()
   -- Enter Insert mode, type the trigger and dispatch the configured nvim-cmp
   -- Super-Tab mapping as separate real input batches. Keep diagnostics explicit:
   -- this test must distinguish a broken fixture from a plugin behavior failure.
-  feed("i", "xt")
-  assert(vim.fn.mode():sub(1, 1) == "i",
-    "Neovim did not enter Insert mode before typing the snippet trigger (mode=" .. vim.fn.mode() .. ")")
-  feed(trigger, "xt")
-  assert(vim.fn.mode():sub(1, 1) == "i",
-    "typing the snippet trigger left Insert mode (mode=" .. vim.fn.mode() .. ")")
+  feed("i", function()
+    assert(vim.fn.mode():sub(1, 1) == "i",
+      "Neovim did not enter Insert mode before typing the snippet trigger (mode=" .. vim.fn.mode() .. ")")
+  end)
+  feed(trigger, function()
+    assert(vim.fn.mode():sub(1, 1) == "i",
+      "typing the snippet trigger left Insert mode (mode=" .. vim.fn.mode() .. ")")
+  end)
   assert(ls.expandable(), "LuaSnip did not recognize the registered trigger at the cursor: " .. vim.inspect({
     line = vim.api.nvim_get_current_line(),
     cursor = vim.api.nvim_win_get_cursor(0),
@@ -89,11 +112,11 @@ local function run()
     vim.fn.mode(), tostring(cmp.visible()),
     vim.inspect(vim.fn.maparg("<Tab>", "i", false, true))))
   if cmp.visible() then
-    feed("<C-e>", "mtx")
+    feed("<C-e>")
     assert(vim.fn.mode():sub(1, 1) == "i",
       "aborting the visible completion menu left Insert mode (mode=" .. vim.fn.mode() .. ")")
   end
-  feed("<Tab>", "mtx")
+  feed("<Tab>")
   print(("INFO: after Tab: mode=%s line=%q in_snippet=%s forward=%s"):format(
     vim.fn.mode(), vim.api.nvim_get_current_line(), tostring(ls.in_snippet()), tostring(ls.jumpable(1))))
 
@@ -141,23 +164,23 @@ local function run()
 
   -- Traverse the actual nvim-cmp mappings in both directions.
   feed("i")
-  cmp.abort()
+  if cmp.visible() then feed("<C-e>") end
   feed("<Tab>")
   assert(ls.jumpable(-1) == true, "forward Tab did not reach the second insert node")
   assert(ls.jumpable(1) == true, "second insert node lost the exit-node jump")
   assert_line("first:second!", "forward jump to second insert node")
   assert_cursor(1, 6, "second insert node after forward Tab")
 
-  cmp.abort()
+  if cmp.visible() then feed("<C-e>") end
   feed("<S-Tab>")
   assert(ls.jumpable(-1) == false, "Shift-Tab did not return to the first insert node")
   assert(ls.jumpable(1) == true, "backward jump lost the forward destination")
   assert_line("first:second!", "backward jump to first insert node")
   assert_cursor(1, 0, "first insert node after Shift-Tab")
 
-  cmp.abort()
+  if cmp.visible() then feed("<C-e>") end
   feed("<Tab>")
-  cmp.abort()
+  if cmp.visible() then feed("<C-e>") end
   feed("<Tab>")
   assert(ls.jumpable(1) == false, "the final insert node must not expose another forward jump")
   assert(ls.jumpable(-1) == true, "the final insert node should retain its backward jump")
@@ -167,7 +190,7 @@ local function run()
 
   -- Move back into the snippet and then outside its region. LuaSnip's documented
   -- region_check_events should refocus to $0 on cursor movement, without an idle timer.
-  cmp.abort()
+  if cmp.visible() then feed("<C-e>") end
   feed("<S-Tab>")
   assert(ls.jumpable(1) == true, "backward navigation from the exit node did not reach an insert node")
   assert(ls.jumpable(-1) == true, "second insert node lost its previous destination")
