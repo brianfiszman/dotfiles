@@ -399,7 +399,7 @@ startup() {
   run_nvim "luasnip-idle-lifetime" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/luasnip-idle-lifetime.lua"
 
-  printf '\n[behavior] Verifying external-file detection uses autoread and FocusGained, not BufWinEnter.\n'
+  printf '\n[behavior] Verifying native focus timestamp checks replace per-buffer-entry :checktime.\n'
   run_nvim "checktime-focus" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua" \
     "+qa!"
