@@ -26,18 +26,48 @@ local function wait_for(label, predicate, timeout_ms)
     })))
 end
 
-local function send_user_motion(ui_job, win, key)
+local cleanup_test
+
+local function fail_test(err)
+  if cleanup_test then
+    pcall(cleanup_test)
+  end
+  io.stderr:write("[checktime-focus] " .. tostring(err) .. "\n")
+  io.stderr:flush()
+  vim.cmd("cquit 1")
+end
+
+local function resume_test(thread, ok, err)
+  local resumed, resume_error = coroutine.resume(thread, ok, err)
+  if not resumed then
+    fail_test(debug.traceback(thread, tostring(resume_error)))
+  end
+end
+
+local function send_user_motion(win, key)
+  local thread = coroutine.running()
+  assert(thread, "real keyboard input must run from the checktime test coroutine")
   vim.api.nvim_set_current_win(win)
   local before = vim.api.nvim_win_get_cursor(win)
-  -- Send the key through the attached PTY-backed Neovim TUI. The remote UI
-  -- parses it and forwards real typed input over its RPC channel, which is the
-  -- same path a user's keyboard takes and resets Neovim's timestamp guard.
-  local bytes = vim.fn.chansend(ui_job, key)
-  assert(bytes == #key, ("remote TUI accepted %d/%d bytes for key %q"):format(bytes, #key, key))
-  wait_for(("remote TUI to process %q"):format(key), function()
-    local after = vim.api.nvim_win_get_cursor(win)
-    return after[1] == before[1] and after[2] ~= before[2]
-  end, 2000)
+  local accepted = vim.api.nvim_input(key)
+  assert(accepted == #key,
+    ("Neovim accepted %d/%d input bytes for key %q"):format(accepted, #key, key))
+
+  -- Yield to Neovim's main loop so nvim_input is processed as real typeahead.
+  -- Check the cursor from a later event-loop callback, then resume the test.
+  vim.defer_fn(function()
+    local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
+    local moved = read_ok and after[1] == before[1] and after[2] ~= before[2]
+    local message = moved and nil or (
+      ("real %q input did not move the cursor: before=%s after=%s"):format(
+        key, vim.inspect(before), vim.inspect(read_ok and after or nil)))
+    resume_test(thread, moved, message)
+  end, 20)
+
+  local ok, err = coroutine.yield()
+  if not ok then
+    error(err or ("Neovim input failed for " .. key), 0)
+  end
 end
 
 local function run()
@@ -68,6 +98,7 @@ local function run()
     pcall(vim.api.nvim_del_augroup_by_id, group)
     vim.fn.delete(path)
   end
+  cleanup_test = cleanup
 
   local function gain_native_focus()
     -- Neovim v0.12.6 throttles native timestamp checks to once per 2000ms.
@@ -94,8 +125,7 @@ local function run()
     last_focus_at = vim.uv.hrtime()
   end
 
-  local ok, err = xpcall(function()
-    -- Start a second Neovim process in a real PTY as a remote UI client.
+  -- Start a second Neovim process in a real PTY as a remote UI client.
     -- It receives raw terminal focus-reporting sequences, parses them in the TUI
     -- input layer, and sends nvim_ui_set_focus through its own RPC connection.
     -- This avoids same-process RPC re-entrancy and exercises the actual TUI path.
@@ -228,7 +258,7 @@ local function run()
     -- The initial attach/focus handshake checked an empty editor. Send a
     -- real key after opening the fixture so Neovim is eligible to check again.
     -- First prove an unchanged visible file does not produce a change event.
-    send_user_motion(ui_job, switch_win_a, "l")
+    send_user_motion(switch_win_a, "l")
     gain_native_focus()
     assert(#changed_events == 0,
       ("an unchanged file produced a focus-change event: %s"):format(vim.inspect(changed_events)))
@@ -236,7 +266,7 @@ local function run()
 
     -- A real user has interacted since the last focus check. This resets
     -- Neovim's one-check-per-idle-cycle guard before the external write.
-    send_user_motion(ui_job, switch_win_a, "l")
+    send_user_motion(switch_win_a, "l")
     local focus_gains_before_switch = focus_gained_events
     local focus_losses_before_switch = focus_lost_events
     write_external(path, {
@@ -294,7 +324,7 @@ local function run()
     local unchanged_event_count = #changed_events
     -- A later external write is detected by the next native focus transition.
     -- Real user input resets Neovim's timestamp guard after the previous check.
-    send_user_motion(ui_job, switch_win_a, "l")
+    send_user_motion(switch_win_a, "l")
     write_external(path, {
       "disk version three, second external change",
       "third version still has two lines",
@@ -312,7 +342,7 @@ local function run()
     print("PASS: a later external change is detected on the next focus return")
 
     -- A conflict must be reported without replacing unsaved local content.
-    send_user_motion(ui_job, switch_win_a, "l")
+    send_user_motion(switch_win_a, "l")
     vim.api.nvim_buf_set_lines(focus_buf, 0, -1, false, { "local unsaved edit" })
     assert(vim.bo[focus_buf].modified == true, "local fixture edit did not mark the buffer modified")
     write_external(path, { "conflicting external disk version" })
@@ -330,19 +360,18 @@ local function run()
     print("PASS: native FocusGained preserves unsaved local edits on external conflict")
 
     cleanup()
-  end, debug.traceback)
+    cleanup_test = nil
+end
 
+local thread = coroutine.create(function()
+  run()
+  print("PASS: native checktime focus policy and real UI behavior")
+  vim.cmd("qa!")
+end)
+
+vim.defer_fn(function()
+  local ok, err = coroutine.resume(thread)
   if not ok then
-    cleanup()
-    error(err)
+    fail_test(debug.traceback(thread, tostring(err)))
   end
-end
-
-local ok, err = xpcall(run, debug.traceback)
-if not ok then
-  io.stderr:write("[checktime-focus] " .. tostring(err) .. "\n")
-  io.stderr:flush()
-  vim.cmd("cquit 1")
-end
-
-print("PASS: native checktime focus policy and real UI behavior")
+end, 10)print("PASS: native checktime focus policy and real UI behavior")
