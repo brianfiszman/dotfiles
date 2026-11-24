@@ -1,9 +1,11 @@
 -- Exercise the configured LuaSnip + nvim-cmp key path and real CursorHold events.
 -- Every scenario runs in the isolated headless Neovim process from the main suite.
 
-local function feed(keys)
+local function feed(keys, flags)
   local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
-  vim.api.nvim_feedkeys(termcodes, "mtx", false)
+  -- Use the repository's established "xt" path for raw typed input and
+  -- "mtx" only when a user mapping must run (Tab / Shift-Tab / C-e).
+  vim.api.nvim_feedkeys(termcodes, flags or "mtx", false)
 end
 
 local function current_lines()
@@ -71,10 +73,10 @@ local function run()
   -- Enter Insert mode, type the trigger and dispatch the configured nvim-cmp
   -- Super-Tab mapping as separate real input batches. Keep diagnostics explicit:
   -- this test must distinguish a broken fixture from a plugin behavior failure.
-  feed("i")
+  feed("i", "xt")
   assert(vim.fn.mode():sub(1, 1) == "i",
     "Neovim did not enter Insert mode before typing the snippet trigger (mode=" .. vim.fn.mode() .. ")")
-  feed(trigger)
+  feed(trigger, "xt")
   assert(vim.fn.mode():sub(1, 1) == "i",
     "typing the snippet trigger left Insert mode (mode=" .. vim.fn.mode() .. ")")
   assert(ls.expandable(), "LuaSnip did not recognize the registered trigger at the cursor: " .. vim.inspect({
@@ -87,11 +89,11 @@ local function run()
     vim.fn.mode(), tostring(cmp.visible()),
     vim.inspect(vim.fn.maparg("<Tab>", "i", false, true))))
   if cmp.visible() then
-    feed("<C-e>")
+    feed("<C-e>", "mtx")
     assert(vim.fn.mode():sub(1, 1) == "i",
       "aborting the visible completion menu left Insert mode (mode=" .. vim.fn.mode() .. ")")
   end
-  feed("<Tab>")
+  feed("<Tab>", "mtx")
   print(("INFO: after Tab: mode=%s line=%q in_snippet=%s forward=%s"):format(
     vim.fn.mode(), vim.api.nvim_get_current_line(), tostring(ls.in_snippet()), tostring(ls.jumpable(1))))
 
