@@ -16,6 +16,13 @@ local function assert_line(expected, label)
     ("%s: expected first line %q, got %q"):format(label, expected, actual))
 end
 
+local function assert_cursor(expected_row, expected_column, label)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  assert(cursor[1] == expected_row and cursor[2] == expected_column,
+    ("%s: expected cursor [%d, %d], got %s"):format(
+      label, expected_row, expected_column, vim.inspect(cursor)))
+end
+
 local cursorhold_count = 0
 
 local function wait_for_cursorhold(event_count, timeout_ms)
@@ -70,6 +77,7 @@ local function run()
   assert(vim.fn.mode():sub(1, 1) == "i",
     "snippet expansion did not leave Neovim in Insert mode (mode=" .. vim.fn.mode() .. ")")
   assert_line("first:second!", "real Tab-triggered snippet expansion")
+  assert_cursor(1, 0, "first insert node after expansion")
   assert(ls.in_snippet() == true, "expanded snippet is not active at its first insert node")
   assert(ls.jumpable(1) == true, "first insert node has no forward jump")
   assert(ls.jumpable(-1) == false, "first insert node unexpectedly has a backward jump")
@@ -115,12 +123,14 @@ local function run()
   assert(ls.jumpable(-1) == true, "forward Tab did not reach the second insert node")
   assert(ls.jumpable(1) == true, "second insert node lost the exit-node jump")
   assert_line("first:second!", "forward jump to second insert node")
+  assert_cursor(1, 6, "second insert node after forward Tab")
 
   cmp.abort()
   feed("<S-Tab>")
   assert(ls.jumpable(-1) == false, "Shift-Tab did not return to the first insert node")
   assert(ls.jumpable(1) == true, "backward jump lost the forward destination")
   assert_line("first:second!", "backward jump to first insert node")
+  assert_cursor(1, 0, "first insert node after Shift-Tab")
 
   cmp.abort()
   feed("<Tab>")
@@ -129,6 +139,7 @@ local function run()
   assert(ls.jumpable(1) == false, "the final insert node must not expose another forward jump")
   assert(ls.jumpable(-1) == true, "the final insert node should retain its backward jump")
   assert_line("first:second!", "navigation to the final insert node")
+  assert_cursor(1, 13, "final insert node after forward Tab")
   print("PASS: configured Tab/Shift-Tab navigate forward, backward, and to the exhausted exit node")
 
   -- Move back into the snippet and then outside its region. LuaSnip's documented
@@ -137,6 +148,7 @@ local function run()
   feed("<S-Tab>")
   assert(ls.jumpable(1) == true, "backward navigation from the exit node did not reach an insert node")
   assert(ls.jumpable(-1) == true, "second insert node lost its previous destination")
+  assert_cursor(1, 6, "second insert node after backward Tab from exit")
 
   feed("<Esc>j")
   local left_region = vim.wait(2000, function()
