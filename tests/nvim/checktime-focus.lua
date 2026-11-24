@@ -179,18 +179,31 @@ local function run()
       end,
     })
 
-    local win_a = vim.api.nvim_get_current_win()
+    -- Keep the changed file visible in an inactive focus window while the
+    -- user switches between two other windows. Neovim natively checks the
+    -- current buffer when entering it; the removed BufWinEnter callback used
+    -- :checktime to scan *all* visible buffers. This fixture distinguishes them.
+    local focus_win = vim.api.nvim_get_current_win()
     vim.cmd("vsplit")
-    local win_b = vim.api.nvim_get_current_win()
+    local switch_win_a = vim.api.nvim_get_current_win()
     vim.cmd("enew")
-    local other_buf = vim.api.nvim_get_current_buf()
-    assert(win_a ~= win_b and focus_buf ~= other_buf,
-      "window-switch fixture did not create two independent buffers")
+    local switch_buf_a = vim.api.nvim_get_current_buf()
+    vim.cmd("vsplit")
+    local switch_win_b = vim.api.nvim_get_current_win()
+    vim.cmd("enew")
+    local switch_buf_b = vim.api.nvim_get_current_buf()
+    assert(focus_win ~= switch_win_a and focus_win ~= switch_win_b and switch_win_a ~= switch_win_b,
+      "window-switch fixture did not create three independent windows")
+    assert(vim.api.nvim_win_get_buf(focus_win) == focus_buf,
+      "externally modified focus buffer is not isolated in its own window")
 
+    local spare_buf_a = vim.api.nvim_create_buf(false, true)
+    local spare_buf_b = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_create_autocmd("BufWinEnter", {
       group = group,
       callback = function(event)
-        if event.buf == focus_buf or event.buf == other_buf then
+        if event.buf == switch_buf_a or event.buf == switch_buf_b
+            or event.buf == spare_buf_a or event.buf == spare_buf_b then
           buffer_entry_events = buffer_entry_events + 1
         end
       end,
@@ -203,19 +216,23 @@ local function run()
       "second line proves content changed",
     })
 
-    -- Repeatedly hide and redisplay the focus buffer in one window so each
-    -- transition produces a real BufWinEnter. Switch between both windows too;
-    -- ordinary window focus changes must not trigger timestamp checks either.
-    local spare_buf = vim.api.nvim_create_buf(false, true)
+    -- Change the current buffer repeatedly in the two switch windows and move
+    -- between them. The changed file remains visible in focus_win but is never
+    -- the current buffer; a global :checktime on BufWinEnter would still find it.
     for _ = 1, 4 do
-      vim.api.nvim_win_set_buf(win_a, spare_buf)
-      vim.api.nvim_win_set_buf(win_a, focus_buf)
-      vim.api.nvim_set_current_win(win_b)
-      vim.api.nvim_set_current_win(win_a)
+      vim.api.nvim_set_current_win(switch_win_a)
+      vim.api.nvim_win_set_buf(switch_win_a, spare_buf_a)
+      vim.api.nvim_win_set_buf(switch_win_a, switch_buf_a)
+      vim.api.nvim_set_current_win(switch_win_b)
+      vim.api.nvim_win_set_buf(switch_win_b, spare_buf_b)
+      vim.api.nvim_win_set_buf(switch_win_b, switch_buf_b)
     end
-    assert(buffer_entry_events >= 4,
-      ("expected at least four real BufWinEnter events for the focus buffer, observed %d"):format(
+    assert(buffer_entry_events >= 8,
+      ("expected repeated real BufWinEnter events in the two switch windows, observed %d"):format(
         buffer_entry_events))
+    assert(vim.api.nvim_get_current_win() ~= focus_win
+        and vim.api.nvim_win_get_buf(focus_win) == focus_buf,
+      "the changed focus buffer became current during the window-switch scenario")
 
     vim.wait(300, function()
       return #changed_events > 0
@@ -226,11 +243,11 @@ local function run()
         focus_gains_before_switch, focus_gained_events,
         focus_losses_before_switch, focus_lost_events, vim.inspect(focus_history)))
     assert(#changed_events == 0,
-      ("buffer/window switching unexpectedly triggered file checks without a focus transition: events=%s focus_history=%s"):format(
+      ("switching buffers/windows scanned another visible file unexpectedly: events=%s focus_history=%s"):format(
         vim.inspect(changed_events), vim.inspect(focus_history)))
     assert_lines(focus_buf, { "disk version one" },
-      "BufWinEnter must not check or reload the externally changed file")
-    print("PASS: repeated BufWinEnter events do not run per-window timestamp checks")
+      "unrelated buffer/window activity must not check a different visible file")
+    print("PASS: real BufWinEnter and window switching do not scan other visible files")
 
     -- The actual RPC focus path calls Neovim's internal check_timestamps().
     gain_native_focus()
