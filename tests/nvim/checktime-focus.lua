@@ -146,15 +146,19 @@ local function run()
       "second line proves content changed",
     })
 
-    -- Repeated buffer changes in the second window exercise real BufWinEnter
-    -- events; none should inspect timestamps or reload the file.
-    vim.api.nvim_set_current_win(win_b)
+    -- Repeatedly hide and redisplay the focus buffer in one window so each
+    -- transition produces a real BufWinEnter. Switch between both windows too;
+    -- ordinary window focus changes must not trigger timestamp checks either.
+    local spare_buf = vim.api.nvim_create_buf(false, true)
     for _ = 1, 4 do
-      vim.api.nvim_win_set_buf(win_b, focus_buf)
-      vim.api.nvim_win_set_buf(win_b, other_buf)
+      vim.api.nvim_win_set_buf(win_a, spare_buf)
+      vim.api.nvim_win_set_buf(win_a, focus_buf)
+      vim.api.nvim_set_current_win(win_b)
+      vim.api.nvim_set_current_win(win_a)
     end
     assert(buffer_entry_events >= 8,
-      ("expected repeated BufWinEnter events, observed %d"):format(buffer_entry_events))
+      ("expected repeated real BufWinEnter events for the focus/spare buffers, observed %d"):format(
+        buffer_entry_events))
 
     vim.wait(300, function()
       return #changed_events > 0
