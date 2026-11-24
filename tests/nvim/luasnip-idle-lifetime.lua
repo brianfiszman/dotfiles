@@ -153,8 +153,10 @@ local function run()
   print(("INFO: after Tab: mode=%s line=%q in_snippet=%s forward=%s"):format(
     vim.fn.mode(), vim.api.nvim_get_current_line(), tostring(ls.in_snippet()), tostring(ls.jumpable(1))))
 
-  assert(vim.fn.mode():sub(1, 1) == "i",
-    "snippet expansion did not leave Neovim in Insert mode (mode=" .. vim.fn.mode() .. ")")
+  local expanded_mode = vim.fn.mode():sub(1, 1)
+  assert(expanded_mode == "s",
+    "LuaSnip should select the first insert node after expansion (expected Select mode, got "
+      .. vim.fn.mode() .. ")")
   assert_line("first:second!", "real Tab-triggered snippet expansion")
   assert_cursor(1, 0, "first insert node after expansion")
   assert(ls.in_snippet() == true, "expanded snippet is not active at its first insert node")
