@@ -358,8 +358,7 @@ startup() {
 
   printf '\n[behavior] Verifying native focus timestamp checks replace per-buffer-entry :checktime.\n'
   run_nvim "checktime-focus" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua" \
-    "+qa!"
+    "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua"
 
   printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
   run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
