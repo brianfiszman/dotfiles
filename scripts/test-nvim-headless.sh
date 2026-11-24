@@ -397,8 +397,7 @@ startup() {
 
   printf '\n[behavior] Verifying LuaSnip sessions survive idle CursorHold and end on region exit.\n'
   run_nvim "luasnip-idle-lifetime" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/luasnip-idle-lifetime.lua" \
-    "+qa!"
+    "+luafile $REPO_ROOT/tests/nvim/luasnip-idle-lifetime.lua"
 
   printf '\n[behavior] Verifying Telescope and extensions load only on the first picker action.\n'
   run_nvim "telescope-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
