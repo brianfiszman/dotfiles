@@ -8,8 +8,9 @@ state updates land through a dedicated docs PR. Keep this file at 40 lines or fe
 ## Current focus
 
 - **Repository:** `brianfiszman/dotfiles`; latest `master` merge is PR #117.
-- **Next functional issue:** [#32](https://github.com/brianfiszman/dotfiles/issues/32),
-  preserve active LuaSnip sessions while the cursor is idle (S).
+- **Active functional issue:** [#32](https://github.com/brianfiszman/dotfiles/issues/32),
+  implemented in Draft [PR #119](https://github.com/brianfiszman/dotfiles/pull/119),
+  branch `fix/luasnip-idle-session-32`, head `4d0ca7be41557c1a405aeb01e1e8a866e0c1849c`.
 - **Policy:** latest stable Neovim/upstream APIs by default; no older-version
   compatibility unless Brian explicitly requests it.
 
@@ -22,9 +23,9 @@ state updates land through a dedicated docs PR. Keep this file at 40 lines or fe
 
 ## Pending
 
-- #32 is the next functional task; its real LuaSnip idle/jump behavior needs focused and full headless coverage.
+- #32 implementation and exact-head validation are in progress. Workflow [#45400421041](https://github.com/brianfiszman/dotfiles/actions/runs/45400421041) is running; no behavior is yet marked validated.
 - #33, #34, #36–#40, #45, #69, #91, and #107 remain in the live backlog; see the canonical index and issues for current detail.
 
 ## Next action
 
-- Start #32 on a clean branch from current `master`; reproduce the active-session loss and implement only the documented behavior.
+- Finish reviewing PR #119's Linux/macOS headless results, correct any failures, then mark Ready and merge only when all acceptance and quality gates pass.
