@@ -61,9 +61,18 @@ grow into a second transcript.
 
 ## Authorization
 
-- Merging always requires Brian's explicit approval. Silence, green CI, a Draft
-  PR becoming Ready, or an assistant recommendation is not approval.
-- Do not mark a Draft PR Ready or merge it without an explicit instruction.
+- Brian has granted the assistant standing authority to mark Draft PRs Ready and
+  merge PRs in this repository once the issue's acceptance criteria are met,
+  the complete current diff has no blocking findings, required tests and CI pass
+  on the exact PR head, the PR is mergeable, and all risk-based QA/reviewer gates
+  are satisfied.
+- No per-PR merge approval is needed under this delegation. Do not merge when a
+  required check is failed, pending, or unavailable; a required manual check is
+  incomplete; review findings or product decisions remain unresolved; or any
+  blocker exists. Ask Brian about those substantive decisions, not routine
+  merge permission.
+- Brian retains final authority over priority, scope, and acceptance and may
+  change or revoke this delegation at any time.
 - Paused work stays paused. A branch-local `AGENT_STATE.md` or worklog does not
   authorize resuming it.
 
