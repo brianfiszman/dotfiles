@@ -40,8 +40,8 @@ vim.api.nvim_create_autocmd({ "VimResized" }, {
   end,
 })
 
-vim.api.nvim_create_autocmd({ "BufWinEnter" }, {
-  pattern = { "*" },
+vim.api.nvim_create_autocmd({ "FocusGained" }, {
+  desc = "Check loaded buffers for external changes when Neovim regains focus",
   callback = function()
     vim.cmd "checktime"
   end,
