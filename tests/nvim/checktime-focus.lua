@@ -290,6 +290,7 @@ local function run()
     }, "native FocusGained reload")
     print("PASS: native FocusGained detects and reloads an external change")
 
+    local unchanged_event_count = #changed_events
     -- A later external write is detected by the next native focus transition.
     -- Real user input resets Neovim's timestamp guard after the previous check.
     send_user_motion(switch_win_a, "l")
