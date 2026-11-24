@@ -1,8 +1,8 @@
 -- Verify Neovim's native focus-return timestamp check without running
 -- :checktime on every buffer/window switch.
 --
--- nvim_ui_set_focus() is RPC-only. A second RPC UI exercises the same native
--- do_autocmd_focusgained() path used by Neovim's TUI focus escape sequences.
+-- A minimal RPC UI client sends the native focus notifications that Neovim's
+-- TUI emits after parsing terminal focus-reporting sequences.
 
 local function write_external(path, lines)
   assert(vim.fn.writefile(lines, path) == 0, "could not write external fixture: " .. path)
@@ -61,7 +61,9 @@ local function run()
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
   local server_address
   local ui_job
+  local ui_script_path
   local ui_exit_code
+  local ui_stderr = {}
   local ui_enter_events = 0
   local focus_gained_events = 0
   local focus_lost_events = 0
@@ -73,8 +75,7 @@ local function run()
 
 
   local function cleanup()
-    -- Stop the separate TUI client first so its UI channel detaches cleanly.
-    -- It is a real remote UI process, not a same-process rpcrequest to ourselves.
+    -- Stop the RPC UI client before closing the server socket.
     if ui_job and ui_job > 0 then
       pcall(vim.fn.jobstop, ui_job)
       pcall(vim.fn.jobwait, { ui_job }, 1500)
@@ -82,115 +83,141 @@ local function run()
     if server_address then
       pcall(vim.fn.serverstop, server_address)
     end
+    if ui_script_path then
+      vim.fn.delete(ui_script_path)
+    end
     pcall(vim.api.nvim_del_augroup_by_id, group)
     vim.fn.delete(path)
   end
   cleanup_test = cleanup
 
-  local function gain_native_focus()
-    -- Neovim v0.12.6 throttles native timestamp checks to once per 2000ms.
-    -- Send focus-reporting escape sequences to a separate PTY-backed remote TUI;
-    -- that client parses them and sends nvim_ui_set_focus over its own RPC channel.
-    local anchor = last_focus_at or test_started_at
-    wait_for("native focus timestamp-check throttle", function()
-      return vim.uv.hrtime() - anchor >= 2100000000
-    end, 2500)
-
+  local function trigger_native_focus_cycle(label)
     local before_lost = focus_lost_events
-    local lost_bytes = vim.fn.chansend(ui_job, "\27[O")
-    assert(lost_bytes == 3, ("remote TUI accepted %d/3 FocusLost bytes"):format(lost_bytes))
-    wait_for("native remote-TUI FocusLost", function()
+    local before_gained = focus_gained_events
+    local lua = [[
+      local channel = _G.dotfiles_checktime_focus_parent_channel
+      assert(type(channel) == "number" and channel > 0,
+        "RPC UI client is not connected to the parent Neovim")
+      assert(vim.rpcnotify(channel, "nvim_ui_set_focus", false),
+        "could not send native FocusLost notification")
+      assert(vim.rpcnotify(channel, "nvim_ui_set_focus", true),
+        "could not send native FocusGained notification")
+      return true
+    ]]
+    local ok, result = pcall(vim.rpcrequest, ui_job, "nvim_exec_lua", lua, {})
+    assert(ok and result == true,
+      ("%s: RPC UI client could not send focus events: %s"):format(label, vim.inspect(result)))
+    wait_for(label .. " native FocusLost", function()
       return focus_lost_events == before_lost + 1
     end, 2000)
-
-    local before_gained = focus_gained_events
-    local gained_bytes = vim.fn.chansend(ui_job, "\27[I")
-    assert(gained_bytes == 3, ("remote TUI accepted %d/3 FocusGained bytes"):format(gained_bytes))
-    wait_for("native remote-TUI FocusGained", function()
+    wait_for(label .. " native FocusGained", function()
       return focus_gained_events == before_gained + 1
     end, 2000)
     last_focus_at = vim.uv.hrtime()
   end
 
-  -- Start a second Neovim process in a real PTY as a remote UI client.
-    -- It receives raw terminal focus-reporting sequences, parses them in the TUI
-    -- input layer, and sends nvim_ui_set_focus through its own RPC connection.
-    -- This avoids same-process RPC re-entrancy and exercises the actual TUI path.
-    print("INFO: starting the Neovim RPC server for the remote TUI")
-    server_address = vim.fn.serverstart()
-    assert(type(server_address) == "string" and server_address ~= "",
-      "serverstart() did not return a Neovim RPC address")
-    print("INFO: remote TUI RPC server is ready")
+  local function gain_native_focus()
+    -- Neovim v0.12.6 throttles native timestamp checks to once per 2000ms.
+    local anchor = last_focus_at or test_started_at
+    wait_for("native focus timestamp-check throttle", function()
+      return vim.uv.hrtime() - anchor >= 2100000000
+    end, 2500)
+    trigger_native_focus_cycle("native RPC UI focus return")
+  end
 
-    vim.api.nvim_create_autocmd("UIEnter", {
-      group = group,
-      callback = function()
-        ui_enter_events = ui_enter_events + 1
-      end,
-    })
-    vim.api.nvim_create_autocmd("FocusLost", {
-      group = group,
-      callback = function()
-        focus_lost_events = focus_lost_events + 1
-        focus_history[#focus_history + 1] = {
-          event = "FocusLost",
-          at = vim.uv.hrtime(),
-          buffer = vim.api.nvim_get_current_buf(),
-        }
-      end,
-    })
-    vim.api.nvim_create_autocmd("FocusGained", {
-      group = group,
-      callback = function()
-        focus_gained_events = focus_gained_events + 1
-        focus_history[#focus_history + 1] = {
-          event = "FocusGained",
-          at = vim.uv.hrtime(),
-          buffer = vim.api.nvim_get_current_buf(),
-        }
-      end,
-    })
+  -- Create a real RPC UI channel without launching a nested terminal UI.
+  -- Neovim's TUI sends these same nvim_ui_set_focus RPC notifications after
+  -- parsing terminal focus-reporting sequences. This isolates the server-side
+  -- timestamp-check path from PTY/terminal startup behavior.
+  server_address = vim.fn.serverstart()
+  assert(type(server_address) == "string" and server_address ~= "",
+    "serverstart() did not return a Neovim RPC address")
 
-    ui_job = vim.fn.jobstart({
-      "env", "-u", "NVIM", vim.v.progpath, "--server", server_address, "--remote-ui",
-    }, {
-      pty = true,
-      width = 80,
-      height = 24,
-      env = { TERM = "xterm-256color" },
-      on_exit = function(_, code)
-        ui_exit_code = code
-      end,
-    })
-    assert(type(ui_job) == "number" and ui_job > 0,
-      ("could not start the remote TUI job: %s"):format(vim.inspect(ui_job)))
-    print("INFO: remote TUI started as job " .. ui_job .. "; waiting for UIEnter")
-    local attached = vim.wait(5000, function()
-      return ui_enter_events == 1 or ui_exit_code ~= nil
-    end, 10)
-    assert(attached and ui_enter_events == 1,
-      ("remote TUI did not attach; UIEnter=%d exit_code=%s"):format(
-        ui_enter_events, vim.inspect(ui_exit_code)))
-    print("PASS: attached a separate PTY-backed Neovim remote TUI")
+  vim.api.nvim_create_autocmd("UIEnter", {
+    group = group,
+    callback = function()
+      ui_enter_events = ui_enter_events + 1
+    end,
+  })
+  vim.api.nvim_create_autocmd("FocusLost", {
+    group = group,
+    callback = function()
+      focus_lost_events = focus_lost_events + 1
+      focus_history[#focus_history + 1] = {
+        event = "FocusLost",
+        at = vim.uv.hrtime(),
+        buffer = vim.api.nvim_get_current_buf(),
+      }
+    end,
+  })
+  vim.api.nvim_create_autocmd("FocusGained", {
+    group = group,
+    callback = function()
+      focus_gained_events = focus_gained_events + 1
+      focus_history[#focus_history + 1] = {
+        event = "FocusGained",
+        at = vim.uv.hrtime(),
+        buffer = vim.api.nvim_get_current_buf(),
+      }
+    end,
+  })
 
-    -- Prime the real terminal focus-reporting path while no changed file is
-    -- loaded. This consumes the TUI's initial focus transition before the
-    -- external-write assertions begin and proves both escape sequences work.
-    local initial_lost = focus_lost_events
-    local lost_bytes = vim.fn.chansend(ui_job, "\27[O")
-    assert(lost_bytes == 3, ("remote TUI accepted %d/3 initial FocusLost bytes"):format(lost_bytes))
-    wait_for("initial native remote-TUI FocusLost", function()
-      return focus_lost_events == initial_lost + 1
-    end, 2000)
+  ui_script_path = vim.fn.tempname() .. ".lua"
+  local ui_client_script = [[
+    local function attach()
+      local address = vim.env.DOTFILES_CHECKTIME_SERVER
+      assert(type(address) == "string" and address ~= "",
+        "missing parent Neovim RPC server address")
+      local channel = vim.fn.sockconnect("pipe", address, { rpc = true })
+      assert(type(channel) == "number" and channel > 0,
+        ("could not connect to parent Neovim RPC server %q"):format(tostring(address)))
+      _G.dotfiles_checktime_focus_parent_channel = channel
+      vim.rpcrequest(channel, "nvim_ui_attach", 80, 24, { rgb = true })
+    end
 
-    local initial_gained = focus_gained_events
-    local gained_bytes = vim.fn.chansend(ui_job, "\27[I")
-    assert(gained_bytes == 3, ("remote TUI accepted %d/3 initial FocusGained bytes"):format(gained_bytes))
-    wait_for("initial native remote-TUI FocusGained", function()
-      return focus_gained_events == initial_gained + 1
-    end, 2000)
-    last_focus_at = vim.uv.hrtime()
-    print("PASS: primed the real PTY focus-loss/focus-gain path before changing the fixture")
+    local ok, err = xpcall(attach, debug.traceback)
+    if not ok then
+      io.stderr:write("[checktime-focus-client] " .. tostring(err) .. "\n")
+      io.stderr:flush()
+      vim.cmd("cquit 1")
+    else
+      print("PASS: attached a minimal RPC UI to the test Neovim")
+    end
+  ]]
+  assert(vim.fn.writefile(vim.split(ui_client_script, "\n"), ui_script_path) == 0,
+    "could not write the RPC UI client script")
+
+  ui_job = vim.fn.jobstart({
+    vim.v.progpath, "--embed", "--headless", "-u", "NONE", "-i", "NONE", "-n",
+    "-c", "luafile " .. vim.fn.fnameescape(ui_script_path),
+  }, {
+    rpc = true,
+    env = { DOTFILES_CHECKTIME_SERVER = server_address },
+    on_stderr = function(_, data)
+      for _, line in ipairs(data) do
+        if line ~= "" then
+          ui_stderr[#ui_stderr + 1] = line
+        end
+      end
+    end,
+    on_exit = function(_, code)
+      ui_exit_code = code
+    end,
+  })
+  assert(type(ui_job) == "number" and ui_job > 0,
+    ("could not start the RPC UI client: %s"):format(vim.inspect(ui_job)))
+
+  local attached = vim.wait(5000, function()
+    return ui_enter_events == 1 or ui_exit_code ~= nil
+  end, 10)
+  assert(attached and ui_enter_events == 1 and ui_exit_code == nil,
+    ("RPC UI did not attach; UIEnter=%d exit_code=%s stderr=%s"):format(
+      ui_enter_events, vim.inspect(ui_exit_code), vim.inspect(ui_stderr)))
+  print("PASS: attached a separate Neovim RPC UI channel")
+
+  -- Prime the native focus path while no changed file is loaded.
+  trigger_native_focus_cycle("initial native RPC UI focus cycle")
+  print("PASS: initial native focus-loss/focus-gain notifications were observed")
 
     -- Use autoread=false only for this isolated fixture so the native focus
     -- timestamp check reports FileChangedShell and we can assert its result.
@@ -303,7 +330,7 @@ local function run()
       "unrelated buffer/window activity must not check a different visible file")
     print("PASS: real BufWinEnter and window switching do not scan other visible files")
 
-    -- The actual RPC focus path calls Neovim's internal check_timestamps().
+    -- The native UI focus path calls Neovim's internal check_timestamps().
     gain_native_focus()
     assert(#changed_events == 1,
       ("one native focus return should detect exactly one external change: %s"):format(
