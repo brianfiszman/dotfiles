@@ -88,6 +88,9 @@ local function run()
       { rgb = true, ext_linegrid = true }
     )
     assert(attached, "could not attach the test RPC UI: " .. tostring(attach_error))
+    -- Anchor the throttle after attachment/startup side effects, so the first
+    -- explicit focus transition is guaranteed to be outside the native window.
+    last_focus_at = vim.uv.hrtime()
     print("PASS: attached an RPC UI for native Neovim focus events")
 
     vim.api.nvim_create_autocmd("FocusGained", {
