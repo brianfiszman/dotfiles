@@ -29,7 +29,7 @@
 - [ ] Required behavior tests exist and pass on the exact current head.
 - [ ] Existing keymaps, workflows, and plugin versions were preserved unless the
       issue explicitly changes them.
-- [ ] `AGENT_STATE.md` and the monthly worklog were not edited on this branch.
+- [ ] State/worklog changes, if any, are isolated to a dedicated docs-only PR.
 - [ ] No credentials, tokens, caches, or machine-specific paths were added.
 - [ ] Documentation is updated when setup or user-facing behavior changed.
 - [ ] I marked Ready or merged only after all required quality gates passed.
