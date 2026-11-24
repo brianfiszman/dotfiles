@@ -6,7 +6,7 @@ This is a thin index. GitHub issues are the canonical backlog and acceptance
 record; PRs hold implementation and validation evidence. Keep one issue per
 independently testable behavior.
 
-**Reconciled:** 2026-11-24 against the live open-issue state. This file lists
+**Reconciled:** 2026-11-24 after PR #119 merged; checked against the live open-issue state. This file lists
 only currently open work. Closed/superseded issues remain in the GitHub history.
 
 ## Open — P0: safe, reproducible setup
@@ -15,8 +15,6 @@ _No open issues at this priority._
 
 ## Open — P1: predictable everyday editing
 
-- [#32](https://github.com/brianfiszman/dotfiles/issues/32) — preserve active
-  LuaSnip sessions while the cursor is idle.
 - [#33](https://github.com/brianfiszman/dotfiles/issues/33) — detect external
   file changes without repeated per-window checks.
 - [#34](https://github.com/brianfiszman/dotfiles/issues/34) — avoid rebuilding
@@ -59,6 +57,15 @@ _No open issues at this priority._
 
 ## Recently completed
 
+- [#32](https://github.com/brianfiszman/dotfiles/issues/32) — preserve LuaSnip
+  sessions while idle; removed destructive `CursorHold` cleanup and configured
+  LuaSnip region-exit events. Merged in
+  [PR #119](https://github.com/brianfiszman/dotfiles/pull/119) as
+  [`fcc1abe`](https://github.com/brianfiszman/dotfiles/commit/fcc1abe7959c898b304adac1acdcd85fe7fc2575).
+  Exact PR head `1bd0e27c37b50381382abefef6f83f6ecc2b27d1` passed workflow
+  [#45406120492](https://github.com/brianfiszman/dotfiles/actions/runs/45406120492)
+  (4/4 jobs). The real Neovim 0.12.6 test covered two `CursorHold` cycles,
+  Tab/Shift-Tab navigation, exit-region behavior, and an unrelated buffer.
 - [#31](https://github.com/brianfiszman/dotfiles/issues/31) — lazy.nvim
   bootstrap recovery and real isolated behavior coverage, merged in
   [PR #117](https://github.com/brianfiszman/dotfiles/pull/117) as
