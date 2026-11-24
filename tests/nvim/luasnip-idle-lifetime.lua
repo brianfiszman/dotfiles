@@ -12,12 +12,12 @@ local function feed(keys, after_input)
   local thread = coroutine.running()
   assert(thread, "real editor input must run from the test coroutine")
   local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
-  local accepted = vim.api.nvim_input(termcodes)
-  assert(accepted == #termcodes,
-    ("Neovim accepted %d/%d input bytes for %q"):format(accepted, #termcodes, keys))
+  -- feedkeys accepts Neovim's internal termcodes (including <S-Tab>) and
+  -- executes the same insert mappings as physical keyboard input.
+  vim.api.nvim_feedkeys(termcodes, "mt", false)
 
-  -- Yield the test coroutine. Neovim's main loop consumes the input before a
-  -- later timer checks the editor state and resumes the scenario.
+  -- Yield the test coroutine. Neovim's main loop consumes the queued input
+  -- before a later timer checks the editor state and resumes the scenario.
   vim.defer_fn(function()
     local ok, err = xpcall(function()
       if after_input then
