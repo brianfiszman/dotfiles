@@ -26,17 +26,18 @@ local function wait_for(label, predicate, timeout_ms)
     })))
 end
 
-local function send_user_motion(win, key)
+local function send_user_motion(ui_job, win, key)
   vim.api.nvim_set_current_win(win)
   local before = vim.api.nvim_win_get_cursor(win)
-  local typed = vim.api.nvim_replace_termcodes(key, true, false, true)
-  -- Process one genuine, non-remapped keyboard motion. Neovim resets its
-  -- did_check_timestamps guard after normal-mode input, as it does for a user.
-  vim.api.nvim_feedkeys(typed, "ntx", false)
-  local after = vim.api.nvim_win_get_cursor(win)
-  assert(after[1] == before[1] and after[2] ~= before[2],
-    ("real %q motion did not move the cursor in the switch buffer: before=%s after=%s"):format(
-      key, vim.inspect(before), vim.inspect(after)))
+  -- Send the key through the attached PTY-backed Neovim TUI. The remote UI
+  -- parses it and forwards real typed input over its RPC channel, which is the
+  -- same path a user's keyboard takes and resets Neovim's timestamp guard.
+  local bytes = vim.fn.chansend(ui_job, key)
+  assert(bytes == #key, ("remote TUI accepted %d/%d bytes for key %q"):format(bytes, #key, key))
+  wait_for(("remote TUI to process %q"):format(key), function()
+    local after = vim.api.nvim_win_get_cursor(win)
+    return after[1] == before[1] and after[2] ~= before[2]
+  end, 2000)
 end
 
 local function run()
@@ -227,7 +228,7 @@ local function run()
     -- The initial attach/focus handshake checked an empty editor. Send a
     -- real key after opening the fixture so Neovim is eligible to check again.
     -- First prove an unchanged visible file does not produce a change event.
-    send_user_motion(switch_win_a, "l")
+    send_user_motion(ui_job, switch_win_a, "l")
     gain_native_focus()
     assert(#changed_events == 0,
       ("an unchanged file produced a focus-change event: %s"):format(vim.inspect(changed_events)))
@@ -235,7 +236,7 @@ local function run()
 
     -- A real user has interacted since the last focus check. This resets
     -- Neovim's one-check-per-idle-cycle guard before the external write.
-    send_user_motion(switch_win_a, "l")
+    send_user_motion(ui_job, switch_win_a, "l")
     local focus_gains_before_switch = focus_gained_events
     local focus_losses_before_switch = focus_lost_events
     write_external(path, {
@@ -293,7 +294,7 @@ local function run()
     local unchanged_event_count = #changed_events
     -- A later external write is detected by the next native focus transition.
     -- Real user input resets Neovim's timestamp guard after the previous check.
-    send_user_motion(switch_win_a, "l")
+    send_user_motion(ui_job, switch_win_a, "l")
     write_external(path, {
       "disk version three, second external change",
       "third version still has two lines",
@@ -311,7 +312,7 @@ local function run()
     print("PASS: a later external change is detected on the next focus return")
 
     -- A conflict must be reported without replacing unsaved local content.
-    send_user_motion(switch_win_a, "l")
+    send_user_motion(ui_job, switch_win_a, "l")
     vim.api.nvim_buf_set_lines(focus_buf, 0, -1, false, { "local unsaved edit" })
     assert(vim.bo[focus_buf].modified == true, "local fixture edit did not mark the buffer modified")
     write_external(path, { "conflicting external disk version" })
