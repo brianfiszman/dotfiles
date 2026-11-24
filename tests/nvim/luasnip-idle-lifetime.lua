@@ -1,13 +1,67 @@
 -- Exercise the configured LuaSnip + nvim-cmp key path and real CursorHold events.
 -- Every scenario runs in the isolated headless Neovim process from the main suite.
 
+local function resume_test(thread, ok, err)
+  local resumed, resume_error = coroutine.resume(thread, ok, err)
+  if not resumed then
+    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(resume_error) .. "\\n")
+    vim.cmd("cquit 1")
+  end
+end
+
 local function feed(keys, after_input)
+  local thread = coroutine.running()
+  assert(thread, "real editor input must run from the test coroutine")
   local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
-  -- The whole test is deferred until Neovim has returned to its main loop.
-  -- Drain real typed input synchronously; mappings remain enabled for Tab.
-  vim.api.nvim_feedkeys(termcodes, "mtx", false)
-  if after_input then
-    after_input()
+  local accepted = vim.api.nvim_input(termcodes)
+  assert(accepted == #termcodes,
+    ("Neovim accepted %d/%d input bytes for %q"):format(accepted, #termcodes, keys))
+
+  -- Yield the test coroutine. Neovim's main loop consumes the input before a
+  -- later timer checks the editor state and resumes the scenario.
+  vim.defer_fn(function()
+    local ok, err = xpcall(function()
+      if after_input then
+        after_input()
+      end
+    end, debug.traceback)
+    resume_test(thread, ok, err)
+  end, 20)
+
+  local ok, err = coroutine.yield()
+  if not ok then
+    error(err or ("Neovim input failed for " .. keys), 0)
+  end
+end
+
+local function wait_until(predicate, timeout_ms, label)
+  local thread = coroutine.running()
+  assert(thread, "asynchronous waits must run from the test coroutine")
+  local started_at = vim.uv.hrtime()
+
+  local function poll()
+    local ok, result = pcall(predicate)
+    if not ok then
+      resume_test(thread, false, result)
+      return
+    end
+    if result then
+      resume_test(thread, true)
+      return
+    end
+
+    local elapsed_ms = (vim.uv.hrtime() - started_at) / 1000000
+    if elapsed_ms >= timeout_ms then
+      resume_test(thread, false, ("Timed out: %s after %dms"):format(label, timeout_ms))
+      return
+    end
+    vim.defer_fn(poll, 20)
+  end
+
+  vim.defer_fn(poll, 20)
+  local ok, err = coroutine.yield()
+  if not ok then
+    error(err or ("Timed out: " .. label), 0)
   end
 end
 
@@ -31,11 +85,9 @@ end
 local cursorhold_count = 0
 
 local function wait_for_cursorhold(event_count, timeout_ms)
-  local ok = vim.wait(timeout_ms, function()
+  wait_until(function()
     return cursorhold_count >= event_count
-  end, 25)
-  assert(ok, ("Timed out waiting for real CursorHold #%d after %dms (observed %d)"):format(
-    event_count, timeout_ms, cursorhold_count))
+  end, timeout_ms, ("real CursorHold #%d (observed %d)"):format(event_count, cursorhold_count))
 end
 
 local function run()
@@ -179,13 +231,12 @@ local function run()
   assert_cursor(1, 6, "second insert node after backward Tab from exit")
 
   feed("<Esc>j")
-  local left_region = vim.wait(2000, function()
+  wait_until(function()
     return ls.in_snippet() == false and ls.jumpable(1) == false and ls.jumpable(-1) == true
-  end, 10)
-  assert(left_region,
-    ("cursor movement did not leave/refocus the snippet to its exit node: in_snippet=%s forward=%s backward=%s cursor=%s"):format(
-      tostring(ls.in_snippet()), tostring(ls.jumpable(1)), tostring(ls.jumpable(-1)),
-      vim.inspect(vim.api.nvim_win_get_cursor(0))))
+  end, 2000,
+  ("cursor movement did not leave/refocus the snippet to its exit node: in_snippet=%s forward=%s backward=%s cursor=%s"):format(
+    tostring(ls.in_snippet()), tostring(ls.jumpable(1)), tostring(ls.jumpable(-1)),
+    vim.inspect(vim.api.nvim_win_get_cursor(0))))
   print("PASS: leaving the snippet by cursor movement follows LuaSnip's region-exit behavior")
 
   -- A different buffer with no active snippet must remain harmless while idle.
@@ -207,16 +258,24 @@ local function run()
   print("PASS: real CursorHold events are harmless when the current buffer has no active snippet")
 end
 
--- Return from +luafile before interacting with the editor. A timer callback
--- lets Neovim process typed input and real Insert/CursorHold events normally.
-vim.defer_fn(function()
+-- Run the scenario as a coroutine after +luafile returns. Each input/wait
+-- yields to Neovim's event loop so real Insert/CursorHold events can execute.
+local thread = coroutine.create(function()
   local ok, err = xpcall(run, debug.traceback)
   if not ok then
-    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\n")
+    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\\n")
     vim.cmd("cquit 1")
     return
   end
 
   print("PASS: LuaSnip idle lifetime and real editor navigation")
   vim.cmd("qa!")
+end)
+
+vim.defer_fn(function()
+  local ok, err = coroutine.resume(thread)
+  if not ok then
+    io.stderr:write("[luasnip-idle-lifetime] " .. tostring(err) .. "\\n")
+    vim.cmd("cquit 1")
+  end
 end, 10)
