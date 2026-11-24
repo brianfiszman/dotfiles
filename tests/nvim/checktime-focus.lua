@@ -224,11 +224,20 @@ local function run()
       end,
     })
 
+    -- The initial attach/focus handshake checked an empty editor. Send a
+    -- real key after opening the fixture so Neovim is eligible to check again.
+    -- First prove an unchanged visible file does not produce a change event.
+    send_user_motion(switch_win_a, "l")
+    gain_native_focus()
+    assert(#changed_events == 0,
+      ("an unchanged file produced a focus-change event: %s"):format(vim.inspect(changed_events)))
+    print("PASS: native focus checks do not report unchanged files")
+
+    -- A real user has interacted since the last focus check. This resets
+    -- Neovim's one-check-per-idle-cycle guard before the external write.
+    send_user_motion(switch_win_a, "l")
     local focus_gains_before_switch = focus_gained_events
     local focus_losses_before_switch = focus_lost_events
-    -- A real user has interacted with Neovim since the initial attach/focus
-    -- handshake. This resets Neovim's one-check-per-idle-cycle guard.
-    send_user_motion(switch_win_a, "l")
     write_external(path, {
       "disk version two after focus loss",
       "second line proves content changed",
@@ -281,13 +290,8 @@ local function run()
     }, "native FocusGained reload")
     print("PASS: native FocusGained detects and reloads an external change")
 
-    local unchanged_event_count = #changed_events
-    gain_native_focus()
-    assert(#changed_events == unchanged_event_count,
-      "native FocusGained raised a duplicate change event for an unchanged file")
-    print("PASS: unchanged files do not produce duplicate change prompts on focus")
-
     -- A later external write is detected by the next native focus transition.
+    -- Real user input resets Neovim's timestamp guard after the previous check.
     send_user_motion(switch_win_a, "l")
     write_external(path, {
       "disk version three, second external change",
