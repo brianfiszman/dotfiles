@@ -16,6 +16,8 @@ local function assert_line(expected, label)
     ("%s: expected first line %q, got %q"):format(label, expected, actual))
 end
 
+local cursorhold_count = 0
+
 local function wait_for_cursorhold(event_count, timeout_ms)
   local ok = vim.wait(timeout_ms, function()
     return cursorhold_count >= event_count
@@ -74,7 +76,7 @@ local function run()
   print("PASS: configured Insert-mode Tab expands the real LuaSnip fixture")
 
   -- Count real idle events after config/plugin autocmds have been registered.
-  local cursorhold_count = 0
+  cursorhold_count = 0
   local group = vim.api.nvim_create_augroup("DotfilesLuaSnipIdleLifetimeTest", { clear = true })
   vim.api.nvim_create_autocmd("CursorHold", {
     group = group,
