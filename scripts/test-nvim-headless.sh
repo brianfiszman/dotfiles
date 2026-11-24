@@ -356,6 +356,11 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/avante-lazy-loading.lua" \
     "+qa!"
 
+  printf '\n[behavior] Verifying native focus timestamp checks replace per-buffer-entry :checktime.\n'
+  run_nvim "checktime-focus" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
   run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/scrolling.lua"
@@ -398,11 +403,6 @@ startup() {
   printf '\n[behavior] Verifying LuaSnip sessions survive idle CursorHold and end on region exit.\n'
   run_nvim "luasnip-idle-lifetime" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/luasnip-idle-lifetime.lua"
-
-  printf '\n[behavior] Verifying native focus timestamp checks replace per-buffer-entry :checktime.\n'
-  run_nvim "checktime-focus" "$NVIM_STARTUP_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua" \
-    "+qa!"
 
   printf '\n[behavior] Verifying Telescope and extensions load only on the first picker action.\n'
   run_nvim "telescope-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
