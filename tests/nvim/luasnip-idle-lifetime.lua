@@ -231,10 +231,12 @@ local function run()
 
   feed("<Esc>j")
   wait_until(function()
-    return ls.in_snippet() == false and ls.jumpable(1) == false and ls.jumpable(-1) == true
+    -- LuaSnip may return nil (zero Lua results) when no active snippet exists.
+    -- Treat absence as false rather than relying on a literal false return.
+    return not ls.in_snippet() and not ls.jumpable(1) and ls.jumpable(-1) == true
   end, 2000,
   ("cursor movement did not leave/refocus the snippet to its exit node: in_snippet=%s forward=%s backward=%s cursor=%s"):format(
-    tostring(ls.in_snippet()), tostring(ls.jumpable(1)), tostring(ls.jumpable(-1)),
+    tostring(not ls.in_snippet()), tostring(not not ls.jumpable(1)), tostring(not not ls.jumpable(-1)),
     vim.inspect(vim.api.nvim_win_get_cursor(0))))
   print("PASS: leaving the snippet by cursor movement follows LuaSnip's region-exit behavior")
 
