@@ -29,12 +29,16 @@
 - [ ] Required behavior tests exist and pass on the exact current head.
 - [ ] Existing keymaps, workflows, and plugin versions were preserved unless the
       issue explicitly changes them.
-- [ ] `AGENT_STATE.md` and the monthly worklog were not edited on this branch.
+- [ ] State/worklog changes, if any, are isolated to a dedicated docs-only PR.
 - [ ] No credentials, tokens, caches, or machine-specific paths were added.
 - [ ] Documentation is updated when setup or user-facing behavior changed.
-- [ ] I did not merge or mark this Ready without Brian's explicit instruction.
+- [ ] I marked Ready or merged only after all required quality gates passed.
 
 ## Merge authorization
 
-Merge requires Brian's explicit approval. Green CI and a passing review are not
-authorization.
+Brian has delegated standing authority to the assistant to mark this PR Ready
+and merge once acceptance criteria, exact-head required checks, final diff
+review, mergeability, and the applicable QA/reviewer gates all pass. No
+per-PR permission is needed. Do not merge while required checks are pending,
+failed, or unavailable, required manual checks remain incomplete, or blockers
+or product decisions are unresolved.

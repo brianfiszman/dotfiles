@@ -121,9 +121,15 @@ the pointer in `AGENT_WORKLOG.md`, and leave older months untouched. See
 
 ## Authorization
 
-- Merging requires Brian's explicit approval. Silence, green CI, a Draft PR
-  becoming Ready, or an assistant recommendation is not approval.
-- Do not mark a Draft PR Ready or merge it without an explicit instruction.
+- Brian has granted the assistant standing authority to mark Draft PRs Ready and
+  merge when acceptance criteria, exact-head checks, final diff review,
+  mergeability, and the required risk-based QA/reviewer gates all pass.
+- Do not ask for per-PR merge permission under this delegation. Stop instead
+  when a required check is failed, pending, or unavailable; a required manual
+  check is incomplete; blocking findings or product decisions remain; or scope
+  is unclear. Ask Brian to resolve substantive decisions.
+- Brian retains final product authority and may change or revoke this delegation
+  at any time.
 - Paused work stays paused regardless of what a branch-local checkpoint says.
 - Do not close an issue or PR unless its acceptance criteria and the
   repository's authorization rules are satisfied.

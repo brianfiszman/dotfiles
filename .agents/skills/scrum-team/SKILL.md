@@ -14,8 +14,11 @@ description: Run one-week Scrum cycles with T-shirt estimates, manual daily sync
   background check-ins.
 - Quality policy: risk-based. Small work gets self-review plus tests; medium and
   larger work gets separate QA and Senior Reviewer passes.
-- Product authority: Brian is Product Owner and has final authority over
-  priority, scope, acceptance, and merge approval.
+- Product authority: Brian is Product Owner and retains final authority over
+  priority, scope, and acceptance. Brian has delegated standing merge authority
+  to the assistant once the Definition of Done and all required quality gates
+  are verified; no per-PR merge approval is needed. Brian may revoke this
+  delegation at any time.
 
 GitHub Issues are the canonical backlog and acceptance record. PRs hold
 implementation and review evidence. `AGENT_STATE.md` on `master` records the
@@ -34,8 +37,10 @@ risk warrants it.
 ### Product Owner — Brian
 
 Owns value, priority, Sprint Goal, scope trade-offs, and acceptance. Clarifies
-user-visible behavior. Explicitly authorizes merges. Silence, green CI, or an
-assistant recommendation is not merge authorization.
+user-visible behavior. Has delegated standing merge authority to the assistant
+when the Definition of Done and required quality gates are satisfied. The
+assistant must not merge with unresolved product decisions, blocking findings,
+or incomplete/unavailable required validation.
 
 ### Scrum Master — assistant
 
@@ -186,10 +191,12 @@ Do not pull an issue into a sprint because its title sounds actionable.
 - The required risk-based gate returned its result with evidence.
 - Required docs, skills, state, and log updates are persisted.
 - No blocking findings remain.
-- Brian accepted the outcome.
+- No unresolved Product Owner decision remains.
 
-Merge remains a separate operation requiring Brian's explicit authorization.
-Until merged, report the issue as implemented/validated in a PR, not merged.
+Merge remains separate from implementation and Done. The assistant may merge
+under Brian's standing delegation only after all gates above pass on the exact
+current head. Until merged, report the issue as implemented/validated in a PR,
+not merged.
 
 For docs-only changes, QA validates links, paths, criteria, scope, and Markdown
 structure; the reviewer checks consistency and process interactions. Do not
