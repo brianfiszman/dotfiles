@@ -374,4 +374,4 @@ vim.defer_fn(function()
   if not ok then
     fail_test(debug.traceback(thread, tostring(err)))
   end
-end, 10)print("PASS: native checktime focus policy and real UI behavior")
+end, 10)
