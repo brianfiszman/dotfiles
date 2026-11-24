@@ -68,11 +68,32 @@ local function run()
   assert(ls.jumpable(-1) == false, "fresh buffer unexpectedly has a backward snippet jump")
   print("PASS: idle buffer starts without an active LuaSnip session")
 
-  -- Enter the trigger through Insert mode, then dispatch the configured Tab
-  -- mapping. Abort only the completion popup so Tab reaches its LuaSnip branch.
-  feed("i" .. trigger)
-  cmp.abort()
+  -- Enter Insert mode, type the trigger and dispatch the configured nvim-cmp
+  -- Super-Tab mapping as separate real input batches. Keep diagnostics explicit:
+  -- this test must distinguish a broken fixture from a plugin behavior failure.
+  feed("i")
+  assert(vim.fn.mode():sub(1, 1) == "i",
+    "Neovim did not enter Insert mode before typing the snippet trigger (mode=" .. vim.fn.mode() .. ")")
+  feed(trigger)
+  assert(vim.fn.mode():sub(1, 1) == "i",
+    "typing the snippet trigger left Insert mode (mode=" .. vim.fn.mode() .. ")")
+  assert(ls.expandable(), "LuaSnip did not recognize the registered trigger at the cursor: " .. vim.inspect({
+    line = vim.api.nvim_get_current_line(),
+    cursor = vim.api.nvim_win_get_cursor(0),
+    filetype = vim.bo.filetype,
+    mode = vim.fn.mode(),
+  }))
+  print(("INFO: before Tab: mode=%s cmp.visible=%s mapping=%s"):format(
+    vim.fn.mode(), tostring(cmp.visible()),
+    vim.inspect(vim.fn.maparg("<Tab>", "i", false, true))))
+  if cmp.visible() then
+    feed("<C-e>")
+    assert(vim.fn.mode():sub(1, 1) == "i",
+      "aborting the visible completion menu left Insert mode (mode=" .. vim.fn.mode() .. ")")
+  end
   feed("<Tab>")
+  print(("INFO: after Tab: mode=%s line=%q in_snippet=%s forward=%s"):format(
+    vim.fn.mode(), vim.api.nvim_get_current_line(), tostring(ls.in_snippet()), tostring(ls.jumpable(1))))
 
   assert(vim.fn.mode():sub(1, 1) == "i",
     "snippet expansion did not leave Neovim in Insert mode (mode=" .. vim.fn.mode() .. ")")
