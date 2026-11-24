@@ -37,37 +37,23 @@ local function fail_test(err)
   vim.cmd("cquit 1")
 end
 
-local function resume_test(thread, ok, err)
-  local resumed, resume_error = coroutine.resume(thread, ok, err)
-  if not resumed then
-    fail_test(debug.traceback(thread, tostring(resume_error)))
-  end
-end
-
 local function send_user_motion(win, key)
-  local thread = coroutine.running()
-  assert(thread, "real keyboard input must run from the checktime test coroutine")
   vim.api.nvim_set_current_win(win)
   local before = vim.api.nvim_win_get_cursor(win)
   local accepted = vim.api.nvim_input(key)
   assert(accepted == #key,
     ("Neovim accepted %d/%d input bytes for key %q"):format(accepted, #key, key))
 
-  -- Yield to Neovim's main loop so nvim_input is processed as real typeahead.
-  -- Check the cursor from a later event-loop callback, then resume the test.
-  vim.defer_fn(function()
+  -- Keep this test on Neovim's main Lua thread. vim.wait() pumps the real
+  -- input loop, avoiding timer-driven coroutine resumption in the headless run.
+  local moved = vim.wait(1000, function()
     local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
-    local moved = read_ok and after[1] == before[1] and after[2] ~= before[2]
-    local message = moved and nil or (
-      ("real %q input did not move the cursor: before=%s after=%s"):format(
-        key, vim.inspect(before), vim.inspect(read_ok and after or nil)))
-    resume_test(thread, moved, message)
-  end, 20)
-
-  local ok, err = coroutine.yield()
-  if not ok then
-    error(err or ("Neovim input failed for " .. key), 0)
-  end
+    return read_ok and after[1] == before[1] and after[2] ~= before[2]
+  end, 10)
+  local after_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
+  assert(moved,
+    ("real %q input did not move the cursor: before=%s after=%s"):format(
+      key, vim.inspect(before), vim.inspect(after_ok and after or nil)))
 end
 
 local function run()
@@ -75,6 +61,7 @@ local function run()
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
   local server_address
   local ui_job
+  local ui_exit_code
   local ui_enter_events = 0
   local focus_gained_events = 0
   local focus_lost_events = 0
@@ -129,9 +116,11 @@ local function run()
     -- It receives raw terminal focus-reporting sequences, parses them in the TUI
     -- input layer, and sends nvim_ui_set_focus through its own RPC connection.
     -- This avoids same-process RPC re-entrancy and exercises the actual TUI path.
+    print("INFO: starting the Neovim RPC server for the remote TUI")
     server_address = vim.fn.serverstart()
     assert(type(server_address) == "string" and server_address ~= "",
       "serverstart() did not return a Neovim RPC address")
+    print("INFO: remote TUI RPC server is ready")
 
     vim.api.nvim_create_autocmd("UIEnter", {
       group = group,
@@ -169,12 +158,19 @@ local function run()
       width = 80,
       height = 24,
       env = { TERM = "xterm-256color" },
+      on_exit = function(_, code)
+        ui_exit_code = code
+      end,
     })
     assert(type(ui_job) == "number" and ui_job > 0,
       ("could not start the remote TUI job: %s"):format(vim.inspect(ui_job)))
-    wait_for("remote TUI UIEnter", function()
-      return ui_enter_events == 1
-    end, 5000)
+    print("INFO: remote TUI started as job " .. ui_job .. "; waiting for UIEnter")
+    local attached = vim.wait(5000, function()
+      return ui_enter_events == 1 or ui_exit_code ~= nil
+    end, 10)
+    assert(attached and ui_enter_events == 1,
+      ("remote TUI did not attach; UIEnter=%d exit_code=%s"):format(
+        ui_enter_events, vim.inspect(ui_exit_code)))
     print("PASS: attached a separate PTY-backed Neovim remote TUI")
 
     -- Prime the real terminal focus-reporting path while no changed file is
@@ -363,15 +359,13 @@ local function run()
     cleanup_test = nil
 end
 
-local thread = coroutine.create(function()
-  run()
+vim.defer_fn(function()
+  local ok, err = xpcall(run, debug.traceback)
+  if not ok then
+    fail_test(err)
+    return
+  end
+
   print("PASS: native checktime focus policy and real UI behavior")
   vim.cmd("qa!")
-end)
-
-vim.defer_fn(function()
-  local ok, err = coroutine.resume(thread)
-  if not ok then
-    fail_test(debug.traceback(thread, tostring(err)))
-  end
 end, 10)
