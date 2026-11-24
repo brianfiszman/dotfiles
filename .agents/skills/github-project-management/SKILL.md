@@ -88,7 +88,11 @@ Classify the PR before opening it:
 - Keep the default branch unchanged until a reviewed PR is merged.
 - Link the functional issue from the branch/PR where practical.
 - Keep PR scope aligned with its issue, or explain a small cohesive foundation.
-- Do not merge a PR unless Brian explicitly asks for the merge.
+- Apply Brian's standing delegation: merge when acceptance criteria,
+  exact-head required checks, final diff review, mergeability, and all
+  risk-based QA/reviewer gates pass. Do not ask for per-PR permission. Stop for
+  failed/pending/unavailable required checks, incomplete required manual checks,
+  blocking findings, unclear scope, or unresolved product decisions.
 - Do not delete a branch merely because its PR is closed. First establish that
   its unique work is no longer needed.
 - Do not mix state/worklog edits into a functional PR. They belong in a docs PR.
@@ -113,7 +117,7 @@ because the same files are involved.
 
 1. Finish the current issue scope; do not expand it with unrelated backlog work.
 2. Review the complete diff and verify the latest PR head with required checks.
-3. Merge only after Brian authorizes it and the exact head is clean.
+3. Merge under Brian's standing delegation only after all required gates pass on the exact clean, mergeable head.
 4. After merge, reconcile the default branch and close only issues satisfied by
    the merged code and validation.
 5. Update the backlog with the merge commit, validation run, completed issues, and
