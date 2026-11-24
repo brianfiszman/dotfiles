@@ -399,6 +399,11 @@ startup() {
   run_nvim "luasnip-idle-lifetime" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/luasnip-idle-lifetime.lua"
 
+  printf '\n[behavior] Verifying external-file detection uses autoread and FocusGained, not BufWinEnter.\n'
+  run_nvim "checktime-focus" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying Telescope and extensions load only on the first picker action.\n'
   run_nvim "telescope-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/telescope-lazy-loading.lua" \
