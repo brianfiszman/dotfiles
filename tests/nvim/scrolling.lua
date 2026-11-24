@@ -67,6 +67,24 @@ local function wait_for_idle_before_mouse(description)
   check(description .. " starts after the previous animation has finished", true, idle)
 end
 
+local function wait_for_animation_quiet(description)
+  -- Neoscroll can finish its visible animation one event-loop turn before a
+  -- delayed callback from the previous key motion runs. Require a quiet
+  -- window with both the animation flag and hook counter stable before
+  -- attributing any later hook to native mouse-wheel input.
+  local starts = animation_starts
+  local quiet_since = vim.uv.hrtime()
+  local quiet = vim.wait(3000, function()
+    if animation.scrolling or animation_starts ~= starts then
+      starts = animation_starts
+      quiet_since = vim.uv.hrtime()
+      return false
+    end
+    return vim.uv.hrtime() - quiet_since >= 250000000
+  end, 10)
+  check(description .. " reaches a stable idle state before mouse input", true, quiet)
+end
+
 local function exercise_motion(key, expected_delta, description)
   prepare_buffer()
   local before = vim.api.nvim_win_get_cursor(0)[1]
@@ -87,6 +105,7 @@ end
 local function exercise_mouse_wheel(direction, description, next_step)
   prepare_buffer()
   wait_for_idle_before_mouse(description)
+  wait_for_animation_quiet(description)
   -- The synthetic PTY may leave a hit-enter prompt after querying terminal
   -- background color. Dismiss it before queuing non-blocking mouse input; then
   -- restore the fixture position so the prompt cannot affect the assertion.
