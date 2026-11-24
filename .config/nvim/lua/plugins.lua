@@ -177,6 +177,12 @@ require("lazy").setup({
   require 'formatting.conform',
   require 'ai.avante',
 }, {
+  -- Bootstrap tests still run the real lazy.nvim setup, but do not download
+  -- every configured plugin before they can assert the bootstrap result.
+  -- Normal startup keeps lazy.nvim's default missing-plugin installation.
+  install = {
+    missing = vim.env.DOTFILES_TEST_BOOTSTRAP ~= "1",
+  },
   -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
   -- bootstrap its own toolchain
   rocks = { hererocks = true },

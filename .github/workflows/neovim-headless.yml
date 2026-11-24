@@ -62,6 +62,19 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Install pinned Neovim for the real bootstrap tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/neovim-bootstrap.tar.gz"
+          curl --fail --location --retry 3 \
+            "https://github.com/neovim/neovim/releases/download/v0.12.6/nvim-linux-x86_64.tar.gz" \
+            --output "$archive"
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+          echo "NVIM_BIN=$RUNNER_TEMP/nvim-linux-x86_64/bin/nvim" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/nvim-linux-x86_64/bin/nvim" --version | sed -n '1,3p'
+
       - name: Validate shell syntax
         shell: bash
         run: |
@@ -75,6 +88,9 @@ jobs:
 
       - name: Test PR integration decision and fail-open behavior
         run: node --test tests/ci/neovim-integration-decision.test.cjs
+
+      - name: Test real lazy.nvim bootstrap failure and recovery paths
+        run: node --test tests/ci/neovim-bootstrap.test.cjs
 
 
   python-provider-macos:
