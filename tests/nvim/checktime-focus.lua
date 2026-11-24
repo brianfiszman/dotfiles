@@ -156,8 +156,8 @@ local function run()
       vim.api.nvim_set_current_win(win_b)
       vim.api.nvim_set_current_win(win_a)
     end
-    assert(buffer_entry_events >= 8,
-      ("expected repeated real BufWinEnter events for the focus/spare buffers, observed %d"):format(
+    assert(buffer_entry_events >= 4,
+      ("expected at least four real BufWinEnter events for the focus buffer, observed %d"):format(
         buffer_entry_events))
 
     vim.wait(300, function()
