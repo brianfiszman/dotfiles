@@ -26,6 +26,19 @@ local function wait_for(label, predicate, timeout_ms)
     })))
 end
 
+local function send_user_motion(win, key)
+  vim.api.nvim_set_current_win(win)
+  local before = vim.api.nvim_win_get_cursor(win)
+  local typed = vim.api.nvim_replace_termcodes(key, true, false, true)
+  -- Process one genuine, non-remapped keyboard motion. Neovim resets its
+  -- did_check_timestamps guard after normal-mode input, as it does for a user.
+  vim.api.nvim_feedkeys(typed, "ntx", false)
+  local after = vim.api.nvim_win_get_cursor(win)
+  assert(after[1] == before[1] and after[2] ~= before[2],
+    ("real %q motion did not move the cursor in the switch buffer: before=%s after=%s"):format(
+      key, vim.inspect(before), vim.inspect(after)))
+end
+
 local function run()
   local path = vim.fn.tempname() .. ".txt"
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
@@ -192,6 +205,8 @@ local function run()
     local switch_win_b = vim.api.nvim_get_current_win()
     vim.cmd("enew")
     local switch_buf_b = vim.api.nvim_get_current_buf()
+    vim.api.nvim_buf_set_lines(switch_buf_a, 0, -1, false, { "cursor movement fixture" })
+    vim.api.nvim_win_set_cursor(switch_win_a, { 1, 0 })
     assert(focus_win ~= switch_win_a and focus_win ~= switch_win_b and switch_win_a ~= switch_win_b,
       "window-switch fixture did not create three independent windows")
     assert(vim.api.nvim_win_get_buf(focus_win) == focus_buf,
@@ -211,6 +226,9 @@ local function run()
 
     local focus_gains_before_switch = focus_gained_events
     local focus_losses_before_switch = focus_lost_events
+    -- A real user has interacted with Neovim since the initial attach/focus
+    -- handshake. This resets Neovim's one-check-per-idle-cycle guard.
+    send_user_motion(switch_win_a, "l")
     write_external(path, {
       "disk version two after focus loss",
       "second line proves content changed",
@@ -270,6 +288,7 @@ local function run()
     print("PASS: unchanged files do not produce duplicate change prompts on focus")
 
     -- A later external write is detected by the next native focus transition.
+    send_user_motion(switch_win_a, "l")
     write_external(path, {
       "disk version three, second external change",
       "third version still has two lines",
@@ -287,6 +306,7 @@ local function run()
     print("PASS: a later external change is detected on the next focus return")
 
     -- A conflict must be reported without replacing unsaved local content.
+    send_user_motion(switch_win_a, "l")
     vim.api.nvim_buf_set_lines(focus_buf, 0, -1, false, { "local unsaved edit" })
     assert(vim.bo[focus_buf].modified == true, "local fixture edit did not mark the buffer modified")
     write_external(path, { "conflicting external disk version" })
