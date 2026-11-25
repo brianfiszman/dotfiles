@@ -52,10 +52,11 @@ expect_equal(nil, vim.g.dotfiles_treesitter_error, "Mason completion leaves no s
 local original_get_installed = treesitter.get_installed
 local original_install = treesitter.install
 local install_calls = 0
-treesitter.get_installed = function(kind)
+local mocked_get_installed = function(kind)
   assert_equal("parsers", kind, "missing-parser discovery requests parser inventory")
   return {}
 end
+treesitter.get_installed = mocked_get_installed
 treesitter.install = function(languages, opts)
   install_calls = install_calls + 1
   assert(vim.deep_equal(expected_parsers, languages),
@@ -68,10 +69,21 @@ treesitter.install = function(languages, opts)
     end,
   }
 end
-vim.api.nvim_exec_autocmds("User", {
+expect_equal(mocked_get_installed, require("nvim-treesitter").get_installed,
+  "provisioning test controls the same nvim-treesitter module instance")
+
+-- Invoke the real callback registered by the configuration. Looking it up
+-- explicitly avoids depending on unrelated Mason User-event listeners or
+-- scheduled startup callbacks while still exercising the production closure.
+local provision_autocmds = vim.api.nvim_get_autocmds({
+  event = "User",
   pattern = "MasonToolsUpdateCompleted",
-  modeline = false,
+  group = "DotfilesTreesitter",
 })
+expect_equal(1, #provision_autocmds, "one Treesitter provisioning callback is registered")
+local provision_callback = assert(provision_autocmds[1].callback,
+  "Treesitter provisioning autocmd must be a Lua callback")
+provision_callback()
 expect_equal(1, install_calls, "Mason completion installs missing configured parsers")
 expect_equal(0, update_calls, "installing missing parsers does not update existing parsers")
 treesitter.get_installed = original_get_installed
