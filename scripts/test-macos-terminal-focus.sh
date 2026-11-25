@@ -184,7 +184,9 @@ on run argv
   end timeout
 end run
 APPLESCRIPT
-}printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
+}
+
+printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
 open -a Terminal "$command_file"
 wait_for_ready
 
