@@ -174,7 +174,8 @@ vim.api.nvim_exec_autocmds("User", {
   modeline = false,
 })
 expect_equal(2, update_calls, "Mason completion performs the update deferred by a missing CLI")
-expect_equal(true, vim.g.dotfiles_treesitter_ready, "deferred parser update keeps Treesitter ready")
+assert(vim.g.dotfiles_treesitter_ready,
+  "deferred parser update left Treesitter unready: " .. tostring(vim.g.dotfiles_treesitter_error))
 
 vim.fn.executable = original_executable
 vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING = original_skip
