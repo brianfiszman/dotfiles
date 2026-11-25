@@ -15,7 +15,7 @@ if [[ -z "$NVIM_TEST_DIR" ]]; then
 fi
 
 NVIM_BIN="$(command -v "$NVIM_BIN")"
-for required_command in open; do
+for required_command in open osascript tty; do
   command -v "$required_command" >/dev/null 2>&1 || {
     printf 'Required macOS GUI test command is missing: %s\n' "$required_command" >&2
     exit 1
@@ -37,6 +37,7 @@ mkdir -p "$test_root"
 socket_path="/tmp/nvim-terminal-focus-$(id -u)-$$.sock"
 command_file="$test_root/start-neovim.command"
 pid_file="$test_root/neovim.pid"
+tty_file="$test_root/terminal.tty"
 
 cleanup() {
   if [[ -S "$socket_path" ]]; then
@@ -67,6 +68,7 @@ printf -v q_cache '%q' "$NVIM_TEST_DIR/cache"
 printf -v q_nvim '%q' "$NVIM_BIN"
 printf -v q_socket '%q' "$socket_path"
 printf -v q_pid '%q' "$pid_file"
+printf -v q_tty '%q' "$tty_file"
 printf -v q_init '%q' "$NVIM_TEST_DIR/config/nvim/init.lua"
 
 # Opening a .command file in Terminal.app starts Neovim on the app's actual
@@ -82,6 +84,7 @@ export XDG_STATE_HOME=$q_state
 export XDG_CACHE_HOME=$q_cache
 export TERM=xterm-256color
 echo \$\$ > $q_pid
+tty > $q_tty
 exec $q_nvim --listen $q_socket --cmd 'set nomore' -u $q_init \\
   -c 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1'
 EOF
@@ -127,6 +130,44 @@ wait_for_counter_gt() {
   return 1
 }
 
+
+wait_for_terminal_tty() {
+  for _ in {1..100}; do
+    if [[ -s "$tty_file" ]]; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  printf 'Terminal.app did not publish the Neovim session TTY at %s\n' "$tty_file" >&2
+  return 1
+}
+
+activate_neovim_terminal_window() {
+  wait_for_terminal_tty
+  local target_tty
+  target_tty="$(tr -d '\r\n' < "$tty_file")"
+  [[ "$target_tty" == /dev/ttys* ]] || {
+    printf 'Unexpected Neovim Terminal.app TTY: %s\n' "$target_tty" >&2
+    return 1
+  }
+
+  printf '[macos-focus] Selecting the Terminal.app window attached to %s.\n' "$target_tty"
+  osascript - "$target_tty" <<'APPLESCRIPT'
+on run argv
+  set targetTTY to item 1 of argv
+  tell application "Terminal"
+    set targetWindow to first window whose tty of tab 1 contains targetTTY
+    set index of targetWindow to 1
+    set selected tab of targetWindow to tab 1 of targetWindow
+    activate
+    if frontmost of targetWindow is false then
+      error "The Neovim Terminal.app window did not become frontmost"
+    end if
+    return tty of tab 1 of targetWindow
+  end tell
+end run
+APPLESCRIPT
+}
 printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
 open -a Terminal "$command_file"
 wait_for_ready
@@ -146,11 +187,10 @@ wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
 
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
 
-printf '[macos-focus] Reactivating Terminal.app through Launch Services.\n'
-open -a Terminal
+printf '[macos-focus] Reactivating the exact Neovim Terminal.app window.\n'
+activate_neovim_terminal_window
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
   'Terminal.app reactivation generated a real Neovim FocusGained event'
-
 lost_final="$(read_counter dotfiles_macos_focus_lost)"
 gained_final="$(read_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Final native event counts: FocusLost=%s FocusGained=%s\n' \
