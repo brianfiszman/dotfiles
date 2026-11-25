@@ -14,6 +14,7 @@ end
 
 local animation
 local animation_starts = 0
+local animation_events = {}
 local test_finished = false
 
 local function fail(err)
@@ -187,6 +188,16 @@ local function exercise_mouse_wheel(direction, description, next_step)
         check(("%s changes the viewport in the expected direction (topline %d -> %d)"):format(
           description, before, after
         ), true, moved)
+        if animation_starts ~= starts_before_mouse then
+          local event = animation_events[animation_starts] or {}
+          print(("DEBUG: unexpected Neoscroll hook #%d info=%s ctrl_e=%s ctrl_y=%s\\n%s"):format(
+            animation_starts,
+            event.info or "<missing>",
+            event.ctrl_e or "<missing>",
+            event.ctrl_y or "<missing>",
+            event.trace or "<missing stack trace>"
+          ))
+        end
         check(description .. " does not invoke Neoscroll's animation hook",
           starts_before_mouse, animation_starts)
         check(description .. " does not leave a Neoscroll animation active",
@@ -244,6 +255,12 @@ local function run()
   local previous_pre_hook = neoscroll_options.pre_hook
   neoscroll_options.pre_hook = function(info)
     animation_starts = animation_starts + 1
+    animation_events[animation_starts] = {
+      info = vim.inspect(info),
+      trace = debug.traceback("", 2),
+      ctrl_e = vim.inspect(vim.fn.maparg("<C-e>", "n", false, true)),
+      ctrl_y = vim.inspect(vim.fn.maparg("<C-y>", "n", false, true)),
+    }
     if previous_pre_hook then
       previous_pre_hook(info)
     end
