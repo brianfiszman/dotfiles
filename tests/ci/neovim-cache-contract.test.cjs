@@ -115,6 +115,7 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.match(treesitter, /if update_existing then[\s\S]*treesitter\.update\(parser_languages/);
   assert.match(treesitter, /updated\.from == updated\.to/);
   assert.match(treesitter, /pending_parser_update/);
+  assert.match(treesitter, /DOTFILES_SKIP_TREESITTER_PROVISIONING == "1"/);
   assert.match(treesitter, /tree-sitter 0\.27\.2/);
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
 });
