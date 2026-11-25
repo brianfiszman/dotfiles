@@ -62,7 +62,7 @@ test("macOS plugin cache is isolated by OS/architecture/toolchain and lockfile",
 test("Mason cache is keyed by the exact registry revision and includes the isolated Mason root", () => {
   const block = cacheStepBlocks().find((entry) => entry.includes("Restore Mason packages and pinned registry"));
   assert.ok(block, "dedicated Mason cache must exist");
-  assert.match(block, /data\/nvim\/mason(?:\\s|$)/);
+  assert.match(block, /data\/nvim\/mason(?:\s|$)/);
   assert.match(block, /nvim-mason-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}/);
   assert.match(block, /steps\.mason-registry\.outputs\.revision/);
   assert.match(block, /steps\.toolchain\.outputs\.fingerprint/);
