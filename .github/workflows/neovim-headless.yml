@@ -94,6 +94,9 @@ jobs:
       - name: Test dependency cache keys and cold-path safeguards
         run: node --test tests/ci/neovim-cache-contract.test.cjs
 
+      - name: Test Neovim focus PTY startup-prompt handling
+        run: python3 tests/ci/test-nvim-focus-pty.py
+
       - name: Test real lazy.nvim bootstrap failure and recovery paths
         run: node --test tests/ci/neovim-bootstrap.test.cjs
 
