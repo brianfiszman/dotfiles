@@ -177,7 +177,7 @@ local function run()
   vim.g.dotfiles_checktime_focus_error = nil
   print("INFO: starting embedded RPC UI process")
   ui_job = vim.fn.jobstart({
-    "env", "-u", "NVIM", vim.v.progpath, "--embed", "--headless", "-u", "NONE", "-i", "NONE", "-n",
+    "env", "-u", "NVIM", vim.v.progpath, "--embed", "-u", "NONE", "-i", "NONE", "-n",
   }, {
     rpc = true,
     env = { DOTFILES_CHECKTIME_SERVER = server_address },
@@ -217,8 +217,12 @@ local function run()
       vim.cmd("cquit 1")
     end
   ]]
-  assert(vim.rpcnotify(ui_job, "nvim_exec_lua", attach_script, {}),
-    "could not send the UI attach bootstrap to the embedded Neovim")
+  local bootstrap_sent = vim.rpcnotify(ui_job, "nvim_exec_lua", attach_script, {})
+  assert(bootstrap_sent,
+    ("could not send the UI attach bootstrap to the embedded Neovim; job_status=%s channel=%s stderr=%s"):format(
+      vim.inspect(vim.fn.jobwait({ ui_job }, 0)),
+      vim.inspect(vim.api.nvim_get_chan_info(ui_job)),
+      vim.inspect(ui_stderr)))
 
   local attached = vim.wait(5000, function()
     return ui_enter_events == 1 or ui_exit_code ~= nil or vim.g.dotfiles_checktime_focus_error ~= nil
