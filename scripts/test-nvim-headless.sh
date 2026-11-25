@@ -120,7 +120,7 @@ run_nvim() {
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
   local -a nvim_command
   if ((use_focus_pty)); then
-    nvim_command=(python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" -u "$NVIM_CONFIG/init.lua" "$@")
+    nvim_command=(python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" --cmd "set nomore" -u "$NVIM_CONFIG/init.lua" "$@")
   else
     nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
   fi
@@ -262,9 +262,10 @@ prepare() {
     return 1
   }
 
-  printf '[prepare] Checking shell syntax...\n'
+  printf '[prepare] Checking shell and Python helper syntax...\n'
   bash -n "$REPO_ROOT/install.sh"
   bash -n "$REPO_ROOT/scripts/test-nvim-headless.sh"
+  PYTHONPYCACHEPREFIX="$WORK_DIR/pycache" python3 -m py_compile "$REPO_ROOT/scripts/run-nvim-focus-pty.py"
 
   local tracked_python_venv
   tracked_python_venv="$(git -C "$REPO_ROOT" ls-files -- .config/nvim/venv/)"
