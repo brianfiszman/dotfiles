@@ -129,9 +129,11 @@ local function run()
   -- Neovim's TUI sends these same nvim_ui_set_focus RPC notifications after
   -- parsing terminal focus-reporting sequences. This isolates the server-side
   -- timestamp-check path from PTY/terminal startup behavior.
+  print("INFO: checktime-focus entered; starting parent RPC server")
   server_address = vim.fn.serverstart()
   assert(type(server_address) == "string" and server_address ~= "",
     "serverstart() did not return a Neovim RPC address")
+  print("INFO: parent RPC server listening at " .. server_address)
 
   vim.api.nvim_create_autocmd("UIEnter", {
     group = group,
@@ -164,15 +166,23 @@ local function run()
 
   ui_script_path = vim.fn.tempname() .. ".lua"
   local ui_client_script = [[
+    io.stderr:write("[checktime-focus-client] process started\\n")
+    io.stderr:flush()
     local function attach()
       local address = vim.env.DOTFILES_CHECKTIME_SERVER
       assert(type(address) == "string" and address ~= "",
         "missing parent Neovim RPC server address")
+      io.stderr:write("[checktime-focus-client] connecting to parent server\\n")
+      io.stderr:flush()
       local channel = vim.fn.sockconnect("pipe", address, { rpc = true })
       assert(type(channel) == "number" and channel > 0,
         ("could not connect to parent Neovim RPC server %q"):format(tostring(address)))
       _G.dotfiles_checktime_focus_parent_channel = channel
+      io.stderr:write("[checktime-focus-client] attaching RPC UI\\n")
+      io.stderr:flush()
       vim.rpcrequest(channel, "nvim_ui_attach", 80, 24, { rgb = true })
+      io.stderr:write("[checktime-focus-client] RPC UI attached\\n")
+      io.stderr:flush()
     end
 
     local ok, err = xpcall(attach, debug.traceback)
@@ -187,6 +197,7 @@ local function run()
   assert(vim.fn.writefile(vim.split(ui_client_script, "\n"), ui_script_path) == 0,
     "could not write the RPC UI client script")
 
+  print("INFO: starting embedded RPC UI process")
   ui_job = vim.fn.jobstart({
     vim.v.progpath, "--embed", "--headless", "-u", "NONE", "-i", "NONE", "-n",
     "-c", "luafile " .. vim.fn.fnameescape(ui_script_path),
@@ -206,6 +217,7 @@ local function run()
   })
   assert(type(ui_job) == "number" and ui_job > 0,
     ("could not start the RPC UI client: %s"):format(vim.inspect(ui_job)))
+  print("INFO: RPC UI process started with channel " .. ui_job .. "; waiting for UIEnter")
 
   local attached = vim.wait(5000, function()
     return ui_enter_events == 1 or ui_exit_code ~= nil
@@ -213,7 +225,7 @@ local function run()
   assert(attached and ui_enter_events == 1 and ui_exit_code == nil,
     ("RPC UI did not attach; UIEnter=%d exit_code=%s stderr=%s"):format(
       ui_enter_events, vim.inspect(ui_exit_code), vim.inspect(ui_stderr)))
-  print("PASS: attached a separate Neovim RPC UI channel")
+  print("PASS: attached a separate Neovim RPC UI channel; child stderr: " .. vim.inspect(ui_stderr))
 
   -- Prime the native focus path while no changed file is loaded.
   trigger_native_focus_cycle("initial native RPC UI focus cycle")
