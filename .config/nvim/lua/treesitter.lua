@@ -104,7 +104,7 @@ local function configure_buffer(bufnr)
   end
 end
 
-local function update_parsers()
+local function setup_parsers(update_existing)
   if updating_parsers then
     return
   end
@@ -117,11 +117,9 @@ local function update_parsers()
     local version_result = vim.system({ executable, "--version" }, { text = true }):wait()
     assert(version_result.code == 0,
       "tree-sitter --version failed: " .. (version_result.stderr or "unknown error"))
-    local major, minor, patch = (version_result.stdout or ""):match("(%d+)%.(%d+)%.(%d+)")
-    assert(major, "Could not parse tree-sitter version: " .. (version_result.stdout or ""))
-    local version_number = tonumber(major) * 1000000 + tonumber(minor) * 1000 + tonumber(patch)
-    assert(version_number >= 26001,
-      "tree-sitter-cli 0.26.1 or newer is required; found " .. vim.trim(version_result.stdout))
+    local version = vim.trim(version_result.stdout or "")
+    assert(version == "tree-sitter 0.27.2",
+      "tree-sitter-cli 0.27.2 is required; found " .. version)
 
     local treesitter = require("nvim-treesitter")
     local installed = {}
@@ -136,10 +134,16 @@ local function update_parsers()
     if #missing > 0 then
       local installed_ok = treesitter.install(missing, { summary = true }):wait(install_timeout_ms)
       assert(installed_ok ~= false, "nvim-treesitter failed to install missing parsers")
+      print(("[treesitter] Installed %d missing parsers"):format(#missing))
+    else
+      print("[treesitter] All configured parsers are already installed; skipping compilation")
     end
 
-    local updated_ok = treesitter.update(parser_languages, { summary = true }):wait(install_timeout_ms)
-    assert(updated_ok ~= false, "nvim-treesitter failed to update parsers")
+    if update_existing then
+      local updated_ok = treesitter.update(parser_languages, { summary = true }):wait(install_timeout_ms)
+      assert(updated_ok ~= false, "nvim-treesitter failed to update parsers")
+      print(("[treesitter] Updated %d parsers after the plugin revision changed"):format(#parser_languages))
+    end
 
     vim.g.dotfiles_treesitter_ready = true
     vim.g.dotfiles_treesitter_error = nil
@@ -147,8 +151,8 @@ local function update_parsers()
       configure_buffer(bufnr)
     end
 
-    print(("[treesitter] CLI %s; %d parsers requested; parser install/update complete")
-      :format(vim.trim(version_result.stdout), #parser_languages))
+    print(("[treesitter] CLI %s; %d parsers requested; provisioning complete")
+      :format(version, #parser_languages))
   end, debug.traceback)
 
   updating_parsers = false
@@ -156,26 +160,39 @@ local function update_parsers()
     vim.g.dotfiles_treesitter_ready = false
     vim.g.dotfiles_treesitter_error = tostring(err)
     vim.notify(
-      "Treesitter parser setup failed. See :messages.\n" .. tostring(err),
+      "Treesitter parser setup failed. See :messages.\\n" .. tostring(err),
       vim.log.levels.ERROR,
       { title = "dotfiles Treesitter" }
     )
+    return false
   end
+  return true
 end
 
-local function update_existing_parsers()
-  -- lazy.nvim runs build hooks before Mason's first VimEnter installation.
-  -- The MasonToolsUpdateCompleted callback below performs the first install.
+local function provision_missing_parsers()
+  -- Normal startup provisions only absent parsers. Existing compiled parsers
+  -- are immutable inputs to the CI cache and are never refreshed here.
+  setup_parsers(false)
+end
+
+local function update_existing_parsers(plugin)
+  -- lazy.nvim's :Lazy! build force-runs every configured build hook when a
+  -- plugin cache is restored. Only refresh parsers when nvim-treesitter itself
+  -- moved to a different locked revision; an unchanged cached plugin must not
+  -- invalidate the compiled parser cache.
+  local updated = plugin and plugin._ and plugin._.updated
+  if updated and updated.from == updated.to then
+    print("[treesitter] nvim-treesitter revision unchanged; preserving compiled parsers")
+    return
+  end
+
   if vim.fn.executable("tree-sitter") ~= 1 then
     print("[treesitter] tree-sitter-cli is not installed yet; parser setup will run after Mason installs it")
     return
   end
 
-  local ok, err = pcall(update_parsers)
-  if not ok then
-    error("Could not update Treesitter parsers after plugin update: " .. tostring(err))
-  end
-  assert(vim.g.dotfiles_treesitter_ready,
+  local ok = setup_parsers(true)
+  assert(ok and vim.g.dotfiles_treesitter_ready,
     "Treesitter parser update failed: " .. tostring(vim.g.dotfiles_treesitter_error))
 end
 
@@ -202,13 +219,17 @@ local M = {
         if vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING ~= "1" then
           vim.schedule(function()
             installer.check_install(false)
+            -- Mason emits no completion event when every requested package
+            -- is already installed. Probe after the check too; if installation
+            -- is still running, its completion event provisions the parsers.
+            vim.schedule(provision_missing_parsers)
           end)
         else
           print("[treesitter] CLI/parser provisioning deferred until normal startup")
         end
       end,
       opts = {
-        ensure_installed = { "tree-sitter-cli" },
+        ensure_installed = { { "tree-sitter-cli", version = "v0.27.2" } },
         auto_update = true,
         run_on_start = false,
         start_delay = 0,
@@ -308,7 +329,7 @@ local M = {
     vim.api.nvim_create_autocmd("User", {
       group = "DotfilesTreesitter",
       pattern = "MasonToolsUpdateCompleted",
-      callback = update_parsers,
+      callback = provision_missing_parsers,
       desc = "Install and update the configured Treesitter parsers",
     })
 
