@@ -47,19 +47,25 @@ local function send_user_motion(win, key)
   assert(accepted == #key,
     ("Neovim accepted %d/%d user-activity bytes for %q"):format(accepted, #key, key))
 
-  -- This synthetic key only resets Neovim's native focus-check idle throttle.
-  -- FocusLost/FocusGained themselves are still delivered by the external PTY.
-  local moved = vim.wait(1000, function()
-    local ok, after = pcall(vim.api.nvim_win_get_cursor, win)
-    return ok and after[1] == before[1] and after[2] ~= before[2]
-  end, 10)
-  local after_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
+  -- nvim_input() queues typeahead. Yield this test coroutine so Neovim's real
+  -- Normal-mode loop consumes the key and resets did_check_timestamps before
+  -- the next PTY focus cycle is delivered.
+  local thread = assert(coroutine.running(), "user activity must run in the test coroutine")
+  vim.defer_fn(function()
+    local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
+    local moved = read_ok and after[1] == before[1] and after[2] ~= before[2]
+    local resumed, resume_error = coroutine.resume(thread, moved, read_ok and after or nil)
+    if not resumed then
+      fail_test(debug.traceback(thread, tostring(resume_error)))
+    end
+  end, 20)
+
+  local moved, after = coroutine.yield()
   assert(moved,
-    ("user-activity key %q did not move the cursor: before=%s after=%s mode=%s input_mode=%s more=%s map=%s current_win=%s target_win=%s current_buf=%s target_buf=%s"):format(
-      key, vim.inspect(before), vim.inspect(after_ok and after or nil),
-      vim.fn.mode(), vim.inspect(vim.api.nvim_get_mode()), tostring(vim.o.more),
-      vim.inspect(vim.fn.maparg(key, "n")), vim.api.nvim_get_current_win(),
-      win, vim.api.nvim_get_current_buf(), vim.api.nvim_win_get_buf(win)))
+    ("user-activity key %q did not move the cursor: before=%s after=%s mode=%s current_win=%s target_win=%s current_buf=%s target_buf=%s"):format(
+      key, vim.inspect(before), vim.inspect(after), vim.fn.mode(),
+      vim.api.nvim_get_current_win(), win,
+      vim.api.nvim_get_current_buf(), vim.api.nvim_win_get_buf(win)))
 end
 
 local function run()
@@ -308,7 +314,7 @@ local function run()
   cleanup_test = nil
 end
 
-vim.defer_fn(function()
+local test_thread = coroutine.create(function()
   local ok, err = xpcall(run, debug.traceback)
   if not ok then
     fail_test(err)
@@ -317,4 +323,11 @@ vim.defer_fn(function()
 
   print("PASS: PTY terminal focus reports preserve external-change detection without per-window :checktime")
   vim.cmd("qa!")
+end)
+
+vim.defer_fn(function()
+  local ok, err = coroutine.resume(test_thread)
+  if not ok then
+    fail_test(debug.traceback(test_thread, tostring(err)))
+  end
 end, 10)
