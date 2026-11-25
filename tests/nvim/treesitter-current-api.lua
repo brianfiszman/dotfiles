@@ -45,10 +45,10 @@ local version = vim.system({ executable, "--version" }, { text = true }):wait()
 assert(version.code == 0, "tree-sitter --version failed: " .. tostring(version.stderr))
 local major, minor, patch = (version.stdout or ""):match("(%d+)%.(%d+)%.(%d+)")
 assert(major, "Could not parse tree-sitter-cli version: " .. tostring(version.stdout))
-local version_number = tonumber(major) * 1000000 + tonumber(minor) * 1000 + tonumber(patch)
-assert(version_number >= 26001,
-  "tree-sitter-cli 0.26.1 or newer is required: " .. vim.trim(version.stdout))
-print("PASS: Mason provides " .. vim.trim(version.stdout))
+local cli_version = table.concat({ major, minor, patch }, ".")
+assert(cli_version == "0.27.2",
+  "Mason must provide pinned tree-sitter-cli 0.27.2; found " .. vim.trim(version.stdout))
+print("PASS: Mason provides pinned " .. vim.trim(version.stdout))
 
 local fixtures = {
   {
