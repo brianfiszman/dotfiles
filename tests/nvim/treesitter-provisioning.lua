@@ -110,19 +110,32 @@ plugin._.updated = { from = "same-locked-commit", to = "same-locked-commit" }
 plugin.build(plugin)
 expect_equal(0, update_calls, "unchanged nvim-treesitter build preserves parsers")
 
--- A real plugin update may happen before Mason has installed tree-sitter-cli
--- on a cold machine. Preserve the pending update request and consume it after
--- Mason emits its genuine completion event; do not accidentally update parsers
--- during ordinary first-time provisioning.
+-- During CI plugin restore, even an already-cached Mason CLI must not
+-- start parser work in the restore process. Defer the revision update to the
+-- following normal-startup process.
+local original_skip = vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING
+vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING = "1"
+plugin._.updated = { from = string.rep("a", 40), to = string.rep("b", 40) }
+plugin.build(plugin)
+expect_equal(0, update_calls, "CI plugin restore defers parser work despite a cached CLI")
+vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING = original_skip
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "MasonToolsUpdateCompleted",
+  modeline = false,
+})
+expect_equal(1, update_calls, "normal startup consumes the deferred plugin parser update")
+
+-- A real plugin update may also happen before Mason has installed the CLI on a
+-- cold machine. Preserve the update request until the genuine completion event.
 vim.fn.executable = function(name)
   if name == "tree-sitter" then
     return 0
   end
   return original_executable(name)
 end
-plugin._.updated = { from = string.rep("a", 40), to = string.rep("b", 40) }
+plugin._.updated = { from = string.rep("c", 40), to = string.rep("d", 40) }
 plugin.build(plugin)
-expect_equal(0, update_calls, "changed plugin defers parser update while Mason CLI is missing")
+expect_equal(1, update_calls, "changed plugin defers parser update while Mason CLI is missing")
 
 vim.fn.executable = function(name)
   if name == "tree-sitter" then
@@ -134,10 +147,11 @@ vim.api.nvim_exec_autocmds("User", {
   pattern = "MasonToolsUpdateCompleted",
   modeline = false,
 })
-expect_equal(1, update_calls, "Mason completion performs the deferred plugin parser update")
+expect_equal(2, update_calls, "Mason completion performs the update deferred by a missing CLI")
 expect_equal(true, vim.g.dotfiles_treesitter_ready, "deferred parser update keeps Treesitter ready")
 
 vim.fn.executable = original_executable
+vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING = original_skip
 treesitter.update = original_update
 plugin._.updated = original_revision
 plugin._.cloned = original_cloned
