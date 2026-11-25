@@ -170,6 +170,13 @@ local function setup_parsers(update_existing)
 end
 
 local function provision_missing_parsers()
+  -- Mason's first install is asynchronous. Do not record an error while its
+  -- CLI is still being installed; the real completion event retries setup.
+  if vim.fn.executable("tree-sitter") ~= 1 then
+    print("[treesitter] tree-sitter-cli is not ready yet; waiting for Mason completion")
+    return
+  end
+
   -- Normal startup provisions only absent parsers. Existing compiled parsers
   -- are immutable inputs to the CI cache and are never refreshed here.
   setup_parsers(false)
