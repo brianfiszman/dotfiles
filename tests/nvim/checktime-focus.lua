@@ -166,22 +166,22 @@ local function run()
 
   ui_script_path = vim.fn.tempname() .. ".lua"
   local ui_client_script = [[
-    io.stderr:write("[checktime-focus-client] process started\\n")
+    io.stderr:write("[checktime-focus-client] process started\n")
     io.stderr:flush()
     local function attach()
       local address = vim.env.DOTFILES_CHECKTIME_SERVER
       assert(type(address) == "string" and address ~= "",
         "missing parent Neovim RPC server address")
-      io.stderr:write("[checktime-focus-client] connecting to parent server\\n")
+      io.stderr:write("[checktime-focus-client] connecting to parent server\n")
       io.stderr:flush()
       local channel = vim.fn.sockconnect("pipe", address, { rpc = true })
       assert(type(channel) == "number" and channel > 0,
         ("could not connect to parent Neovim RPC server %q"):format(tostring(address)))
       _G.dotfiles_checktime_focus_parent_channel = channel
-      io.stderr:write("[checktime-focus-client] attaching RPC UI\\n")
+      io.stderr:write("[checktime-focus-client] attaching RPC UI\n")
       io.stderr:flush()
       vim.rpcrequest(channel, "nvim_ui_attach", 80, 24, { rgb = true })
-      io.stderr:write("[checktime-focus-client] RPC UI attached\\n")
+      io.stderr:write("[checktime-focus-client] RPC UI attached\n")
       io.stderr:flush()
     end
 
