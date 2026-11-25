@@ -156,20 +156,35 @@ activate_neovim_terminal_window() {
   osascript - "$target_tty" <<'APPLESCRIPT'
 on run argv
   set targetTTY to item 1 of argv
-  tell application "Terminal"
-    set targetWindow to first window whose tty of tab 1 contains targetTTY
-    set index of targetWindow to 1
-    set selected tab of targetWindow to tab 1 of targetWindow
-    activate
-    if frontmost of targetWindow is false then
-      error "The Neovim Terminal.app window did not become frontmost"
-    end if
-    return tty of tab 1 of targetWindow
-  end tell
+  with timeout of 10 seconds
+    tell application "Terminal"
+      set matchingWindow to missing value
+      repeat with candidateWindow in every window
+        repeat with candidateTab in every tab of candidateWindow
+          if (tty of candidateTab as text) is targetTTY then
+            set matchingWindow to contents of candidateWindow
+            set selected tab of candidateWindow to candidateTab
+            exit repeat
+          end if
+        end repeat
+        if matchingWindow is not missing value then exit repeat
+      end repeat
+
+      if matchingWindow is missing value then
+        error "No Terminal.app window owns Neovim TTY " & targetTTY
+      end if
+
+      set index of matchingWindow to 1
+      activate
+      if (index of matchingWindow) is not 1 then
+        error "The Neovim Terminal.app window did not become the front window"
+      end if
+      return tty of selected tab of matchingWindow
+    end tell
+  end timeout
 end run
 APPLESCRIPT
-}
-printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
+}printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
 open -a Terminal "$command_file"
 wait_for_ready
 
