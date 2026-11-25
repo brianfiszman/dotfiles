@@ -231,7 +231,7 @@ jobs:
       # nodejs/npm apt packages downgraded the image's Node 24/npm 11 and pulled
       # in hundreds of packages. Keep this probe visible in the Actions log.
       - name: Verify hosted runner toolchain
-        id: toolchain
+        id: runner-toolchain
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -307,6 +307,30 @@ jobs:
           python3 -m venv --help > /dev/null
           test -f /usr/include/readline/readline.h
           test -f /usr/include/lua5.1/lua.h
+
+      - name: Fingerprint installed Linux plugin-build toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            printf 'runner=%s/%s\n' "$ImageOS" "$ImageVersion"
+            printf 'neovim=%s\n' "$NEOVIM_VERSION"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            printf 'go=%s\n' "$(go version)"
+            printf 'cmake=%s\n' "$(cmake --version | sed -n '1p')"
+            printf 'gcc=%s\n' "$(gcc --version | sed -n '1p')"
+            printf 'g++=%s\n' "$(g++ --version | sed -n '1p')"
+            printf 'python=%s\n' "$(python3 --version)"
+            printf 'rust=%s\n' "$(rustc --version 2>/dev/null || echo missing)"
+            printf 'cargo=%s\n' "$(cargo --version 2>/dev/null || echo missing)"
+            for package in fd-find libreadline-dev liblua5.1-0-dev lua5.1 python3-venv ripgrep zsh; do
+              printf 'apt:%s=%s\n' "$package" "$(dpkg-query -W "$package" | awk '{print $2}')"
+            done
+          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
+          fingerprint="$(sha256sum "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
 
       - name: Install pinned Neovim
         run: |
