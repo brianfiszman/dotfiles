@@ -46,6 +46,7 @@ class FocusPtyDriver:
         self.focus_gained_sent = 0
         self.hit_enter_prompt_dismissals = 0
         self.pty_eof = False
+        self.startup_quiet_observed = False
 
     def write_pty(self, data: bytes) -> None:
         view = memoryview(data)
@@ -130,7 +131,7 @@ class FocusPtyDriver:
             if prompt_index >= 0:
                 prompt_end = prompt_index + len(HIT_ENTER_PROMPT)
                 del self.terminal_output[:prompt_end]
-                self.write_pty(b"\\r")
+                self.write_pty(b"\r")
                 self.hit_enter_prompt_dismissals += 1
                 print(
                     "[focus-pty] dismissed Neovim startup hit-enter prompt",
@@ -147,7 +148,7 @@ class FocusPtyDriver:
             sys.stdout.buffer.flush()
             self._answer_terminal_queries()
 
-    def wait_for_focus_reporting_request(self, timeout: float = 2.0) -> None:
+    def wait_for_focus_reporting_request(self, timeout: float = 8.0) -> None:
         deadline = time.monotonic() + timeout
         while not self.focus_reporting_enabled and time.monotonic() < deadline:
             readable, _, _ = select.select([self.master_fd], [], [], 0.05)
@@ -158,6 +159,30 @@ class FocusPtyDriver:
                 "Neovim TUI never requested terminal focus reporting "
                 "(expected CSI ? 1004 h before focus input)"
             )
+
+        # Neovim may still be emitting Mason/LSP startup notifications after
+        # it enables focus reporting. A hit-enter prompt consumes the next
+        # input sequence instead of letting the TUI parser emit FocusLost.
+        # Drain startup output, dismiss any such prompt with a real carriage
+        # return, and wait for a quiet PTY before injecting focus reports.
+        if self.startup_quiet_observed:
+            return
+
+        quiet_since = time.monotonic()
+        while time.monotonic() < deadline:
+            readable, _, _ = select.select([self.master_fd], [], [], 0.05)
+            if readable:
+                self.read_pty()
+                quiet_since = time.monotonic()
+                continue
+
+            if time.monotonic() - quiet_since >= 0.75:
+                self.startup_quiet_observed = True
+                return
+
+        raise RuntimeError(
+            "Neovim TUI did not reach a quiet startup state before terminal focus input"
+        )
 
     def handle_control_command(self, command: str) -> None:
         command = command.strip()
