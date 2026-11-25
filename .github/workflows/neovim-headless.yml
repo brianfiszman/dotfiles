@@ -309,10 +309,39 @@ jobs:
       - name: Prepare isolated install and verify installer safety
         run: bash ./scripts/test-nvim-headless.sh prepare
 
+      # Scheduled/manual runs bypass dependency caches and prove a cold installation.
+      # Exact keys only: incompatible plugin sources or compiled binaries must rebuild.
+      - name: Restore locked lazy.nvim plugin checkouts
+        id: lazy-plugin-cache
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/lazy
+          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
+
+      - name: Restore pinned Mason Tree-sitter CLI only
+        id: mason-tree-sitter-cache
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/mason/packages/tree-sitter-cli
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/mason/bin/tree-sitter
+          key: nvim-mason-tree-sitter-v0.27.2-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua') }}
+
+      - name: Restore compiled Tree-sitter parsers
+        id: treesitter-parser-cache
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser
+          key: nvim-treesitter-parsers-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua') }}
+
       - name: Restore locked plugins and run configured build hooks
         run: bash ./scripts/test-nvim-headless.sh restore
         env:
           NVIM_RESTORE_TIMEOUT: 20m
+          DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}
 
       - name: Start Neovim normally after plugin restore
         run: bash ./scripts/test-nvim-headless.sh startup
