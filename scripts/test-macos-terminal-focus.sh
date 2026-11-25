@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN-nvim}"
-NVIM_TEST_DIR="$NVIM_TEST_DIR"
+NVIM_TEST_DIR="${NVIM_TEST_DIR-}"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
   printf 'This integration test requires macOS and Terminal.app.\n' >&2
@@ -15,7 +15,7 @@ if [[ -z "$NVIM_TEST_DIR" ]]; then
 fi
 
 NVIM_BIN="$(command -v "$NVIM_BIN")"
-for required_command in open python3; do
+for required_command in open; do
   command -v "$required_command" >/dev/null 2>&1 || {
     printf 'Required macOS GUI test command is missing: %s\n' "$required_command" >&2
     exit 1
@@ -81,7 +81,7 @@ export XDG_DATA_HOME=$q_data
 export XDG_STATE_HOME=$q_state
 export XDG_CACHE_HOME=$q_cache
 export TERM=xterm-256color
-echo \\\$\\\$ > $q_pid
+echo \$\$ > $q_pid
 exec $q_nvim --listen $q_socket --cmd 'set nomore' -u $q_init \\
   -c 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1'
 EOF
