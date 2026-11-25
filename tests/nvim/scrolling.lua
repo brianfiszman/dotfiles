@@ -225,12 +225,14 @@ local function run()
     vim.g.comfortable_motion_no_default_key_mappings)
 
   check("native mouse support remains enabled", "a", vim.o.mouse)
+  check("Ctrl-E remains native for immediate wheel-down scrolling", "", vim.fn.maparg("<C-e>", "n"))
+  check("Ctrl-Y remains native for immediate wheel-up scrolling", "", vim.fn.maparg("<C-y>", "n"))
   check("scroll-wheel down has no plugin mapping", "", vim.fn.maparg("<ScrollWheelDown>", "n"))
   check("scroll-wheel up has no plugin mapping", "", vim.fn.maparg("<ScrollWheelUp>", "n"))
 
   local neoscroll_config = require("neoscroll.config").opts
   check("Neoscroll owns the normal line and alignment mappings", {
-    "<C-u>", "<C-d>", "<C-b>", "<C-y>", "<C-e>", "zt", "zz", "zb",
+    "<C-u>", "<C-d>", "<C-b>", "zt", "zz", "zb",
   }, neoscroll_config.mappings)
   check("PageDown and PageUp are dedicated smooth page mappings", true,
     vim.fn.maparg("<PageDown>", "n", false, true).desc == "Smooth page down"
