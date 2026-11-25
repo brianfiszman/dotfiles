@@ -109,7 +109,9 @@ test("plugin cache hits force all lazy.nvim build hooks and fail on task errors"
 test("Tree-sitter provisioning installs only missing parsers and updates only after a plugin revision change", () => {
   assert.match(treesitter, /ensure_installed = \{ \{ "tree-sitter-cli", version = "v0\.27\.2" \} \}/);
   assert.match(treesitter, /local function provision_missing_parsers\(\)/);
-  assert.match(treesitter, /setup_parsers\(false\)/);
+  assert.match(treesitter, /local update_existing = pending_parser_update/);
+  assert.match(treesitter, /setup_parsers\(update_existing\)/);
+  assert.match(treesitter, /pending_parser_update = false/);
   assert.match(treesitter, /if update_existing then[\s\S]*treesitter\.update\(parser_languages/);
   assert.match(treesitter, /updated\.from == updated\.to/);
   assert.match(treesitter, /pending_parser_update/);
