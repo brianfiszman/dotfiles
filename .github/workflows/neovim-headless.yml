@@ -91,6 +91,9 @@ jobs:
       - name: Test PR integration decision and fail-open behavior
         run: node --test tests/ci/neovim-integration-decision.test.cjs
 
+      - name: Test dependency cache keys and cold-path safeguards
+        run: node --test tests/ci/neovim-cache-contract.test.cjs
+
       - name: Test real lazy.nvim bootstrap failure and recovery paths
         run: node --test tests/ci/neovim-bootstrap.test.cjs
 
