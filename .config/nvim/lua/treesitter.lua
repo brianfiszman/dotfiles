@@ -197,6 +197,8 @@ local function provision_missing_parsers()
 end
 
 local function update_existing_parsers(plugin)
+  vim.g.dotfiles_treesitter_build_hook_ran = true
+
   -- lazy.nvim's :Lazy! build force-runs every configured build hook when a
   -- plugin cache is restored. Only refresh parsers when nvim-treesitter itself
   -- moved to a different locked revision; an unchanged cached plugin must not
