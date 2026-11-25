@@ -67,6 +67,24 @@ local function wait_for_idle_before_mouse(description)
   check(description .. " starts after the previous animation has finished", true, idle)
 end
 
+local function wait_for_animation_quiet(description)
+  -- Neoscroll can finish its visible animation one event-loop turn before a
+  -- delayed callback from the previous key motion runs. Require a quiet
+  -- window with both the animation flag and hook counter stable before
+  -- attributing any later hook to native mouse-wheel input.
+  local starts = animation_starts
+  local quiet_since = vim.uv.hrtime()
+  local quiet = vim.wait(3000, function()
+    if animation.scrolling or animation_starts ~= starts then
+      starts = animation_starts
+      quiet_since = vim.uv.hrtime()
+      return false
+    end
+    return vim.uv.hrtime() - quiet_since >= 250000000
+  end, 10)
+  check(description .. " reaches a stable idle state before mouse input", true, quiet)
+end
+
 local function exercise_motion(key, expected_delta, description)
   prepare_buffer()
   local before = vim.api.nvim_win_get_cursor(0)[1]
@@ -84,9 +102,25 @@ local function exercise_motion(key, expected_delta, description)
     expected_delta, after - before)
 end
 
+local function exercise_native_motion(key, expected_delta, description)
+  prepare_buffer()
+  local before = vim.api.nvim_win_get_cursor(0)[1]
+  local starts_before = animation_starts
+
+  feed_key(key)
+
+  local after = vim.api.nvim_win_get_cursor(0)[1]
+  check(description .. " remains an immediate native motion", true, after ~= before)
+  check(description .. " does not invoke Neoscroll's animation hook",
+    starts_before, animation_starts)
+  check(description .. " moves the cursor by the native scroll amount",
+    expected_delta, after - before)
+end
+
 local function exercise_mouse_wheel(direction, description, next_step)
   prepare_buffer()
   wait_for_idle_before_mouse(description)
+  wait_for_animation_quiet(description)
   -- The synthetic PTY may leave a hit-enter prompt after querying terminal
   -- background color. Dismiss it before queuing non-blocking mouse input; then
   -- restore the fixture position so the prompt cannot affect the assertion.
@@ -210,8 +244,8 @@ local function run()
   check("scroll-wheel up has no plugin mapping", "", vim.fn.maparg("<ScrollWheelUp>", "n"))
 
   local neoscroll_config = require("neoscroll.config").opts
-  check("Neoscroll owns the normal line and alignment mappings", {
-    "<C-u>", "<C-d>", "<C-b>", "<C-y>", "<C-e>", "zt", "zz", "zb",
+  check("Neoscroll leaves native wheel keys unmapped and owns alignment motions", {
+    "<C-b>", "zt", "zz", "zb",
   }, neoscroll_config.mappings)
   check("PageDown and PageUp are dedicated smooth page mappings", true,
     vim.fn.maparg("<PageDown>", "n", false, true).desc == "Smooth page down"
@@ -231,8 +265,8 @@ local function run()
   end
 
   local window_height = vim.api.nvim_win_get_height(0)
-  exercise_motion("<C-d>", 10, "Ctrl-D")
-  exercise_motion("<C-u>", -10, "Ctrl-U")
+  exercise_native_motion("<C-d>", 10, "Ctrl-D")
+  exercise_native_motion("<C-u>", -10, "Ctrl-U")
   exercise_motion("<PageDown>", window_height, "PageDown")
   exercise_motion("<PageUp>", -window_height, "PageUp")
   exercise_motion("<C-b>", -window_height, "Ctrl-B")
@@ -242,7 +276,7 @@ local function run()
   exercise_mouse_wheel("down", "Mouse wheel down", function()
     exercise_mouse_wheel("up", "Mouse wheel up", function()
       test_finished = true
-      print("PASS: one Neoscroll animation engine, eight real keyboard motions, preserved Ctrl-F formatting, and native wheel scrolling")
+      print("PASS: Neoscroll keyboard animations, native Ctrl-D/Ctrl-U, preserved Ctrl-F formatting, and immediate native wheel scrolling")
       vim.cmd("qa!")
     end)
   end)

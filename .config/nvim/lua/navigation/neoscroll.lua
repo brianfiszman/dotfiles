@@ -3,13 +3,12 @@ return {
   config = function()
     local neoscroll = require("neoscroll")
 
-    -- One animation owner for page, line, and alignment motions.
-    -- Keep the native mouse wheel immediate; repeated wheel events should not
-    -- queue an animation behind the user's hand.
+    -- Neovim's TUI routes wheel input through Ctrl-D / Ctrl-U. Keep those
+    -- keys native so mouse-wheel scrolling stays immediate; use the dedicated
+    -- page and shifted-arrow mappings below for animated scrolling.
     neoscroll.setup({
       mappings = {
-        "<C-u>", "<C-d>", "<C-b>",
-        "<C-y>", "<C-e>",
+        "<C-b>",
         "zt", "zz", "zb",
       },
       easing = "sine",

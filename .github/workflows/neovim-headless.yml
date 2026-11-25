@@ -11,6 +11,7 @@ on:
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
+      - "scripts/test-macos-terminal-focus.sh"
       - "scripts/test-python-provider-macos.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
@@ -82,6 +83,7 @@ jobs:
           bash -n install.sh
           bash -n scripts/test-nvim-headless.sh
           bash -n scripts/test-python-provider-macos.sh
+          bash -n scripts/test-macos-terminal-focus.sh
 
       - name: Validate lazy.nvim lockfile JSON
         run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
@@ -157,6 +159,12 @@ jobs:
           NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
           NVIM_RESTORE_TIMEOUT: 25m
         run: bash ./scripts/test-nvim-headless.sh restore
+
+      - name: Verify Terminal.app window activation reports native Neovim focus events
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
+          NVIM_BIN: nvim
+        run: bash ./scripts/test-macos-terminal-focus.sh
 
       - name: Run isolated real provider provisioning and fresh-start checks
         run: bash ./scripts/test-python-provider-macos.sh
