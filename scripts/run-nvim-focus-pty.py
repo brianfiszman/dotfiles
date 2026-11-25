@@ -287,7 +287,8 @@ def main(argv: list[str]) -> int:
 
         signal.signal(signal.SIGTERM, interrupt_handler)
         signal.signal(signal.SIGINT, interrupt_handler)
-        try:            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+        try:
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
             os.kill(child_pid, signal.SIGWINCH)
             os.set_blocking(master_fd, False)
             return driver.run(child_pid)
