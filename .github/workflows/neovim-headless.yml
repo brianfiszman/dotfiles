@@ -175,7 +175,7 @@ jobs:
 
       - name: Restore locked lazy.nvim plugin checkouts
         id: lazy-plugin-cache
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/nvim-headless-macos/data/nvim/lazy
@@ -341,7 +341,7 @@ jobs:
       # Exact keys only: incompatible plugin sources or compiled binaries must rebuild.
       - name: Restore locked lazy.nvim plugin checkouts
         id: lazy-plugin-cache
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/lazy
@@ -349,7 +349,7 @@ jobs:
 
       - name: Restore pinned Mason Tree-sitter CLI only
         id: mason-tree-sitter-cache
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
           path: |
@@ -359,7 +359,7 @@ jobs:
 
       - name: Restore compiled Tree-sitter parsers
         id: treesitter-parser-cache
-        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser
