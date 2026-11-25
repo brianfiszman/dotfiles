@@ -37,13 +37,19 @@ local function fail_test(err)
 end
 
 local function send_user_motion(win, key)
+  assert(key == "l", "the PTY focus harness currently supports the Normal-mode l key")
   vim.api.nvim_set_current_win(win)
   local before = vim.api.nvim_win_get_cursor(win)
-  local encoded = vim.api.nvim_replace_termcodes(key, true, false, true)
-  vim.api.nvim_feedkeys(encoded, "mtx", false)
+  local written = vim.fn.writefile({ "MOTION_L" }, vim.env.DOTFILES_FOCUS_CONTROL_FIFO)
+  assert(written == 0, "could not ask the PTY driver to send a real Normal-mode key")
+
+  local moved = vim.wait(1000, function()
+    local ok, after = pcall(vim.api.nvim_win_get_cursor, win)
+    return ok and after[1] == before[1] and after[2] ~= before[2]
+  end, 10)
   local after_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
-  assert(after_ok and after[1] == before[1] and after[2] ~= before[2],
-    ("real %q input did not move the cursor: before=%s after=%s"):format(
+  assert(moved,
+    ("real PTY-delivered %q input did not move the cursor: before=%s after=%s"):format(
       key, vim.inspect(before), vim.inspect(after_ok and after or nil)))
 end
 
