@@ -52,34 +52,63 @@ local plugin = assert(
 )
 assert(type(plugin.build) == "function", "nvim-treesitter explicit build hook is missing")
 local original_revision = plugin._.updated
+local original_cloned = plugin._.cloned
+local original_executable = vim.fn.executable
+
+local function install_update_spy()
+  treesitter.update = function(languages, opts)
+    update_calls = update_calls + 1
+    assert(vim.deep_equal(expected_parsers, languages),
+      "plugin update must refresh exactly the configured parser set")
+    assert(opts and opts.summary == true, "plugin update must retain summary output")
+    return {
+      wait = function(timeout)
+        assert(timeout == 20 * 60 * 1000, "plugin update must use the parser install timeout")
+        return true
+      end,
+    }
+  end
+end
+
+install_update_spy()
 
 -- lazy.nvim force-runs configured build hooks when a cached checkout is
 -- restored. An unchanged locked revision must preserve the parser cache.
+plugin._.cloned = false
 plugin._.updated = { from = "same-locked-commit", to = "same-locked-commit" }
 plugin.build(plugin)
 expect_equal(0, update_calls, "unchanged nvim-treesitter build preserves parsers")
 
--- A genuine plugin revision change remains the explicit update trigger. Stub
--- only the network-backed updater so this assertion is deterministic; the
--- real install path and the real CLI/parser inventory were exercised above.
-treesitter.update = function(languages, opts)
-  update_calls = update_calls + 1
-  assert(vim.deep_equal(expected_parsers, languages),
-    "plugin update must refresh exactly the configured parser set")
-  assert(opts and opts.summary == true, "plugin update must retain summary output")
-  return {
-    wait = function(timeout)
-      assert(timeout == 20 * 60 * 1000, "plugin update must use the parser install timeout")
-      return true
-    end,
-  }
+-- A real plugin update may happen before Mason has installed tree-sitter-cli
+-- on a cold machine. Preserve the pending update request and consume it after
+-- Mason emits its genuine completion event; do not accidentally update parsers
+-- during ordinary first-time provisioning.
+vim.fn.executable = function(name)
+  if name == "tree-sitter" then
+    return 0
+  end
+  return original_executable(name)
 end
 plugin._.updated = { from = string.rep("a", 40), to = string.rep("b", 40) }
 plugin.build(plugin)
-expect_equal(1, update_calls, "changed nvim-treesitter revision updates installed parsers")
-expect_equal(true, vim.g.dotfiles_treesitter_ready, "explicit parser update keeps Treesitter ready")
+expect_equal(0, update_calls, "changed plugin defers parser update while Mason CLI is missing")
 
+vim.fn.executable = function(name)
+  if name == "tree-sitter" then
+    return 1
+  end
+  return original_executable(name)
+end
+vim.api.nvim_exec_autocmds("User", {
+  pattern = "MasonToolsUpdateCompleted",
+  modeline = false,
+})
+expect_equal(1, update_calls, "Mason completion performs the deferred plugin parser update")
+expect_equal(true, vim.g.dotfiles_treesitter_ready, "deferred parser update keeps Treesitter ready")
+
+vim.fn.executable = original_executable
 treesitter.update = original_update
 plugin._.updated = original_revision
+plugin._.cloned = original_cloned
 
 print("PASS: Treesitter provisioning and explicit update policy")
