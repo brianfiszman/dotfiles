@@ -27,6 +27,7 @@ FOCUS_REPORTING_ENABLE = b"\x1b[?1004h"
 FOCUS_REPORTING_DISABLE = b"\x1b[?1004l"
 FOCUS_LOST_SEQUENCE = b"\x1b[O"
 FOCUS_GAINED_SEQUENCE = b"\x1b[I"
+HIT_ENTER_PROMPT = b"Press ENTER or type command to continue"
 
 
 class FocusPtyDriver:
@@ -43,6 +44,7 @@ class FocusPtyDriver:
         self.focus_reporting_disabled = False
         self.focus_lost_sent = 0
         self.focus_gained_sent = 0
+        self.hit_enter_prompt_dismissals = 0
         self.pty_eof = False
 
     def write_pty(self, data: bytes) -> None:
@@ -120,6 +122,26 @@ class FocusPtyDriver:
                 self.focus_reporting_enabled = True
             if FOCUS_REPORTING_DISABLE in self.terminal_output:
                 self.focus_reporting_disabled = True
+
+            # Plugin startup can fill Neovim's message area before the test
+            # script runs. Dismiss only the explicit hit-enter pager prompt;
+            # this is terminal housekeeping, not part of the focus assertions.
+            prompt_index = self.terminal_output.find(HIT_ENTER_PROMPT)
+            if prompt_index >= 0:
+                prompt_end = prompt_index + len(HIT_ENTER_PROMPT)
+                del self.terminal_output[:prompt_end]
+                self.write_pty(b"\\r")
+                self.hit_enter_prompt_dismissals += 1
+                print(
+                    "[focus-pty] dismissed Neovim startup hit-enter prompt",
+                    file=sys.stderr,
+                    flush=True,
+                )
+
+            # Keep diagnostic output bounded. Focus-mode enable/disable state
+            # is tracked separately above.
+            if len(self.terminal_output) > 65536:
+                del self.terminal_output[:-65536]
 
             sys.stdout.buffer.write(data)
             sys.stdout.buffer.flush()
