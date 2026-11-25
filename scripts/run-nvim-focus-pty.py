@@ -165,14 +165,7 @@ class FocusPtyDriver:
             return
 
         self.wait_for_focus_reporting_request()
-        if command == "MOTION_L":
-            self.write_pty(b"l")
-            print(
-                "[focus-pty] sent real Normal-mode l key through terminal input",
-                file=sys.stderr,
-                flush=True,
-            )
-        elif command == "FOCUS_LOST":
+        if command == "FOCUS_LOST":
             self.write_pty(FOCUS_LOST_SEQUENCE)
             self.focus_lost_sent += 1
             print(
