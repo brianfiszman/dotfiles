@@ -72,8 +72,9 @@ printf -v q_tty '%q' "$tty_file"
 printf -v q_init '%q' "$NVIM_TEST_DIR/config/nvim/init.lua"
 
 # Opening a .command file in Terminal.app starts Neovim on the app's actual
-# terminal PTY. Launch Services is used for app activation, avoiding synthetic
-# CSI input and avoiding Apple Events/Accessibility permissions.
+# terminal PTY. The return transition selects the exact session window through
+# Terminal's scripting dictionary; it does not synthesize terminal focus bytes
+# or use System Events UI/Accessibility scripting.
 cat > "$command_file" <<EOF
 #!/bin/bash
 set -Eeuo pipefail
