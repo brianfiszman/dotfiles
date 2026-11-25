@@ -153,7 +153,8 @@ request_terminal_appkit_activation() {
   }
 
   printf '[macos-focus] Requesting Terminal.app activation through AppKit (Neovim PTY %s).\n' "$target_tty"
-  swift - "$target_tty" <<'SWIFT'
+  local swift_script="$test_root/activate-terminal.swift"
+  cat > "$swift_script" <<'SWIFT'
 import AppKit
 import Foundation
 
@@ -173,6 +174,23 @@ guard activated else {
 
 print("AppKit accepted Terminal.app activation for Neovim PTY \(targetTTY); isActive=\(terminalApp.isActive)")
 SWIFT
+
+  python3 - "$swift_script" "$target_tty" <<'PY'
+import subprocess
+import sys
+
+try:
+    result = subprocess.run(
+        ["swift", sys.argv[1], sys.argv[2]],
+        check=False,
+        timeout=30,
+    )
+except subprocess.TimeoutExpired:
+    print("AppKit activation helper exceeded its 30-second deadline", file=sys.stderr)
+    raise SystemExit(124)
+
+raise SystemExit(result.returncode)
+PY
 }
 
 wait_for_counter_increase() {
