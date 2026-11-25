@@ -182,7 +182,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/nvim-headless-macos/data/nvim/lazy
-          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-0.12.6-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
+          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-0.12.6-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
 
       - name: Restore locked plugins and verify Avante prebuilt libraries on macOS
         env:
@@ -356,7 +356,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/lazy
-          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
+          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
 
       - name: Restore pinned Mason Tree-sitter CLI only
         id: mason-tree-sitter-cache
