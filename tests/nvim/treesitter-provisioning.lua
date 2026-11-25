@@ -51,8 +51,11 @@ expect_equal(nil, vim.g.dotfiles_treesitter_error, "Mason completion leaves no s
 -- separately exercises the real network-backed installation implementation.
 local original_get_installed = treesitter.get_installed
 local original_install = treesitter.install
+local original_executable_for_provision = vim.fn.executable
 local install_calls = 0
+local inventory_calls = 0
 local mocked_get_installed = function(kind)
+  inventory_calls = inventory_calls + 1
   assert_equal("parsers", kind, "missing-parser discovery requests parser inventory")
   return {}
 end
@@ -83,7 +86,22 @@ local provision_autocmds = vim.api.nvim_get_autocmds({
 expect_equal(1, #provision_autocmds, "one Treesitter provisioning callback is registered")
 local provision_callback = assert(provision_autocmds[1].callback,
   "Treesitter provisioning autocmd must be a Lua callback")
-provision_callback()
+assert(vim.fn.exepath("tree-sitter") ~= "",
+  "the real pinned tree-sitter CLI must be available for provisioning")
+-- The production callback checks vim.fn.executable before entering parser
+-- discovery. The headless process can inherit a PATH where exepath resolves
+-- the binary while executable() reports a non-standard status, so control
+-- that single precondition and leave the real CLI invocation untouched.
+vim.fn.executable = function(name, ...)
+  if name == "tree-sitter" then
+    return 1
+  end
+  return original_executable_for_provision(name, ...)
+end
+local callback_ok, callback_error = pcall(provision_callback)
+vim.fn.executable = original_executable_for_provision
+assert(callback_ok, callback_error)
+expect_equal(1, inventory_calls, "Mason callback queries the installed parser inventory")
 expect_equal(1, install_calls, "Mason completion installs missing configured parsers")
 expect_equal(0, update_calls, "installing missing parsers does not update existing parsers")
 treesitter.get_installed = original_get_installed
