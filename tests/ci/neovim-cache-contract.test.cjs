@@ -8,11 +8,15 @@ const assert = require("node:assert/strict");
 const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
 const restoreScriptPath = resolve(__dirname, "../../scripts/test-nvim-headless.sh");
 const treesitterPath = resolve(__dirname, "../../.config/nvim/lua/treesitter.lua");
+const lspConfigPath = resolve(__dirname, "../../.config/nvim/lua/lsp/config.lua");
+const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
 
 const workflow = readFileSync(workflowPath, "utf8");
 const restoreScript = readFileSync(restoreScriptPath, "utf8");
 const treesitter = readFileSync(treesitterPath, "utf8");
+const lspConfig = readFileSync(lspConfigPath, "utf8");
+const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
 
 const trustedCacheCondition =
@@ -135,6 +139,15 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.match(treesitter, /DOTFILES_SKIP_TREESITTER_PROVISIONING == "1"/);
   assert.match(treesitter, /tree-sitter 0\.27\.2/);
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
+});
+
+test("focus PTY skips only Mason LSP package installation while retaining native server activation", () => {
+  assert.match(restoreScript, /env DOTFILES_SKIP_MASON_LSP_INSTALL=1 python3/);
+  assert.match(lspConfig, /DOTFILES_SKIP_MASON_LSP_INSTALL == "1"/);
+  assert.match(lspConfig, /ensure_installed = skip_mason_lsp_install and \{\} or M\.mason_servers/);
+  assert.match(lspConfig, /vim\.lsp\.enable\(M\.servers\)/);
+  assert.match(focusTest, /focus PTY skips unrelated Mason package installation/);
+  assert.match(focusTest, /focus PTY still explicitly enables configured native LSP servers/);
 });
 
 test("the scrolling PTY disables the Neovim message pager before startup", () => {
