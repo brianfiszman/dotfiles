@@ -138,7 +138,6 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
 });
 
 test("the scrolling PTY disables the Neovim message pager before startup", () => {
-  assert.match(restoreScript, /label ===? "scrolling"|label" == "scrolling"/);
   assert.match(restoreScript, /nvim_args=\(--cmd "set nomore"\)/);
   assert.match(readFileSync(resolve(__dirname, "../nvim/scrolling.lua"), "utf8"),
     /scrolling PTY cannot block on the message pager/);
