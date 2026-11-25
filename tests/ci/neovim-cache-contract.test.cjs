@@ -137,6 +137,13 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
 });
 
+test("the scrolling PTY disables the Neovim message pager before startup", () => {
+  assert.match(restoreScript, /label ===? "scrolling"|label" == "scrolling"/);
+  assert.match(restoreScript, /nvim_args=\(--cmd "set nomore"\)/);
+  assert.match(readFileSync(resolve(__dirname, "../nvim/scrolling.lua"), "utf8"),
+    /scrolling PTY cannot block on the message pager/);
+});
+
 test("the fresh DAP adapter installation regression remains wired into the cold suite", () => {
   assert.match(restoreScript, /dap-mason-command-trigger\.lua/);
   assert.match(restoreScript, /dap-lazy-loading\.lua/);
