@@ -14,7 +14,6 @@ end
 
 local animation
 local animation_starts = 0
-local animation_events = {}
 local test_finished = false
 
 local function fail(err)
@@ -100,6 +99,21 @@ local function exercise_motion(key, expected_delta, description)
 
   local after = vim.api.nvim_win_get_cursor(0)[1]
   check(description .. " moves the cursor by the expected number of lines",
+    expected_delta, after - before)
+end
+
+local function exercise_native_motion(key, expected_delta, description)
+  prepare_buffer()
+  local before = vim.api.nvim_win_get_cursor(0)[1]
+  local starts_before = animation_starts
+
+  feed_key(key)
+
+  local after = vim.api.nvim_win_get_cursor(0)[1]
+  check(description .. " remains an immediate native motion", true, after ~= before)
+  check(description .. " does not invoke Neoscroll's animation hook",
+    starts_before, animation_starts)
+  check(description .. " moves the cursor by the native scroll amount",
     expected_delta, after - before)
 end
 
@@ -230,8 +244,8 @@ local function run()
   check("scroll-wheel up has no plugin mapping", "", vim.fn.maparg("<ScrollWheelUp>", "n"))
 
   local neoscroll_config = require("neoscroll.config").opts
-  check("Neoscroll owns the normal line and alignment mappings", {
-    "<C-u>", "<C-d>", "<C-b>", "zt", "zz", "zb",
+  check("Neoscroll leaves native wheel keys unmapped and owns alignment motions", {
+    "<C-b>", "zt", "zz", "zb",
   }, neoscroll_config.mappings)
   check("PageDown and PageUp are dedicated smooth page mappings", true,
     vim.fn.maparg("<PageDown>", "n", false, true).desc == "Smooth page down"
@@ -245,25 +259,14 @@ local function run()
   local previous_pre_hook = neoscroll_options.pre_hook
   neoscroll_options.pre_hook = function(info)
     animation_starts = animation_starts + 1
-    animation_events[animation_starts] = {
-      info = vim.inspect(info),
-      trace = debug.traceback("", 2),
-      ctrl_e = vim.inspect(vim.fn.maparg("<C-e>", "n", false, true)),
-      ctrl_y = vim.inspect(vim.fn.maparg("<C-y>", "n", false, true)),
-    }
-    local event = animation_events[animation_starts]
-    io.stderr:write(("[scrolling-debug] hook #%d info=%s ctrl_e=%s ctrl_y=%s\\n%s\\n"):format(
-      animation_starts, event.info, event.ctrl_e, event.ctrl_y, event.trace
-    ))
-    io.stderr:flush()
     if previous_pre_hook then
       previous_pre_hook(info)
     end
   end
 
   local window_height = vim.api.nvim_win_get_height(0)
-  exercise_motion("<C-d>", 10, "Ctrl-D")
-  exercise_motion("<C-u>", -10, "Ctrl-U")
+  exercise_native_motion("<C-d>", 10, "Ctrl-D")
+  exercise_native_motion("<C-u>", -10, "Ctrl-U")
   exercise_motion("<PageDown>", window_height, "PageDown")
   exercise_motion("<PageUp>", -window_height, "PageUp")
   exercise_motion("<C-b>", -window_height, "Ctrl-B")
@@ -273,7 +276,7 @@ local function run()
   exercise_mouse_wheel("down", "Mouse wheel down", function()
     exercise_mouse_wheel("up", "Mouse wheel up", function()
       test_finished = true
-      print("PASS: one Neoscroll animation engine, eight real keyboard motions, preserved Ctrl-F formatting, and native wheel scrolling")
+      print("PASS: Neoscroll keyboard animations, native Ctrl-D/Ctrl-U, preserved Ctrl-F formatting, and immediate native wheel scrolling")
       vim.cmd("qa!")
     end)
   end)
