@@ -46,20 +46,20 @@ expect_equal(0, update_calls, "Mason completion does not update existing parsers
 expect_equal(true, vim.g.dotfiles_treesitter_ready, "Mason completion keeps Treesitter ready")
 expect_equal(nil, vim.g.dotfiles_treesitter_error, "Mason completion leaves no setup error")
 
--- With a missing parser set, ordinary provisioning must call install() for
--- gaps and still never refresh every existing parser. The cold CI path below
--- separately exercises the real network-backed installation implementation.
-local original_get_installed = treesitter.get_installed
+-- With an actually empty parser install directory, ordinary provisioning
+-- must call install() for every configured parser and still never update.
+-- Use nvim-treesitter's real get_installed() filesystem path; only the
+-- network/compile-backed install future is replaced by a deterministic spy.
+local config = require("nvim-treesitter.config")
 local original_install = treesitter.install
 local original_executable_for_provision = vim.fn.executable
+local original_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site")
+local isolated_install_dir = vim.fn.tempname()
+config.setup({ install_dir = isolated_install_dir })
+expect_equal({}, treesitter.get_installed("parsers"),
+  "isolated parser fixture starts with no installed parsers")
+
 local install_calls = 0
-local inventory_calls = 0
-local mocked_get_installed = function(kind)
-  inventory_calls = inventory_calls + 1
-  assert_equal("parsers", kind, "missing-parser discovery requests parser inventory")
-  return {}
-end
-treesitter.get_installed = mocked_get_installed
 treesitter.install = function(languages, opts)
   install_calls = install_calls + 1
   assert(vim.deep_equal(expected_parsers, languages),
@@ -72,12 +72,12 @@ treesitter.install = function(languages, opts)
     end,
   }
 end
-expect_equal(mocked_get_installed, require("nvim-treesitter").get_installed,
-  "provisioning test controls the same nvim-treesitter module instance")
+expect_equal(treesitter.install, require("nvim-treesitter").install,
+  "provisioning test controls the same nvim-treesitter install API")
 
--- Invoke the real callback registered by the configuration. Looking it up
--- explicitly avoids depending on unrelated Mason User-event listeners or
--- scheduled startup callbacks while still exercising the production closure.
+-- Invoke the real callback registered by the configuration. The temporary
+-- install root guarantees that the real get_installed() implementation sees
+-- parser gaps without mocking its result or touching the workspace cache.
 local provision_autocmds = vim.api.nvim_get_autocmds({
   event = "User",
   pattern = "MasonToolsUpdateCompleted",
@@ -88,24 +88,15 @@ local provision_callback = assert(provision_autocmds[1].callback,
   "Treesitter provisioning autocmd must be a Lua callback")
 assert(vim.fn.exepath("tree-sitter") ~= "",
   "the real pinned tree-sitter CLI must be available for provisioning")
--- The production callback checks vim.fn.executable before entering parser
--- discovery. The headless process can inherit a PATH where exepath resolves
--- the binary while executable() reports a non-standard status, so control
--- that single precondition and leave the real CLI invocation untouched.
-vim.fn.executable = function(name, ...)
-  if name == "tree-sitter" then
-    return 1
-  end
-  return original_executable_for_provision(name, ...)
-end
 local callback_ok, callback_error = pcall(provision_callback)
-vim.fn.executable = original_executable_for_provision
 assert(callback_ok, callback_error)
-expect_equal(1, inventory_calls, "Mason callback queries the installed parser inventory")
+expect_equal(#expected_parsers, install_calls > 0 and #expected_parsers or 0,
+  "missing-parser provisioning reaches the install API")
 expect_equal(1, install_calls, "Mason completion installs missing configured parsers")
 expect_equal(0, update_calls, "installing missing parsers does not update existing parsers")
-treesitter.get_installed = original_get_installed
+
 treesitter.install = original_install
+config.setup({ install_dir = original_install_dir })
 
 local plugin = assert(
   require("lazy.core.config").plugins["nvim-treesitter"],
