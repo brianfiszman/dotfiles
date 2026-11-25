@@ -160,7 +160,7 @@ local function setup_parsers(update_existing)
     vim.g.dotfiles_treesitter_ready = false
     vim.g.dotfiles_treesitter_error = tostring(err)
     vim.notify(
-      "Treesitter parser setup failed. See :messages.\\n" .. tostring(err),
+      "Treesitter parser setup failed. See :messages.\n" .. tostring(err),
       vim.log.levels.ERROR,
       { title = "dotfiles Treesitter" }
     )
