@@ -123,7 +123,9 @@ run_nvim() {
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
   local -a nvim_command
   if ((use_focus_pty)); then
-    nvim_command=(python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" --cmd "set nomore" -u "$NVIM_CONFIG/init.lua" "$@")
+    # Focus scenarios isolate native checktime behavior from Mason's
+    # unrelated LSP package provisioning and its asynchronous UI notifications.
+    nvim_command=(env DOTFILES_SKIP_MASON_LSP_INSTALL=1 python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" --cmd "set nomore" -u "$NVIM_CONFIG/init.lua" "$@")
   else
     nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
   fi
