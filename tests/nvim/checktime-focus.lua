@@ -61,6 +61,17 @@ local function run()
     "PTY focus driver did not provide DOTFILES_FOCUS_CONTROL_FIFO")
   check("scenario " .. scenario .. " runs in a real Neovim TUI attached to a PTY", true, ui_count > 0)
 
+  -- Keep this test focused on real terminal focus input and checktime. LSP
+  -- package installation is covered by normal startup/LuaLS integration and
+  -- is intentionally suppressed only in these short-lived focus processes.
+  local lsp = require("lsp.config")
+  assert(vim.wait(5000, function()
+    return type(lsp.mason_options) == "table" and type(lsp.enabled_servers) == "table"
+  end, 10), "native LSP configuration did not finish before focus assertions")
+  check("focus PTY skips unrelated Mason package installation", {}, lsp.mason_options.ensure_installed)
+  check("focus PTY still explicitly enables configured native LSP servers",
+    lsp.servers, lsp.enabled_servers)
+
   local function cleanup()
     pcall(vim.api.nvim_del_augroup_by_id, group)
     vim.fn.delete(path)
