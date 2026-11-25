@@ -66,8 +66,11 @@ treesitter.install = function(languages, opts)
     "provisioning must install exactly the missing configured parsers")
   assert(opts and opts.summary == true, "missing-parser install must keep summary output")
   return {
-    wait = function(timeout)
-      assert(timeout == 20 * 60 * 1000, "missing-parser install must use the parser install timeout")
+    -- Future.wait is invoked with colon syntax, so the receiver is
+    -- the first argument and the timeout is the second.
+    wait = function(_, timeout)
+      assert(timeout == 20 * 60 * 1000,
+        "missing-parser install must use the parser install timeout; got " .. vim.inspect(timeout))
       return true
     end,
   }
@@ -99,6 +102,8 @@ vim.fn.executable = original_executable_for_provision
 assert(callback_ok, callback_error)
 expect_equal(1, install_calls, "Mason completion installs missing configured parsers")
 expect_equal(0, update_calls, "installing missing parsers does not update existing parsers")
+expect_equal(true, vim.g.dotfiles_treesitter_ready, "missing-parser provisioning completes successfully")
+expect_equal(nil, vim.g.dotfiles_treesitter_error, "missing-parser provisioning leaves no setup error")
 
 treesitter.install = original_install
 config.setup({ install_dir = original_install_dir })
@@ -119,8 +124,10 @@ local function install_update_spy()
       "plugin update must refresh exactly the configured parser set")
     assert(opts and opts.summary == true, "plugin update must retain summary output")
     return {
-      wait = function(timeout)
-        assert(timeout == 20 * 60 * 1000, "plugin update must use the parser install timeout")
+      -- Future.wait is invoked with colon syntax; ignore its receiver.
+      wait = function(_, timeout)
+        assert(timeout == 20 * 60 * 1000,
+          "plugin update must use the parser install timeout; got " .. vim.inspect(timeout))
         return true
       end,
     }
