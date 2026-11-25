@@ -119,6 +119,9 @@ default. Exact pins are for reproducibility, not for preserving obsolete APIs.
   understood and you are about to instrument, probe, or try another fix.
 - Follow `.agents/skills/neovim-headless-testing/SKILL.md` when writing or
   debugging a Neovim behavioral test.
+- Follow `.agents/skills/automated-verification/SKILL.md` for every task
+  requiring behavioral verification; automate and execute every feasible
+  reproduction yourself before declaring completion or asking Brian to test.
 - Follow `.agents/skills/agent-memory-hygiene/SKILL.md` when updating state,
   worklogs, skills, ADRs, or incident records.
 
@@ -137,13 +140,29 @@ default. Exact pins are for reproducibility, not for preserving obsolete APIs.
 ## Validation and reporting
 
 Testing is part of every implementation task's scope, estimate, and Definition of
-Done. Define behavior-first acceptance scenarios before implementation, include
-the automated proof, and run required checks in CI on explicit triggers.
-Interactive Neovim behavior needs real headless tests with the actual
-configuration and plugin/LSP/tool triggers; mocks, syntax checks, startup
-success, or module-loaded flags alone do not prove it. Manual checks supplement
-automation only where automation is not reasonable, with exact steps and a
-stated reason.
+Done. For every acceptance criterion that requires reproducing behavior, build
+or reuse an automated reproduction and execute it yourself, locally or through
+an inspected CI run. Writing a test is not enough: report only tests that
+actually ran on the exact final SHA. Drive the real user-facing trigger and
+assert observable behavior; a mock, lower-level protocol event, syntax check,
+startup success, or module-loaded flag does not prove a higher-level path.
+
+Do not ask Brian to perform a reproduction that can reasonably be automated.
+Before proposing a manual check, investigate real UI/PTY input, OS/protocol
+event injection, emulators, virtual devices, local services, and CI execution.
+A lack of local GUI/device access is a tooling constraint, not proof that a test
+is impossible. Manual verification is a narrow exception for irreducibly
+external behavior only; explain why each automation route is insufficient,
+identify exactly what remains unverified, and do not mark the task complete or
+merge while a required gate remains open.
+
+Interactive Neovim behavior needs tests with the actual configuration and
+plugin/LSP/tool trigger. When terminal behavior is under test, prefer a real
+PTY/TUI and the actual terminal input sequence over directly sending the
+Neovim RPC event that the TUI is supposed to produce. Mocks may isolate an
+external service, but must not substitute for an available real integration
+path. Keep test data isolated and retain confirmed reproductions as regression
+tests with explicit CI triggers.
 
 Choose validation by impact: docs-only gets Markdown/diff review; shell/installer
 gets `bash -n` plus isolated dry-run and failure-path checks; Lua/keymaps get
