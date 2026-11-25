@@ -59,26 +59,28 @@ test("macOS plugin cache is isolated by OS/architecture/toolchain and lockfile",
   assert.match(block, /hashFiles\('\.config\/nvim\/lazy-lock\.json'/);
 });
 
-test("Mason cache is keyed by the exact registry revision and includes the isolated Mason root", () => {
+test("Mason cache is keyed by the exact release and includes package data plus refresh state", () => {
   const block = cacheStepBlocks().find((entry) => entry.includes("Restore Mason packages and pinned registry"));
   assert.ok(block, "dedicated Mason cache must exist");
   assert.match(block, /data\/nvim\/mason(?:\s|$)/);
+  assert.match(block, /cache\/nvim\/mason-registry-update/);
   assert.match(block, /nvim-mason-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}/);
-  assert.match(block, /steps\.mason-registry\.outputs\.revision/);
+  assert.match(block, /steps\.mason-registry\.outputs\.version/);
   assert.match(block, /steps\.toolchain\.outputs\.fingerprint/);
   assert.match(block, /hashFiles\('\.config\/nvim\/lazy-lock\.json'/);
   assert.doesNotMatch(block, /^\s+restore-keys:/m);
 });
 
-test("Mason registry fingerprint resolves the exact remote HEAD before restoring its cache", () => {
-  const registryIndex = workflow.indexOf("- name: Fingerprint Mason registry revision");
+test("Mason release fingerprint is pinned in the real Neovim setup before cache restore", () => {
+  const registryIndex = workflow.indexOf("- name: Resolve and pin Mason registry release");
   const cacheIndex = workflow.indexOf("- name: Restore Mason packages and pinned registry");
   assert.ok(registryIndex >= 0 && cacheIndex > registryIndex,
-    "Mason registry must be fingerprinted before cache restore");
+    "Mason registry release must be resolved before cache restore");
   const fingerprintStep = workflow.slice(registryIndex, cacheIndex);
-  assert.match(fingerprintStep, /git ls-remote https:\/\/github\.com\/mason-org\/mason-registry\.git HEAD/);
-  assert.match(fingerprintStep, /\^\[0-9a-f\]\{40\}\$/);
-  assert.match(fingerprintStep, /echo "revision=\$registry_sha" >> "\$GITHUB_OUTPUT"/);
+  assert.match(fingerprintStep, /api\.github\.com\/repos\/mason-org\/mason-registry\/releases\/latest/);
+  assert.match(fingerprintStep, /tag_name/);
+  assert.match(fingerprintStep, /DOTFILES_MASON_REGISTRY_VERSION=\$registry_version/);
+  assert.match(fingerprintStep, /version=\$registry_version/);
 });
 
 test("Linux parser cache fingerprint is computed after supplemental APT dependencies are installed", () => {
@@ -117,6 +119,8 @@ test("plugin cache hits force all lazy.nvim build hooks and fail on task errors"
 
 test("Tree-sitter provisioning installs only missing parsers and updates only after a plugin revision change", () => {
   assert.match(treesitter, /ensure_installed = \{ \{ "tree-sitter-cli", version = "v0\.27\.2" \} \}/);
+  assert.match(treesitter, /mason_registry_version = vim\.env\.DOTFILES_MASON_REGISTRY_VERSION/);
+  assert.match(treesitter, /registries = \{ mason_registry \}/);
   assert.match(treesitter, /local function provision_missing_parsers\(\)/);
   assert.match(treesitter, /local update_existing = pending_parser_update/);
   assert.match(treesitter, /setup_parsers\(update_existing\)/);
