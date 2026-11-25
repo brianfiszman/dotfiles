@@ -19,7 +19,7 @@ const trustedCacheCondition =
   "$" + "{{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}";
 
 function cacheStepBlocks() {
-  return workflow.split(/(?=      - name: (?:Restore locked lazy\.nvim plugin checkouts|Restore pinned Mason Tree-sitter CLI only|Restore compiled Tree-sitter parsers))/)
+  return workflow.split(/(?=      - name: (?:Restore locked lazy\.nvim plugin checkouts|Restore Mason packages and pinned registry|Restore compiled Tree-sitter parsers))/)
     .filter((block) => block.startsWith("      - name: ") && block.includes("uses: actions/cache@v6"));
 }
 
@@ -59,17 +59,26 @@ test("macOS plugin cache is isolated by OS/architecture/toolchain and lockfile",
   assert.match(block, /hashFiles\('\.config\/nvim\/lazy-lock\.json'/);
 });
 
-test("Mason cache is limited to the pinned Tree-sitter CLI, not DAP adapters or all Mason state", () => {
-  const block = cacheStepBlocks().find((entry) => entry.includes("Restore pinned Mason Tree-sitter CLI only"));
-  assert.ok(block, "dedicated Tree-sitter CLI cache must exist");
-  assert.match(block, /mason\/packages\/tree-sitter-cli/);
-  assert.match(block, /mason\/bin\/tree-sitter/);
-  assert.match(block, /v0\.27\.2/);
-  assert.doesNotMatch(block, /mason\/packages\/(?!tree-sitter-cli)/);
-  assert.doesNotMatch(block, /data\/nvim\/mason(?:\s|$)/);
-  for (const dapPackage of ["delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter"]) {
-    assert.doesNotMatch(block, new RegExp(dapPackage));
-  }
+test("Mason cache is keyed by the exact registry revision and includes the isolated Mason root", () => {
+  const block = cacheStepBlocks().find((entry) => entry.includes("Restore Mason packages and pinned registry"));
+  assert.ok(block, "dedicated Mason cache must exist");
+  assert.match(block, /data\/nvim\/mason(?:\\s|$)/);
+  assert.match(block, /nvim-mason-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}/);
+  assert.match(block, /steps\.mason-registry\.outputs\.revision/);
+  assert.match(block, /steps\.toolchain\.outputs\.fingerprint/);
+  assert.match(block, /hashFiles\('\.config\/nvim\/lazy-lock\.json'/);
+  assert.doesNotMatch(block, /^\s+restore-keys:/m);
+});
+
+test("Mason registry fingerprint resolves the exact remote HEAD before restoring its cache", () => {
+  const registryIndex = workflow.indexOf("- name: Fingerprint Mason registry revision");
+  const cacheIndex = workflow.indexOf("- name: Restore Mason packages and pinned registry");
+  assert.ok(registryIndex >= 0 && cacheIndex > registryIndex,
+    "Mason registry must be fingerprinted before cache restore");
+  const fingerprintStep = workflow.slice(registryIndex, cacheIndex);
+  assert.match(fingerprintStep, /git ls-remote https:\/\/github\.com\/mason-org\/mason-registry\.git HEAD/);
+  assert.match(fingerprintStep, /\^\[0-9a-f\]\{40\}\$/);
+  assert.match(fingerprintStep, /echo "revision=\$registry_sha" >> "\$GITHUB_OUTPUT"/);
 });
 
 test("Linux parser cache fingerprint is computed after supplemental APT dependencies are installed", () => {
