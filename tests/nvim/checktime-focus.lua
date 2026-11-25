@@ -41,24 +41,18 @@ local function fail_test(err)
 end
 
 local function send_user_motion(win, key)
+  assert(key == "l", "the PTY focus fixture uses Normal-mode l for user activity")
   vim.api.nvim_set_current_win(win)
   local before = vim.api.nvim_win_get_cursor(win)
-  local accepted = vim.api.nvim_input(key)
-  assert(accepted == #key,
-    ("Neovim accepted %d/%d user-activity bytes for %q"):format(accepted, #key, key))
+  local written = vim.fn.writefile({ "MOTION_L" }, vim.env.DOTFILES_FOCUS_CONTROL_FIFO)
+  assert(written == 0, "could not ask the PTY driver to send a real Normal-mode key")
 
-  -- nvim_input() queues typeahead. Yield this test coroutine so Neovim's real
-  -- Normal-mode loop consumes the key and resets did_check_timestamps before
-  -- the next PTY focus cycle is delivered.
   local thread = assert(coroutine.running(), "user activity must run in the test coroutine")
   local deadline = vim.uv.hrtime() + 1000000000
-
   local function poll_user_input()
     local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
     local moved = read_ok and after[1] == before[1] and after[2] ~= before[2]
     if not moved and vim.uv.hrtime() < deadline then
-      -- Return to Neovim's state machine between polls so it can consume the
-      -- queued nvim_input() bytes and complete normal_check_stuff_buffer().
       vim.defer_fn(poll_user_input, 10)
       return
     end
@@ -72,12 +66,9 @@ local function send_user_motion(win, key)
   vim.defer_fn(poll_user_input, 10)
   local moved, after = coroutine.yield()
   assert(moved,
-    ("user-activity key %q did not move the cursor: before=%s after=%s mode=%s current_win=%s target_win=%s current_buf=%s target_buf=%s"):format(
-      key, vim.inspect(before), vim.inspect(after), vim.fn.mode(),
-      vim.api.nvim_get_current_win(), win,
-      vim.api.nvim_get_current_buf(), vim.api.nvim_win_get_buf(win)))
+    ("real PTY-delivered %q input did not move the cursor: before=%s after=%s"):format(
+      key, vim.inspect(before), vim.inspect(after)))
 end
-
 local function run()
   local path = vim.fn.tempname() .. ".txt"
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
