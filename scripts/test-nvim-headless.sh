@@ -92,8 +92,8 @@ run_nvim() {
     # integration test a real screen grid without manual interaction.
     nvim_args=()
     use_pty=1
-  elif [[ "$label" == "checktime-focus" ]]; then
-    # Drive focus reports through Neovim\x27s TUI parser using a real PTY master.
+  elif [[ "$label" == checktime-focus-* ]]; then
+    # Drive focus reports through Neovim's TUI parser using a real PTY master.
     nvim_args=()
     use_focus_pty=1
   fi
@@ -373,9 +373,13 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/avante-lazy-loading.lua" \
     "+qa!"
 
-  printf '\n[behavior] Verifying native focus timestamp checks replace per-buffer-entry :checktime.\n'
-  run_nvim "checktime-focus" "$NVIM_FOCUS_TIMEOUT" \
-    "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua"
+  printf '\n[behavior] Verifying real terminal focus reports reload external changes without per-buffer-entry :checktime.\n'
+  for focus_scenario in unchanged external_change conflict buffer_switch; do
+    printf "[behavior] Focus scenario: %s\n" "$focus_scenario"
+    DOTFILES_FOCUS_SCENARIO="$focus_scenario" \
+      run_nvim "checktime-focus-$focus_scenario" "$NVIM_FOCUS_TIMEOUT" \
+        "+luafile $REPO_ROOT/tests/nvim/checktime-focus.lua"
+  done
 
   printf '\n[behavior] Verifying a single scroll animation owner and native mouse wheel scrolling.\n'
   run_nvim "scrolling" "$NVIM_STARTUP_TIMEOUT" \
