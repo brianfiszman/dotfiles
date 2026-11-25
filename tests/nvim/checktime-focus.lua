@@ -61,7 +61,6 @@ local function run()
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
   local server_address
   local ui_job
-  local ui_script_path
   local ui_exit_code
   local ui_stderr = {}
   local ui_enter_events = 0
@@ -83,9 +82,6 @@ local function run()
     if server_address then
       pcall(vim.fn.serverstop, server_address)
     end
-    if ui_script_path then
-      vim.fn.delete(ui_script_path)
-    end
     pcall(vim.api.nvim_del_augroup_by_id, group)
     vim.fn.delete(path)
   end
@@ -94,28 +90,42 @@ local function run()
   local function trigger_native_focus_cycle(label)
     local before_lost = focus_lost_events
     local before_gained = focus_gained_events
+    vim.g.dotfiles_checktime_focus_error = nil
     local lua = [[
       local channel = _G.dotfiles_checktime_focus_parent_channel
-      assert(type(channel) == "number" and channel > 0,
-        "RPC UI client is not connected to the parent Neovim")
-      assert(vim.rpcnotify(channel, "nvim_ui_set_focus", false),
-        "could not send native FocusLost notification")
-      assert(vim.rpcnotify(channel, "nvim_ui_set_focus", true),
-        "could not send native FocusGained notification")
-      return true
+      local ok, err = xpcall(function()
+        assert(type(channel) == "number" and channel > 0,
+          "RPC UI client is not connected to the parent Neovim")
+        assert(vim.rpcnotify(channel, "nvim_ui_set_focus", false),
+          "could not send native FocusLost notification")
+        assert(vim.rpcnotify(channel, "nvim_ui_set_focus", true),
+          "could not send native FocusGained notification")
+      end, debug.traceback)
+      if not ok and type(channel) == "number" then
+        vim.rpcnotify(channel, "nvim_set_var", "dotfiles_checktime_focus_error", tostring(err))
+      elseif not ok then
+        io.stderr:write("[checktime-focus-client] " .. tostring(err) .. "\n")
+        io.stderr:flush()
+      end
     ]]
-    local ok, result = pcall(vim.rpcrequest, ui_job, "nvim_exec_lua", lua, {})
-    assert(ok and result == true,
-      ("%s: RPC UI client could not send focus events: %s"):format(label, vim.inspect(result)))
-    wait_for(label .. " native FocusLost", function()
-      return focus_lost_events == before_lost + 1
-    end, 2000)
-    wait_for(label .. " native FocusGained", function()
-      return focus_gained_events == before_gained + 1
-    end, 2000)
+    assert(vim.rpcnotify(ui_job, "nvim_exec_lua", lua, {}),
+      ("%s: could not dispatch focus notifications to RPC UI client"):format(label))
+
+    local lost = vim.wait(2000, function()
+      return focus_lost_events == before_lost + 1 or vim.g.dotfiles_checktime_focus_error ~= nil
+    end, 10)
+    assert(lost and focus_lost_events == before_lost + 1,
+      ("%s: FocusLost not observed; error=%s stderr=%s"):format(
+        label, vim.inspect(vim.g.dotfiles_checktime_focus_error), vim.inspect(ui_stderr)))
+
+    local gained = vim.wait(2000, function()
+      return focus_gained_events == before_gained + 1 or vim.g.dotfiles_checktime_focus_error ~= nil
+    end, 10)
+    assert(gained and focus_gained_events == before_gained + 1,
+      ("%s: FocusGained not observed; error=%s stderr=%s"):format(
+        label, vim.inspect(vim.g.dotfiles_checktime_focus_error), vim.inspect(ui_stderr)))
     last_focus_at = vim.uv.hrtime()
   end
-
   local function gain_native_focus()
     -- Neovim v0.12.6 throttles native timestamp checks to once per 2000ms.
     local anchor = last_focus_at or test_started_at
@@ -164,43 +174,10 @@ local function run()
     end,
   })
 
-  ui_script_path = vim.fn.tempname() .. ".lua"
-  local ui_client_script = [[
-    io.stderr:write("[checktime-focus-client] process started\n")
-    io.stderr:flush()
-    local function attach()
-      local address = vim.env.DOTFILES_CHECKTIME_SERVER
-      assert(type(address) == "string" and address ~= "",
-        "missing parent Neovim RPC server address")
-      io.stderr:write("[checktime-focus-client] connecting to parent server\n")
-      io.stderr:flush()
-      local channel = vim.fn.sockconnect("pipe", address, { rpc = true })
-      assert(type(channel) == "number" and channel > 0,
-        ("could not connect to parent Neovim RPC server %q"):format(tostring(address)))
-      _G.dotfiles_checktime_focus_parent_channel = channel
-      io.stderr:write("[checktime-focus-client] attaching RPC UI\n")
-      io.stderr:flush()
-      vim.rpcrequest(channel, "nvim_ui_attach", 80, 24, { rgb = true })
-      io.stderr:write("[checktime-focus-client] RPC UI attached\n")
-      io.stderr:flush()
-    end
-
-    local ok, err = xpcall(attach, debug.traceback)
-    if not ok then
-      io.stderr:write("[checktime-focus-client] " .. tostring(err) .. "\n")
-      io.stderr:flush()
-      vim.cmd("cquit 1")
-    else
-      print("PASS: attached a minimal RPC UI to the test Neovim")
-    end
-  ]]
-  assert(vim.fn.writefile(vim.split(ui_client_script, "\n"), ui_script_path) == 0,
-    "could not write the RPC UI client script")
-
+  vim.g.dotfiles_checktime_focus_error = nil
   print("INFO: starting embedded RPC UI process")
   ui_job = vim.fn.jobstart({
-    vim.v.progpath, "--embed", "--headless", "-u", "NONE", "-i", "NONE", "-n",
-    "-c", "luafile " .. vim.fn.fnameescape(ui_script_path),
+    "env", "-u", "NVIM", vim.v.progpath, "--embed", "--headless", "-u", "NONE", "-i", "NONE", "-n",
   }, {
     rpc = true,
     env = { DOTFILES_CHECKTIME_SERVER = server_address },
@@ -217,14 +194,40 @@ local function run()
   })
   assert(type(ui_job) == "number" and ui_job > 0,
     ("could not start the RPC UI client: %s"):format(vim.inspect(ui_job)))
-  print("INFO: RPC UI process started with channel " .. ui_job .. "; waiting for UIEnter")
+  print("INFO: RPC UI process started with channel " .. ui_job .. "; sending attach bootstrap")
+
+  -- Do not put the attach script in a child -c command: an embedded Nvim can
+  -- wait for a UI before completing startup commands. Send it over the already
+  -- open embedded RPC channel so the client can attach to the parent server.
+  local attach_script = [[
+    local ok, err = xpcall(function()
+      local address = vim.env.DOTFILES_CHECKTIME_SERVER
+      assert(type(address) == "string" and address ~= "",
+        "missing parent Neovim RPC server address")
+      local channel = vim.fn.sockconnect("pipe", address, { rpc = true })
+      assert(type(channel) == "number" and channel > 0,
+        ("could not connect to parent Neovim RPC server %q"):format(tostring(address)))
+      _G.dotfiles_checktime_focus_parent_channel = channel
+      assert(vim.rpcnotify(channel, "nvim_ui_attach", 80, 24, { rgb = true }),
+        "could not send nvim_ui_attach notification to parent")
+    end, debug.traceback)
+    if not ok then
+      io.stderr:write("[checktime-focus-client] " .. tostring(err) .. "\n")
+      io.stderr:flush()
+      vim.cmd("cquit 1")
+    end
+  ]]
+  assert(vim.rpcnotify(ui_job, "nvim_exec_lua", attach_script, {}),
+    "could not send the UI attach bootstrap to the embedded Neovim")
 
   local attached = vim.wait(5000, function()
-    return ui_enter_events == 1 or ui_exit_code ~= nil
+    return ui_enter_events == 1 or ui_exit_code ~= nil or vim.g.dotfiles_checktime_focus_error ~= nil
   end, 10)
-  assert(attached and ui_enter_events == 1 and ui_exit_code == nil,
-    ("RPC UI did not attach; UIEnter=%d exit_code=%s stderr=%s"):format(
-      ui_enter_events, vim.inspect(ui_exit_code), vim.inspect(ui_stderr)))
+  assert(attached and ui_enter_events == 1 and ui_exit_code == nil
+      and vim.g.dotfiles_checktime_focus_error == nil,
+    ("RPC UI did not attach; UIEnter=%d exit_code=%s parent_error=%s stderr=%s"):format(
+      ui_enter_events, vim.inspect(ui_exit_code), vim.inspect(vim.g.dotfiles_checktime_focus_error),
+      vim.inspect(ui_stderr)))
   print("PASS: attached a separate Neovim RPC UI channel; child stderr: " .. vim.inspect(ui_stderr))
 
   -- Prime the native focus path while no changed file is loaded.
