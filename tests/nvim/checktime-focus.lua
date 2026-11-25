@@ -61,7 +61,10 @@ local function run()
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
   local server_address
   local ui_job
+  local ui_script_path
   local ui_exit_code
+  local ui_ready = false
+  local ui_stdout = {}
   local ui_stderr = {}
   local ui_enter_events = 0
   local focus_gained_events = 0
@@ -74,13 +77,20 @@ local function run()
 
 
   local function cleanup()
-    -- Stop the RPC UI client before closing the server socket.
+    -- Ask the RPC client to exit cleanly so its socket detaches the UI.
     if ui_job and ui_job > 0 then
-      pcall(vim.fn.jobstop, ui_job)
-      pcall(vim.fn.jobwait, { ui_job }, 1500)
+      pcall(vim.fn.chansend, ui_job, "QUIT\n")
+      local waited = vim.fn.jobwait({ ui_job }, 1000)
+      if waited and waited[1] == -1 then
+        pcall(vim.fn.jobstop, ui_job)
+        pcall(vim.fn.jobwait, { ui_job }, 1000)
+      end
     end
     if server_address then
       pcall(vim.fn.serverstop, server_address)
+    end
+    if ui_script_path then
+      vim.fn.delete(ui_script_path)
     end
     pcall(vim.api.nvim_del_augroup_by_id, group)
     vim.fn.delete(path)
@@ -90,40 +100,17 @@ local function run()
   local function trigger_native_focus_cycle(label)
     local before_lost = focus_lost_events
     local before_gained = focus_gained_events
-    vim.g.dotfiles_checktime_focus_error = nil
-    local lua = [[
-      local channel = _G.dotfiles_checktime_focus_parent_channel
-      local ok, err = xpcall(function()
-        assert(type(channel) == "number" and channel > 0,
-          "RPC UI client is not connected to the parent Neovim")
-        assert(vim.rpcnotify(channel, "nvim_ui_set_focus", false),
-          "could not send native FocusLost notification")
-        assert(vim.rpcnotify(channel, "nvim_ui_set_focus", true),
-          "could not send native FocusGained notification")
-      end, debug.traceback)
-      if not ok and type(channel) == "number" then
-        vim.rpcnotify(channel, "nvim_set_var", "dotfiles_checktime_focus_error", tostring(err))
-      elseif not ok then
-        io.stderr:write("[checktime-focus-client] " .. tostring(err) .. "\n")
-        io.stderr:flush()
-      end
-    ]]
-    assert(vim.rpcnotify(ui_job, "nvim_exec_lua", lua, {}),
-      ("%s: could not dispatch focus notifications to RPC UI client"):format(label))
+    local sent = vim.fn.chansend(ui_job, "FOCUS\n")
+    assert(sent == 6,
+      ("%s: RPC UI client accepted %s/6 focus command bytes; stderr=%s"):format(
+        label, vim.inspect(sent), vim.inspect(ui_stderr)))
 
-    local lost = vim.wait(2000, function()
-      return focus_lost_events == before_lost + 1 or vim.g.dotfiles_checktime_focus_error ~= nil
-    end, 10)
-    assert(lost and focus_lost_events == before_lost + 1,
-      ("%s: FocusLost not observed; error=%s stderr=%s"):format(
-        label, vim.inspect(vim.g.dotfiles_checktime_focus_error), vim.inspect(ui_stderr)))
-
-    local gained = vim.wait(2000, function()
-      return focus_gained_events == before_gained + 1 or vim.g.dotfiles_checktime_focus_error ~= nil
-    end, 10)
-    assert(gained and focus_gained_events == before_gained + 1,
-      ("%s: FocusGained not observed; error=%s stderr=%s"):format(
-        label, vim.inspect(vim.g.dotfiles_checktime_focus_error), vim.inspect(ui_stderr)))
+    wait_for(label .. " native FocusLost", function()
+      return focus_lost_events == before_lost + 1
+    end, 2000)
+    wait_for(label .. " native FocusGained", function()
+      return focus_gained_events == before_gained + 1
+    end, 2000)
     last_focus_at = vim.uv.hrtime()
   end
   local function gain_native_focus()
@@ -174,13 +161,205 @@ local function run()
     end,
   })
 
-  vim.g.dotfiles_checktime_focus_error = nil
-  print("INFO: starting embedded RPC UI process")
-  ui_job = vim.fn.jobstart({
-    "env", "-u", "NVIM", vim.v.progpath, "--embed", "-u", "NONE", "-i", "NONE", "-n",
-  }, {
-    rpc = true,
-    env = { DOTFILES_CHECKTIME_SERVER = server_address },
+  -- Spawn a real external RPC client. A Neovim process started with
+  -- --embed is itself an editor waiting for its embedder to attach a UI; it is
+  -- not a remote UI client. This small Python client speaks the same
+  -- MessagePack-RPC protocol used by Neovim GUIs and attaches nvim_ui_attach
+  -- directly to the server socket opened above.
+  local python = vim.fn.exepath("python3")
+  assert(python ~= "", "python3 is required for the native RPC UI integration fixture")
+
+  ui_script_path = vim.fn.tempname() .. ".py"
+  local ui_client_script = [=[
+import os
+import socket
+import struct
+import sys
+import traceback
+
+def pack(value):
+    if value is None:
+        return b"\xc0"
+    if value is False:
+        return b"\xc2"
+    if value is True:
+        return b"\xc3"
+    if isinstance(value, int):
+        if 0 <= value <= 0x7f:
+            return bytes((value,))
+        if -32 <= value < 0:
+            return bytes((value & 0xff,))
+        if 0 <= value <= 0xff:
+            return b"\xcc" + struct.pack(">B", value)
+        if -0x80 <= value < 0:
+            return b"\xd0" + struct.pack(">b", value)
+        if 0 <= value <= 0xffff:
+            return b"\xcd" + struct.pack(">H", value)
+        if -0x8000 <= value < 0:
+            return b"\xd1" + struct.pack(">h", value)
+        if 0 <= value <= 0xffffffff:
+            return b"\xce" + struct.pack(">I", value)
+        if -0x80000000 <= value < 0:
+            return b"\xd2" + struct.pack(">i", value)
+        if value >= 0:
+            return b"\xcf" + struct.pack(">Q", value)
+        return b"\xd3" + struct.pack(">q", value)
+    if isinstance(value, str):
+        data = value.encode("utf-8")
+        size = len(data)
+        if size <= 31:
+            return bytes((0xa0 | size,)) + data
+        if size <= 0xff:
+            return b"\xd9" + struct.pack(">B", size) + data
+        if size <= 0xffff:
+            return b"\xda" + struct.pack(">H", size) + data
+        return b"\xdb" + struct.pack(">I", size) + data
+    if isinstance(value, (list, tuple)):
+        size = len(value)
+        if size <= 15:
+            head = bytes((0x90 | size,))
+        elif size <= 0xffff:
+            head = b"\xdc" + struct.pack(">H", size)
+        else:
+            head = b"\xdd" + struct.pack(">I", size)
+        return head + b"".join(pack(item) for item in value)
+    if isinstance(value, dict):
+        size = len(value)
+        if size <= 15:
+            head = bytes((0x80 | size,))
+        elif size <= 0xffff:
+            head = b"\xde" + struct.pack(">H", size)
+        else:
+            head = b"\xdf" + struct.pack(">I", size)
+        return head + b"".join(pack(k) + pack(v) for k, v in value.items())
+    raise TypeError("unsupported MessagePack value: " + type(value).__name__)
+
+def read_exact(sock, size):
+    chunks = []
+    remaining = size
+    while remaining:
+        chunk = sock.recv(remaining)
+        if not chunk:
+            raise EOFError("Neovim RPC socket closed while reading MessagePack data")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+def unpack(sock):
+    first = read_exact(sock, 1)[0]
+    if first <= 0x7f:
+        return first
+    if first >= 0xe0:
+        return first - 256
+    if 0x80 <= first <= 0x8f:
+        return {unpack(sock): unpack(sock) for _ in range(first & 0x0f)}
+    if 0x90 <= first <= 0x9f:
+        return [unpack(sock) for _ in range(first & 0x0f)]
+    if 0xa0 <= first <= 0xbf:
+        return read_exact(sock, first & 0x1f).decode("utf-8")
+    if first == 0xc0:
+        return None
+    if first == 0xc2:
+        return False
+    if first == 0xc3:
+        return True
+    if first == 0xc4:
+        return read_exact(sock, struct.unpack(">B", read_exact(sock, 1))[0])
+    if first == 0xc5:
+        return read_exact(sock, struct.unpack(">H", read_exact(sock, 2))[0])
+    if first == 0xc6:
+        return read_exact(sock, struct.unpack(">I", read_exact(sock, 4))[0])
+    if first in (0xcc, 0xcd, 0xce, 0xcf):
+        formats = {0xcc: ">B", 0xcd: ">H", 0xce: ">I", 0xcf: ">Q"}
+        fmt = formats[first]
+        return struct.unpack(fmt, read_exact(sock, struct.calcsize(fmt)))[0]
+    if first in (0xd0, 0xd1, 0xd2, 0xd3):
+        formats = {0xd0: ">b", 0xd1: ">h", 0xd2: ">i", 0xd3: ">q"}
+        fmt = formats[first]
+        return struct.unpack(fmt, read_exact(sock, struct.calcsize(fmt)))[0]
+    if first in (0xd9, 0xda, 0xdb):
+        formats = {0xd9: ">B", 0xda: ">H", 0xdb: ">I"}
+        fmt = formats[first]
+        size = struct.unpack(fmt, read_exact(sock, struct.calcsize(fmt)))[0]
+        return read_exact(sock, size).decode("utf-8")
+    if first in (0xdc, 0xdd):
+        fmt = ">H" if first == 0xdc else ">I"
+        size = struct.unpack(fmt, read_exact(sock, struct.calcsize(fmt)))[0]
+        return [unpack(sock) for _ in range(size)]
+    if first in (0xde, 0xdf):
+        fmt = ">H" if first == 0xde else ">I"
+        size = struct.unpack(fmt, read_exact(sock, struct.calcsize(fmt)))[0]
+        return {unpack(sock): unpack(sock) for _ in range(size)}
+    if first in (0xc7, 0xc8, 0xc9, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8):
+        if first == 0xc7:
+            size = struct.unpack(">B", read_exact(sock, 1))[0]
+        elif first == 0xc8:
+            size = struct.unpack(">H", read_exact(sock, 2))[0]
+        elif first == 0xc9:
+            size = struct.unpack(">I", read_exact(sock, 4))[0]
+        else:
+            size = {0xd4: 1, 0xd5: 2, 0xd6: 4, 0xd7: 8, 0xd8: 16}[first]
+        read_exact(sock, 1)  # extension type
+        return read_exact(sock, size)
+    raise ValueError("unsupported MessagePack marker: 0x%02x" % first)
+
+def connect(address):
+    if os.name != "nt" and address.startswith("/"):
+        connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        connection.connect(address)
+        return connection
+    if ":" in address:
+        host, port = address.rsplit(":", 1)
+        connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        connection.connect((host, int(port)))
+        return connection
+    raise ValueError("unsupported Neovim RPC address: " + address)
+
+def main():
+    address = sys.argv[1]
+    connection = connect(address)
+    connection.sendall(pack([0, 1, "nvim_ui_attach", [80, 24, {"rgb": True}]]))
+
+    # UI attachment can produce redraw notifications before the request reply.
+    while True:
+        message = unpack(connection)
+        if isinstance(message, list) and len(message) >= 4 and message[0] == 1 and message[1] == 1:
+            if message[2] is not None:
+                raise RuntimeError("nvim_ui_attach failed: " + repr(message[2]))
+            break
+
+    print("READY", flush=True)
+    for command in sys.stdin:
+        command = command.strip()
+        if command == "FOCUS":
+            connection.sendall(pack([2, "nvim_ui_set_focus", [False]]))
+            connection.sendall(pack([2, "nvim_ui_set_focus", [True]]))
+        elif command == "QUIT":
+            break
+    connection.close()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
+  ]=]
+  assert(vim.fn.writefile(vim.split(ui_client_script, "\n"), ui_script_path) == 0,
+    "could not write the Python RPC UI client")
+
+  print("INFO: starting external MessagePack-RPC UI client")
+  ui_job = vim.fn.jobstart({ python, "-u", ui_script_path, server_address }, {
+    on_stdout = function(_, data)
+      for _, line in ipairs(data) do
+        if line == "READY" then
+          ui_ready = true
+        elseif line ~= "" then
+          ui_stdout = ui_stdout or {}
+          ui_stdout[#ui_stdout + 1] = line
+        end
+      end
+    end,
     on_stderr = function(_, data)
       for _, line in ipairs(data) do
         if line ~= "" then
@@ -193,47 +372,17 @@ local function run()
     end,
   })
   assert(type(ui_job) == "number" and ui_job > 0,
-    ("could not start the RPC UI client: %s"):format(vim.inspect(ui_job)))
-  print("INFO: RPC UI process started with channel " .. ui_job .. "; sending attach bootstrap")
-
-  -- Do not put the attach script in a child -c command: an embedded Nvim can
-  -- wait for a UI before completing startup commands. Send it over the already
-  -- open embedded RPC channel so the client can attach to the parent server.
-  local attach_script = [[
-    local ok, err = xpcall(function()
-      local address = vim.env.DOTFILES_CHECKTIME_SERVER
-      assert(type(address) == "string" and address ~= "",
-        "missing parent Neovim RPC server address")
-      local channel = vim.fn.sockconnect("pipe", address, { rpc = true })
-      assert(type(channel) == "number" and channel > 0,
-        ("could not connect to parent Neovim RPC server %q"):format(tostring(address)))
-      _G.dotfiles_checktime_focus_parent_channel = channel
-      assert(vim.rpcnotify(channel, "nvim_ui_attach", 80, 24, { rgb = true }),
-        "could not send nvim_ui_attach notification to parent")
-    end, debug.traceback)
-    if not ok then
-      io.stderr:write("[checktime-focus-client] " .. tostring(err) .. "\n")
-      io.stderr:flush()
-      vim.cmd("cquit 1")
-    end
-  ]]
-  local bootstrap_sent = vim.rpcnotify(ui_job, "nvim_exec_lua", attach_script, {})
-  assert(bootstrap_sent,
-    ("could not send the UI attach bootstrap to the embedded Neovim; job_status=%s channel=%s stderr=%s"):format(
-      vim.inspect(vim.fn.jobwait({ ui_job }, 0)),
-      vim.inspect(vim.api.nvim_get_chan_info(ui_job)),
-      vim.inspect(ui_stderr)))
+    ("could not start the Python RPC UI client: %s"):format(vim.inspect(ui_job)))
+  print("INFO: external RPC UI client started as job " .. ui_job .. "; waiting for UIEnter")
 
   local attached = vim.wait(5000, function()
-    return ui_enter_events == 1 or ui_exit_code ~= nil or vim.g.dotfiles_checktime_focus_error ~= nil
+    return (ui_ready and ui_enter_events == 1) or ui_exit_code ~= nil
   end, 10)
-  assert(attached and ui_enter_events == 1 and ui_exit_code == nil
-      and vim.g.dotfiles_checktime_focus_error == nil,
-    ("RPC UI did not attach; UIEnter=%d exit_code=%s parent_error=%s stderr=%s"):format(
-      ui_enter_events, vim.inspect(ui_exit_code), vim.inspect(vim.g.dotfiles_checktime_focus_error),
-      vim.inspect(ui_stderr)))
-  print("PASS: attached a separate Neovim RPC UI channel; child stderr: " .. vim.inspect(ui_stderr))
-
+  assert(attached and ui_ready and ui_enter_events == 1 and ui_exit_code == nil,
+    ("RPC UI did not attach; ready=%s UIEnter=%d exit_code=%s stdout=%s stderr=%s"):format(
+      vim.inspect(ui_ready), ui_enter_events, vim.inspect(ui_exit_code),
+      vim.inspect(ui_stdout), vim.inspect(ui_stderr)))
+  print("PASS: attached a real external MessagePack-RPC UI channel")
   -- Prime the native focus path while no changed file is loaded.
   trigger_native_focus_cycle("initial native RPC UI focus cycle")
   print("PASS: initial native focus-loss/focus-gain notifications were observed")
