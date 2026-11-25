@@ -51,15 +51,25 @@ local function send_user_motion(win, key)
   -- Normal-mode loop consumes the key and resets did_check_timestamps before
   -- the next PTY focus cycle is delivered.
   local thread = assert(coroutine.running(), "user activity must run in the test coroutine")
-  vim.defer_fn(function()
+  local deadline = vim.uv.hrtime() + 1000000000
+
+  local function poll_user_input()
     local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
     local moved = read_ok and after[1] == before[1] and after[2] ~= before[2]
+    if not moved and vim.uv.hrtime() < deadline then
+      -- Return to Neovim's state machine between polls so it can consume the
+      -- queued nvim_input() bytes and complete normal_check_stuff_buffer().
+      vim.defer_fn(poll_user_input, 10)
+      return
+    end
+
     local resumed, resume_error = coroutine.resume(thread, moved, read_ok and after or nil)
     if not resumed then
       fail_test(debug.traceback(thread, tostring(resume_error)))
     end
-  end, 20)
+  end
 
+  vim.defer_fn(poll_user_input, 10)
   local moved, after = coroutine.yield()
   assert(moved,
     ("user-activity key %q did not move the cursor: before=%s after=%s mode=%s current_win=%s target_win=%s current_buf=%s target_buf=%s"):format(
