@@ -40,18 +40,10 @@ end
 local function send_user_motion(win, key)
   vim.api.nvim_set_current_win(win)
   local before = vim.api.nvim_win_get_cursor(win)
-  local accepted = vim.api.nvim_input(key)
-  assert(accepted == #key,
-    ("Neovim accepted %d/%d input bytes for key %q"):format(accepted, #key, key))
-
-  -- Keep this test on Neovim's main Lua thread. vim.wait() pumps the real
-  -- input loop, avoiding timer-driven coroutine resumption in the headless run.
-  local moved = vim.wait(1000, function()
-    local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
-    return read_ok and after[1] == before[1] and after[2] ~= before[2]
-  end, 10)
+  local encoded = vim.api.nvim_replace_termcodes(key, true, false, true)
+  vim.api.nvim_feedkeys(encoded, "mtx", false)
   local after_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
-  assert(moved,
+  assert(after_ok and after[1] == before[1] and after[2] ~= before[2],
     ("real %q input did not move the cursor: before=%s after=%s"):format(
       key, vim.inspect(before), vim.inspect(after_ok and after or nil)))
 end
@@ -263,6 +255,10 @@ def unpack(sock):
         return False
     if first == 0xc3:
         return True
+    if first == 0xca:
+        return struct.unpack(">f", read_exact(sock, 4))[0]
+    if first == 0xcb:
+        return struct.unpack(">d", read_exact(sock, 8))[0]
     if first == 0xc4:
         return read_exact(sock, struct.unpack(">B", read_exact(sock, 1))[0])
     if first == 0xc5:
@@ -318,6 +314,7 @@ def connect(address):
 def main():
     address = sys.argv[1]
     connection = connect(address)
+    connection.settimeout(5.0)
     connection.sendall(pack([0, 1, "nvim_ui_attach", [80, 24, {"rgb": True}]]))
 
     # UI attachment can produce redraw notifications before the request reply.
