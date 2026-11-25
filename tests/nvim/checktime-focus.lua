@@ -1,4 +1,8 @@
 -- Verify native focus-return timestamp checks using Neovim's real TUI input path.
+
+-- Plugin restore can leave an existing hit-enter prompt; prevent new pagers
+-- from interrupting the real TUI input once the test starts.
+vim.o.more = false
 --
 -- The parent Neovim runs under a PTY. A small external driver sends the same
 -- focus-reporting escape sequences a terminal emulator sends after focus
@@ -51,8 +55,11 @@ local function send_user_motion(win, key)
   end, 10)
   local after_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
   assert(moved,
-    ("user-activity key %q did not move the cursor: before=%s after=%s"):format(
-      key, vim.inspect(before), vim.inspect(after_ok and after or nil)))
+    ("user-activity key %q did not move the cursor: before=%s after=%s mode=%s input_mode=%s more=%s map=%s current_win=%s target_win=%s current_buf=%s target_buf=%s"):format(
+      key, vim.inspect(before), vim.inspect(after_ok and after or nil),
+      vim.fn.mode(), vim.inspect(vim.api.nvim_get_mode()), tostring(vim.o.more),
+      vim.inspect(vim.fn.maparg(key, "n")), vim.api.nvim_get_current_win(),
+      win, vim.api.nvim_get_current_buf(), vim.api.nvim_win_get_buf(win)))
 end
 
 local function run()
