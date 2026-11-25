@@ -321,7 +321,19 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  local -a restore_checks=("+Lazy! restore" "+qa!")
+  local -a restore_checks=("+Lazy! restore")
+  if [[ "${DOTFILES_PLUGIN_CACHE_HIT:-false}" == "true" ]]; then
+    printf '[restore] Plugin cache hit; force-running every configured lazy.nvim build hook.\\n'
+    # A restored checkout is already at the locked revision, so lazy.nvim
+    # correctly skips normal build hooks. Force them on cache hits to ensure
+    # cached sources never become a substitute for actual build validation.
+    restore_checks+=("+Lazy! build all")
+  fi
+
+  restore_checks+=(
+    "+lua local failures = {}; for name, plugin in pairs(require('lazy.core.config').plugins) do for _, task in ipairs(plugin._.tasks or {}) do if task.name == 'build' and task:has_errors() then table.insert(failures, name .. ': ' .. task:output(vim.log.levels.ERROR)) end end end; assert(#failures == 0, 'lazy.nvim build hook failures: ' .. table.concat(failures, '\\n')); print('PASS: lazy.nvim restore/build hooks completed without task errors')"
+    "+qa!"
+  )
   DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
     run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
 
@@ -388,6 +400,11 @@ startup() {
   printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
   run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying Treesitter provisioning does not refresh cached parsers.\n'
+  run_nvim "treesitter-provisioning" "$NVIM_TREESITTER_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/treesitter-provisioning.lua" \
     "+qa!"
 
   printf '\n[behavior] Verifying current-API Go textobjects and function navigation.\n'
