@@ -165,19 +165,7 @@ class FocusPtyDriver:
             return
 
         self.wait_for_focus_reporting_request()
-        if command == "MOTION_L":
-            # Plugin notifications can open a hit-enter prompt after startup.
-            # Send Return first; with 'more' disabled this is harmless when no
-            # prompt is active, and it prevents the next key being swallowed.
-            self.write_pty(b"\\r")
-            time.sleep(0.05)
-            self.write_pty(b"l")
-            print(
-                "[focus-pty] cleared any terminal hit-enter prompt and sent Normal-mode l",
-                file=sys.stderr,
-                flush=True,
-            )
-        elif command == "FOCUS_LOST":
+        if command == "FOCUS_LOST":
             self.write_pty(FOCUS_LOST_SEQUENCE)
             self.focus_lost_sent += 1
             print(
