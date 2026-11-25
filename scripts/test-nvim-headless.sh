@@ -135,10 +135,6 @@ run_nvim() {
       timeout --signal=TERM --kill-after=10s "$time_limit" \
         "${nvim_command[@]}" 2>&1 | tee "$log_file"
     elif ((use_pty)); then
-    if ((use_focus_pty)); then
-      "${nvim_command[@]}" 2>&1 | tee "$log_file"
-    elif ((use_pty)); then
-    if ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
         TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
           script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
@@ -152,8 +148,10 @@ run_nvim() {
     fi
     pipeline_status=("${PIPESTATUS[@]}")
   else
-    printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label"
-    if ((use_pty)); then
+    printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label" >&2
+    if ((use_focus_pty)); then
+      "${nvim_command[@]}" 2>&1 | tee "$log_file"
+    elif ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
         TERM=xterm-256color script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
       else
