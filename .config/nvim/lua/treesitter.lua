@@ -204,6 +204,12 @@ local function update_existing_parsers(plugin)
   -- An existing checkout with missing update metadata still uses the explicit
   -- build hook as its update signal.
   local update_requested = updated and updated.from ~= updated.to or not metadata.cloned
+  if vim.env.DOTFILES_SKIP_TREESITTER_PROVISIONING == "1" then
+    pending_parser_update = update_requested
+    print("[treesitter] Parser provisioning deferred until normal startup")
+    return
+  end
+
   if vim.fn.executable("tree-sitter") ~= 1 then
     pending_parser_update = update_requested
     print("[treesitter] tree-sitter-cli is not installed yet; parser setup will run after Mason installs it")
