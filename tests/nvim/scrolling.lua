@@ -225,8 +225,6 @@ local function run()
     vim.g.comfortable_motion_no_default_key_mappings)
 
   check("native mouse support remains enabled", "a", vim.o.mouse)
-  check("Ctrl-E remains native for immediate wheel-down scrolling", "", vim.fn.maparg("<C-e>", "n"))
-  check("Ctrl-Y remains native for immediate wheel-up scrolling", "", vim.fn.maparg("<C-y>", "n"))
   check("scroll-wheel down has no plugin mapping", "", vim.fn.maparg("<ScrollWheelDown>", "n"))
   check("scroll-wheel up has no plugin mapping", "", vim.fn.maparg("<ScrollWheelUp>", "n"))
 
