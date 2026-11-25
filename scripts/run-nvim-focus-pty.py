@@ -13,6 +13,7 @@ import fcntl
 import os
 import pty
 import selectors
+import select
 import signal
 import struct
 import sys
@@ -50,7 +51,7 @@ class FocusPtyDriver:
             try:
                 written = os.write(self.master_fd, view)
             except BlockingIOError:
-                selectors.DefaultSelector().select(0.01)
+                select.select([], [self.master_fd], [], 0.05)
                 continue
             if written <= 0:
                 raise RuntimeError("PTY master stopped accepting terminal input")
@@ -127,7 +128,7 @@ class FocusPtyDriver:
     def wait_for_focus_reporting_request(self, timeout: float = 2.0) -> None:
         deadline = time.monotonic() + timeout
         while not self.focus_reporting_enabled and time.monotonic() < deadline:
-            readable, _, _ = __import__("select").select([self.master_fd], [], [], 0.05)
+            readable, _, _ = select.select([self.master_fd], [], [], 0.05)
             if readable:
                 self.read_pty()
         if not self.focus_reporting_enabled:
@@ -280,8 +281,13 @@ def main(argv: list[str]) -> int:
                 os._exit(127)
 
         driver = FocusPtyDriver(master_fd, fifo_fd)
-        try:
-            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+
+        def interrupt_handler(signum: int, frame: object) -> None:
+            raise KeyboardInterrupt
+
+        signal.signal(signal.SIGTERM, interrupt_handler)
+        signal.signal(signal.SIGINT, interrupt_handler)
+        try:            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
             os.kill(child_pid, signal.SIGWINCH)
             os.set_blocking(master_fd, False)
             return driver.run(child_pid)
