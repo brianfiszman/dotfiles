@@ -190,7 +190,7 @@ check optional preview executables and report skipped interactions separately.
 ## Current nvim-treesitter integration
 
 The current `nvim-treesitter/main` rewrite targets Neovim 0.12+ and requires
-`tree-sitter-cli` 0.26.1+ plus a C compiler.
+the Mason-pinned `tree-sitter-cli` 0.27.2 plus a C compiler.
 
 - Use the real Mason registry/package and assert that
   `vim.fn.exepath("tree-sitter")` resolves the installed executable.
