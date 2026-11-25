@@ -149,15 +149,43 @@ jobs:
           python3 --version
           command -v git
 
+      - name: Fingerprint macOS plugin-build toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            printf 'runner=%s/%s\n' "$ImageOS" "$ImageVersion"
+            for tool in clang git node npm python3 go rustc cargo cmake make; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                printf '%s=%s\n' "$tool" "$("$tool" --version 2>&1 | sed -n '1p')"
+              else
+                printf '%s=missing\n' "$tool"
+              fi
+            done
+            xcodebuild -version 2>&1 | sed -n '1,2p'
+          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
+          fingerprint="$(shasum -a 256 "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+
       - name: Prepare isolated Neovim install for macOS plugin restore
         env:
           NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
         run: bash ./scripts/test-nvim-headless.sh prepare
 
+      - name: Restore locked lazy.nvim plugin checkouts
+        id: lazy-plugin-cache
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/nvim-headless-macos/data/nvim/lazy
+          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-0.12.6-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
+
       - name: Restore locked plugins and verify Avante prebuilt libraries on macOS
         env:
           NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
           NVIM_RESTORE_TIMEOUT: 25m
+          DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}
         run: bash ./scripts/test-nvim-headless.sh restore
 
       - name: Verify Terminal.app window activation reports native Neovim focus events
