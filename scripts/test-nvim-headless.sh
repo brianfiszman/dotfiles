@@ -90,7 +90,10 @@ run_nvim() {
   if [[ "$label" == "scrolling" ]]; then
     # Native mouse input needs an attached UI; a PTY-backed TUI gives the
     # integration test a real screen grid without manual interaction.
-    nvim_args=()
+    # Mason and Tree-sitter can emit many startup notifications while their
+    # first-use tools/parsers are provisioned. Never let the TUI pause on the
+    # pager's -- More -- prompt while the synthetic input test is running.
+    nvim_args=(--cmd "set nomore")
     use_pty=1
   elif [[ "$label" == checktime-focus-* ]]; then
     # Drive focus reports through Neovim's TUI parser using a real PTY master.
