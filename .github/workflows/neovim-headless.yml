@@ -348,18 +348,23 @@ jobs:
       - name: Prepare isolated install and verify installer safety
         run: bash ./scripts/test-nvim-headless.sh prepare
 
-      - name: Fingerprint Mason registry revision
+      - name: Resolve and pin Mason registry release
         id: mason-registry
         if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          registry_sha="$(git ls-remote https://github.com/mason-org/mason-registry.git HEAD | awk 'NR == 1 {print $1}')"
-          [[ "$registry_sha" =~ ^[0-9a-f]{40}$ ]] || {
-            printf 'Could not resolve a full Mason registry revision: %s\\n' "$registry_sha" >&2
-            exit 1
-          }
-          echo "revision=$registry_sha" >> "$GITHUB_OUTPUT"
+          registry_version="$(
+            curl --fail --silent --show-error --retry 3 \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              https://api.github.com/repos/mason-org/mason-registry/releases/latest |
+            python3 -c 'import json, re, sys; version = json.load(sys.stdin).get("tag_name", ""); assert re.fullmatch(r"[A-Za-z0-9._-]+", version), "Invalid Mason registry release tag"; print(version)'
+          )"
+          echo "version=$registry_version" >> "$GITHUB_OUTPUT"
+          echo "DOTFILES_MASON_REGISTRY_VERSION=$registry_version" >> "$GITHUB_ENV"
 
       # Scheduled/manual runs bypass dependency caches and prove a cold installation.
       # Exact keys only: incompatible plugin sources or compiled binaries must rebuild.
@@ -376,8 +381,10 @@ jobs:
         if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
-          path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/mason
-          key: nvim-mason-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-registry-${{ steps.mason-registry.outputs.revision }}-toolchain-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/**/*.lua') }}
+          path: |
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/mason
+            ${{ runner.temp }}/nvim-headless-smoke/cache/nvim/mason-registry-update
+          key: nvim-mason-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-registry-${{ steps.mason-registry.outputs.version }}-toolchain-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/**/*.lua') }}
 
       - name: Restore compiled Tree-sitter parsers
         id: treesitter-parser-cache
