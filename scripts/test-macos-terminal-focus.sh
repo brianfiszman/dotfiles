@@ -15,7 +15,7 @@ if [[ -z "$NVIM_TEST_DIR" ]]; then
 fi
 
 NVIM_BIN="$(command -v "$NVIM_BIN")"
-for required_command in open osascript tty; do
+for required_command in open swift tty; do
   command -v "$required_command" >/dev/null 2>&1 || {
     printf 'Required macOS GUI test command is missing: %s\n' "$required_command" >&2
     exit 1
@@ -143,7 +143,7 @@ wait_for_terminal_tty() {
   return 1
 }
 
-activate_neovim_terminal_window() {
+request_terminal_appkit_activation() {
   wait_for_terminal_tty
   local target_tty
   target_tty="$(tr -d '\r\n' < "$tty_file")"
@@ -152,38 +152,53 @@ activate_neovim_terminal_window() {
     return 1
   }
 
-  printf '[macos-focus] Selecting the Terminal.app window attached to %s.\n' "$target_tty"
-  osascript - "$target_tty" <<'APPLESCRIPT'
-on run argv
-  set targetTTY to item 1 of argv
-  with timeout of 10 seconds
-    tell application "Terminal"
-      set matchingWindow to missing value
-      repeat with candidateWindow in every window
-        repeat with candidateTab in every tab of candidateWindow
-          if (tty of candidateTab as text) is targetTTY then
-            set matchingWindow to contents of candidateWindow
-            set selected tab of candidateWindow to candidateTab
-            exit repeat
-          end if
-        end repeat
-        if matchingWindow is not missing value then exit repeat
-      end repeat
+  printf '[macos-focus] Requesting Terminal.app activation through AppKit (Neovim PTY %s).\n' "$target_tty"
+  swift - "$target_tty" <<'SWIFT'
+import AppKit
+import Foundation
 
-      if matchingWindow is missing value then
-        error "No Terminal.app window owns Neovim TTY " & targetTTY
-      end if
+let targetTTY = CommandLine.arguments.last ?? "unknown"
+guard let terminalApp = NSRunningApplication.runningApplications(
+  withBundleIdentifier: "com.apple.Terminal"
+).first else {
+  fputs("Terminal.app is not running; cannot request native activation.\n", stderr)
+  exit(1)
+}
 
-      set index of matchingWindow to 1
-      activate
-      if (index of matchingWindow) is not 1 then
-        error "The Neovim Terminal.app window did not become the front window"
-      end if
-      return tty of selected tab of matchingWindow
-    end tell
-  end timeout
-end run
-APPLESCRIPT
+let activated = terminalApp.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+guard activated else {
+  fputs("AppKit refused to activate Terminal.app.\n", stderr)
+  exit(1)
+}
+
+print("AppKit accepted Terminal.app activation for Neovim PTY \(targetTTY); isActive=\(terminalApp.isActive)")
+SWIFT
+}
+
+wait_for_counter_increase() {
+  local name="$1"
+  local previous="$2"
+  local attempts="$3"
+  local description="$4"
+  local quiet="\${5:-false}"
+  local current=""
+
+  for ((attempt = 0; attempt < attempts; attempt++)); do
+    current="$(read_counter "$name" || true)"
+    if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
+      if [[ "$quiet" != "true" ]]; then
+        printf 'PASS: %s (%s -> %s)\n' "$description" "$previous" "$current"
+      fi
+      return 0
+    fi
+    sleep 0.1
+  done
+
+  if [[ "$quiet" != "true" ]]; then
+    printf 'FAIL: %s; expected %s to increase beyond %s, got %s\n' \
+      "$description" "$name" "$previous" "\${current-unavailable}" >&2
+  fi
+  return 1
 }
 
 printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
@@ -205,10 +220,15 @@ wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
 
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
 
-printf '[macos-focus] Reactivating the exact Neovim Terminal.app window.\n'
-activate_neovim_terminal_window
-wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
-  'Terminal.app reactivation generated a real Neovim FocusGained event'
+printf '[macos-focus] Reactivating Terminal.app through Launch Services.\n'
+open -a Terminal
+if ! wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 25 \
+  'Terminal.app reactivation generated a real Neovim FocusGained event' true; then
+  printf '[macos-focus] Launch Services did not restore the Neovim TTY; using AppKit activation fallback.\n'
+  request_terminal_appkit_activation
+  wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 100 \
+    'AppKit activation generated a real Neovim FocusGained event'
+fi
 lost_final="$(read_counter dotfiles_macos_focus_lost)"
 gained_final="$(read_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Final native event counts: FocusLost=%s FocusGained=%s\n' \
