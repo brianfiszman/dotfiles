@@ -90,8 +90,6 @@ assert(vim.fn.exepath("tree-sitter") ~= "",
   "the real pinned tree-sitter CLI must be available for provisioning")
 local callback_ok, callback_error = pcall(provision_callback)
 assert(callback_ok, callback_error)
-expect_equal(#expected_parsers, install_calls > 0 and #expected_parsers or 0,
-  "missing-parser provisioning reaches the install API")
 expect_equal(1, install_calls, "Mason completion installs missing configured parsers")
 expect_equal(0, update_calls, "installing missing parsers does not update existing parsers")
 
