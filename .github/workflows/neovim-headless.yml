@@ -200,6 +200,7 @@ jobs:
       # nodejs/npm apt packages downgraded the image's Node 24/npm 11 and pulled
       # in hundreds of packages. Keep this probe visible in the Actions log.
       - name: Verify hosted runner toolchain
+        id: toolchain
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -207,12 +208,12 @@ jobs:
           for tool in git curl cmake gcc g++ make node npm python3 go \
             sha256sum timeout find grep tee tar unzip; do
             command -v "$tool" >/dev/null || {
-              printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
+              printf 'Required hosted-runner command is missing: %s\\n' "$tool" >&2
               exit 1
             }
           done
 
-          printf 'Runner image: %s\n' "$ImageOS / $ImageVersion"
+          printf 'Runner image: %s\\n' "$ImageOS / $ImageVersion"
           printf 'Node: '; node --version
           printf 'npm: '; npm --version
           printf 'Go: '; go version
@@ -220,6 +221,22 @@ jobs:
           printf 'GCC: '; gcc --version | sed -n '1p'
           printf 'G++: '; g++ --version | sed -n '1p'
           printf 'Python: '; python3 --version
+
+          {
+            printf 'runner=%s/%s\\n' "$ImageOS" "$ImageVersion"
+            printf 'neovim=%s\\n' "$NEOVIM_VERSION"
+            printf 'node=%s\\n' "$(node --version)"
+            printf 'npm=%s\\n' "$(npm --version)"
+            printf 'go=%s\\n' "$(go version)"
+            printf 'cmake=%s\\n' "$(cmake --version | sed -n '1p')"
+            printf 'gcc=%s\\n' "$(gcc --version | sed -n '1p')"
+            printf 'g++=%s\\n' "$(g++ --version | sed -n '1p')"
+            printf 'python=%s\\n' "$(python3 --version)"
+            printf 'rust=%s\\n' "$(rustc --version 2>/dev/null || echo missing)"
+            printf 'cargo=%s\\n' "$(cargo --version 2>/dev/null || echo missing)"
+          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
+          fingerprint="$(sha256sum "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
 
       - name: Install only missing Neovim build prerequisites
         shell: bash
