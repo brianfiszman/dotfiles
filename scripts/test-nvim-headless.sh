@@ -18,7 +18,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee script make curl tar; do
+for required_command in "$NVIM_BIN" git find grep tee script make curl tar python3; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -86,11 +86,16 @@ run_nvim() {
   local -a pipeline_status=()
   local -a nvim_args=(--headless)
   local use_pty=0
+  local use_focus_pty=0
   if [[ "$label" == "scrolling" ]]; then
     # Native mouse input needs an attached UI; a PTY-backed TUI gives the
     # integration test a real screen grid without manual interaction.
     nvim_args=()
     use_pty=1
+  elif [[ "$label" == "checktime-focus" ]]; then
+    # Drive focus reports through Neovim\x27s TUI parser using a real PTY master.
+    nvim_args=()
+    use_focus_pty=1
   fi
   local startup_verbose_file="$WORK_DIR/startup-verbose.log"
   local startup_timing_file="$WORK_DIR/startup-startuptime.log"
@@ -104,7 +109,7 @@ run_nvim() {
     printf '[startup] Diagnostic trace: %s\n' "$startup_verbose_file"
   fi
 
-  if ((use_pty)); then
+  if ((use_pty || use_focus_pty)); then
     printf '\n[%s] Starting Neovim in a PTY-backed TUI (limit: %s).\n' "$label" "$time_limit"
   else
     printf '\n[%s] Starting Neovim headless (limit: %s).\n' "$label" "$time_limit"
@@ -113,7 +118,12 @@ run_nvim() {
 
   # Stream output to the Actions console while preserving a complete log file.
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
-  local -a nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
+  local -a nvim_command
+  if ((use_focus_pty)); then
+    nvim_command=(python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" -u "$NVIM_CONFIG/init.lua" "$@")
+  else
+    nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
+  fi
   local pty_command=""
   if ((use_pty)); then
     printf -v pty_command '%q ' "${nvim_command[@]}"
@@ -121,6 +131,13 @@ run_nvim() {
 
   set +e
   if command -v timeout >/dev/null 2>&1; then
+    if ((use_focus_pty)); then
+      timeout --signal=TERM --kill-after=10s "$time_limit" \
+        "${nvim_command[@]}" 2>&1 | tee "$log_file"
+    elif ((use_pty)); then
+    if ((use_focus_pty)); then
+      "${nvim_command[@]}" 2>&1 | tee "$log_file"
+    elif ((use_pty)); then
     if ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
         TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
