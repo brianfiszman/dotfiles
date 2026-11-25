@@ -180,7 +180,7 @@ wait_for_counter_increase() {
   local previous="$2"
   local attempts="$3"
   local description="$4"
-  local quiet="\${5:-false}"
+  local quiet="${5:-false}"
   local current=""
 
   for ((attempt = 0; attempt < attempts; attempt++)); do
@@ -196,7 +196,7 @@ wait_for_counter_increase() {
 
   if [[ "$quiet" != "true" ]]; then
     printf 'FAIL: %s; expected %s to increase beyond %s, got %s\n' \
-      "$description" "$name" "$previous" "\${current-unavailable}" >&2
+      "$description" "$name" "$previous" "${current-unavailable}" >&2
   fi
   return 1
 }
