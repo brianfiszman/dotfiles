@@ -65,9 +65,22 @@ test("Mason cache is limited to the pinned Tree-sitter CLI, not DAP adapters or 
   assert.match(block, /mason\/packages\/tree-sitter-cli/);
   assert.match(block, /mason\/bin\/tree-sitter/);
   assert.match(block, /v0\.27\.2/);
-  assert.doesNotMatch(block, /mason\/packages(?:\s|$)/);
+  assert.doesNotMatch(block, /mason\/packages\/(?!tree-sitter-cli)/);
+  assert.doesNotMatch(block, /data\/nvim\/mason(?:\s|$)/);
   for (const dapPackage of ["delve", "codelldb", "js-debug-adapter", "debugpy", "dart-debug-adapter"]) {
     assert.doesNotMatch(block, new RegExp(dapPackage));
+  }
+});
+
+test("Linux parser cache fingerprint is computed after supplemental APT dependencies are installed", () => {
+  const aptIndex = workflow.indexOf("- name: Install only missing Neovim build prerequisites");
+  const fingerprintIndex = workflow.indexOf("- name: Fingerprint installed Linux plugin-build toolchain");
+  const cacheIndex = workflow.indexOf("Restore compiled Tree-sitter parsers");
+  assert.ok(aptIndex >= 0 && fingerprintIndex > aptIndex && cacheIndex > fingerprintIndex,
+    "native dependency versions must be fingerprinted after APT and before cache restore");
+  const fingerprintStep = workflow.slice(fingerprintIndex, cacheIndex);
+  for (const packageName of ["libreadline-dev", "liblua5.1-0-dev", "lua5.1", "python3-venv", "ripgrep", "zsh"]) {
+    assert.ok(fingerprintStep.includes(packageName), "toolchain fingerprint omits " + packageName);
   }
 });
 
@@ -99,6 +112,7 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.match(treesitter, /setup_parsers\(false\)/);
   assert.match(treesitter, /if update_existing then[\s\S]*treesitter\.update\(parser_languages/);
   assert.match(treesitter, /updated\.from == updated\.to/);
+  assert.match(treesitter, /pending_parser_update/);
   assert.match(treesitter, /tree-sitter 0\.27\.2/);
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
 });
