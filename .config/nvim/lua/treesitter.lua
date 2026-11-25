@@ -1,3 +1,11 @@
+local mason_registry = "github:mason-org/mason-registry"
+local mason_registry_version = vim.env.DOTFILES_MASON_REGISTRY_VERSION
+if mason_registry_version and mason_registry_version ~= "" then
+  assert(mason_registry_version:match("^[%w._-]+$"),
+    "Invalid DOTFILES_MASON_REGISTRY_VERSION: " .. mason_registry_version)
+  mason_registry = mason_registry .. "@" .. mason_registry_version
+end
+
 local parser_languages = {
   "c",
   "lua",
@@ -226,7 +234,15 @@ local M = {
   branch = "main",
   lazy = false,
   dependencies = {
-    "mason-org/mason.nvim",
+    {
+      "mason-org/mason.nvim",
+      opts = {
+        -- CI resolves the current release tag before cache restore, then
+        -- pins Mason to that exact release. Local installs keep Mason's
+        -- normal latest-release behavior when the environment variable is absent.
+        registries = { mason_registry },
+      },
+    },
     {
       "WhoIsSethDaniel/mason-tool-installer.nvim",
       config = function(_, opts)
