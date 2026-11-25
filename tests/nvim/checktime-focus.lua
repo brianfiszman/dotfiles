@@ -1,12 +1,9 @@
 -- Verify native focus-return timestamp checks using Neovim's real TUI input path.
+-- Each scenario runs in a fresh Neovim process so it gets exactly one native
+-- FocusGained timestamp check; no synthetic keyboard input is needed to reset
+-- Neovim's per-session did_check_timestamps guard.
 
--- Plugin restore can leave an existing hit-enter prompt; prevent new pagers
--- from interrupting the real TUI input once the test starts.
 vim.o.more = false
---
--- The parent Neovim runs under a PTY. A small external driver sends the same
--- focus-reporting escape sequences a terminal emulator sends after focus
--- changes; Neovim's own TUI parser must turn them into FocusLost/FocusGained.
 
 local function write_external(path, lines)
   assert(vim.fn.writefile(lines, path) == 0, "could not write external fixture: " .. path)
@@ -40,110 +37,35 @@ local function fail_test(err)
   vim.cmd("cquit 1")
 end
 
-local function send_user_motion(win, key)
-  assert(key == "l", "the PTY focus fixture uses Normal-mode l for user activity")
-  vim.api.nvim_set_current_win(win)
-  local before = vim.api.nvim_win_get_cursor(win)
-  local written = vim.fn.writefile({ "MOTION_L" }, vim.env.DOTFILES_FOCUS_CONTROL_FIFO)
-  assert(written == 0, "could not ask the PTY driver to send a real Normal-mode key")
-
-  local thread = assert(coroutine.running(), "user activity must run in the test coroutine")
-  local deadline = vim.uv.hrtime() + 1000000000
-  local function poll_user_input()
-    local read_ok, after = pcall(vim.api.nvim_win_get_cursor, win)
-    local moved = read_ok and after[1] == before[1] and after[2] ~= before[2]
-    if not moved and vim.uv.hrtime() < deadline then
-      vim.defer_fn(poll_user_input, 10)
-      return
-    end
-
-    local resumed, resume_error = coroutine.resume(thread, moved, read_ok and after or nil)
-    if not resumed then
-      fail_test(debug.traceback(thread, tostring(resume_error)))
-    end
-  end
-
-  vim.defer_fn(poll_user_input, 10)
-  local moved, after = coroutine.yield()
-  assert(moved,
-    ("real PTY-delivered %q input did not move the cursor: before=%s after=%s"):format(
-      key, vim.inspect(before), vim.inspect(after)))
-end
 local function run()
+  local scenario = vim.env.DOTFILES_FOCUS_SCENARIO
+  local allowed = {
+    unchanged = true,
+    external_change = true,
+    conflict = true,
+    buffer_switch = true,
+  }
+  assert(allowed[scenario], "unknown DOTFILES_FOCUS_SCENARIO: " .. tostring(scenario))
+
   local path = vim.fn.tempname() .. ".txt"
   local group = vim.api.nvim_create_augroup("DotfilesChecktimeFocusTest", { clear = true })
   local control_fifo = vim.env.DOTFILES_FOCUS_CONTROL_FIFO
   local ui_count = #vim.api.nvim_list_uis()
-  local test_started_at = vim.uv.hrtime()
-  local last_focus_at
   local focus_gained_events = 0
   local focus_lost_events = 0
-  local changed_events = {}
   local focus_history = {}
+  local changed_events = {}
   local buffer_entry_events = 0
 
   assert(type(control_fifo) == "string" and control_fifo ~= "",
     "PTY focus driver did not provide DOTFILES_FOCUS_CONTROL_FIFO")
-  check("test is running in a real Neovim TUI attached to a PTY", true, ui_count > 0)
+  check("scenario " .. scenario .. " runs in a real Neovim TUI attached to a PTY", true, ui_count > 0)
 
   local function cleanup()
     pcall(vim.api.nvim_del_augroup_by_id, group)
     vim.fn.delete(path)
   end
   cleanup_test = cleanup
-
-  local function wait_for_focus_event(event_name, previous_count, timeout_ms)
-    local predicate
-    if event_name == "FocusLost" then
-      predicate = function() return focus_lost_events == previous_count + 1 end
-    else
-      predicate = function() return focus_gained_events == previous_count + 1 end
-    end
-
-    local completed = vim.wait(timeout_ms, predicate, 10)
-    local actual = event_name == "FocusLost" and focus_lost_events or focus_gained_events
-    assert(completed,
-      ("timed out waiting for PTY-delivered %s: expected count %d, got %d; history=%s"):format(
-        event_name, previous_count + 1, actual, vim.inspect(focus_history)))
-  end
-
-  local function request_terminal_focus_event(command, event_name)
-    local before = event_name == "FocusLost" and focus_lost_events or focus_gained_events
-    local written = vim.fn.writefile({ command }, control_fifo)
-    assert(written == 0,
-      ("could not send %s to the PTY driver (writefile returned %s)"):format(
-        command, vim.inspect(written)))
-
-    wait_for_focus_event(event_name, before, 2000)
-    print(("PASS: real TUI parsed terminal %s sequence"):format(event_name))
-  end
-
-  local function trigger_native_focus_cycle(label)
-    request_terminal_focus_event("FOCUS_LOST", "FocusLost")
-    request_terminal_focus_event("FOCUS_GAINED", "FocusGained")
-    last_focus_at = vim.uv.hrtime()
-    print("PASS: " .. label .. " reached Neovim's native focus-gained path")
-  end
-
-  local function gain_native_focus(label)
-    -- Neovim 0.12.6 throttles timestamp checks to one per 2000ms.
-    local anchor = last_focus_at or test_started_at
-    local outside_throttle = vim.wait(2500, function()
-      return vim.uv.hrtime() - anchor >= 2100000000
-    end, 10)
-    assert(outside_throttle,
-      ("%s: native focus timestamp throttle did not expire after 2100ms"):format(label))
-    trigger_native_focus_cycle(label)
-  end
-
-  local focus_buf
-  local focus_win
-  local switch_win_a
-  local switch_win_b
-  local switch_buf_a
-  local switch_buf_b
-  local spare_buf_a
-  local spare_buf_b
 
   vim.api.nvim_create_autocmd("FocusLost", {
     group = group,
@@ -168,14 +90,45 @@ local function run()
     end,
   })
 
-  -- Prime the real PTY/TUI path before opening a changed file. The external
-  -- driver refuses to send these bytes until it has observed Neovim request
-  -- focus reporting with CSI ? 1004 h.
-  trigger_native_focus_cycle("initial terminal focus cycle")
+  local function wait_for_focus_event(event_name, previous_count)
+    local predicate
+    if event_name == "FocusLost" then
+      predicate = function() return focus_lost_events == previous_count + 1 end
+    else
+      predicate = function() return focus_gained_events == previous_count + 1 end
+    end
 
+    local completed = vim.wait(2000, predicate, 10)
+    local actual = event_name == "FocusLost" and focus_lost_events or focus_gained_events
+    assert(completed,
+      ("timed out waiting for PTY-delivered %s: expected count %d, got %d; history=%s"):format(
+        event_name, previous_count + 1, actual, vim.inspect(focus_history)))
+  end
+
+  local function request_terminal_focus_event(command, event_name)
+    local before = event_name == "FocusLost" and focus_lost_events or focus_gained_events
+    local written = vim.fn.writefile({ command }, control_fifo)
+    assert(written == 0,
+      ("could not send %s to the PTY driver (writefile returned %s)"):format(
+        command, vim.inspect(written)))
+
+    wait_for_focus_event(event_name, before)
+    print(("PASS: real TUI parsed terminal %s sequence"):format(event_name))
+  end
+
+  local function trigger_native_focus_cycle()
+    request_terminal_focus_event("FOCUS_LOST", "FocusLost")
+    request_terminal_focus_event("FOCUS_GAINED", "FocusGained")
+    check("scenario receives exactly one native terminal focus-loss event", 1, focus_lost_events)
+    check("scenario receives exactly one native terminal focus-gain event", 1, focus_gained_events)
+  end
+
+  -- Open the file before the first FocusGained event in this process. The
+  -- first native focus return therefore exercises check_timestamps(true)
+  -- without requiring a user keystroke to reset the per-session guard.
   write_external(path, { "disk version one" })
   vim.cmd("edit " .. vim.fn.fnameescape(path))
-  focus_buf = vim.api.nvim_get_current_buf()
+  local focus_buf = vim.api.nvim_get_current_buf()
   vim.bo[focus_buf].autoread = false
   assert(vim.bo[focus_buf].autoread == false,
     "focus fixture failed to disable autoread locally")
@@ -188,147 +141,122 @@ local function run()
         buffer = event.buf,
         file = event.file,
         reason = reason,
-        focus_gained_events = focus_gained_events,
-        focus_lost_events = focus_lost_events,
-        buffer_entry_events = buffer_entry_events,
-        at = vim.uv.hrtime(),
       }
       -- Reload clean external changes, but never discard unsaved local edits.
       vim.v.fcs_choice = reason == "conflict" and "" or "reload"
     end,
   })
 
-  -- Keep the changed file visible in an inactive window. The other two
-  -- windows are switched repeatedly to distinguish ordinary BufWinEnter
-  -- traffic from a global :checktime scan.
-  focus_win = vim.api.nvim_get_current_win()
-  vim.cmd("vsplit")
-  switch_win_a = vim.api.nvim_get_current_win()
-  vim.cmd("enew")
-  switch_buf_a = vim.api.nvim_get_current_buf()
-  vim.cmd("vsplit")
-  switch_win_b = vim.api.nvim_get_current_win()
-  vim.cmd("enew")
-  switch_buf_b = vim.api.nvim_get_current_buf()
-  vim.api.nvim_buf_set_lines(switch_buf_a, 0, -1, false, { "cursor movement fixture" })
-  vim.api.nvim_win_set_cursor(switch_win_a, { 1, 0 })
-  assert(focus_win ~= switch_win_a and focus_win ~= switch_win_b and switch_win_a ~= switch_win_b,
-    "window-switch fixture did not create three independent windows")
-  assert(vim.api.nvim_win_get_buf(focus_win) == focus_buf,
-    "externally modified focus buffer is not isolated in its own window")
+  if scenario == "unchanged" then
+    trigger_native_focus_cycle()
+    check("unchanged file produces no FileChangedShell event", 0, #changed_events)
+    assert_lines(focus_buf, { "disk version one" }, "unchanged native focus check")
 
-  spare_buf_a = vim.api.nvim_create_buf(false, true)
-  spare_buf_b = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_create_autocmd("BufWinEnter", {
-    group = group,
-    callback = function(event)
-      if event.buf == switch_buf_a or event.buf == switch_buf_b
-          or event.buf == spare_buf_a or event.buf == spare_buf_b then
-        buffer_entry_events = buffer_entry_events + 1
-      end
-    end,
-  })
+  elseif scenario == "external_change" then
+    write_external(path, {
+      "disk version two after terminal focus loss",
+      "second line proves external content changed",
+    })
+    trigger_native_focus_cycle()
+    check("native focus return reports one external change", 1, #changed_events)
+    check("native focus return reports the correct buffer", focus_buf, changed_events[1].buffer)
+    check("native focus return reports a clean change", "changed", changed_events[1].reason)
+    assert_lines(focus_buf, {
+      "disk version two after terminal focus loss",
+      "second line proves external content changed",
+    }, "native TUI FocusGained reload")
 
-  -- An unchanged file should not report a change when real terminal focus
-  -- returns to Neovim.
-  send_user_motion(switch_win_a, "l")
-  gain_native_focus("unchanged-file focus return")
-  check("unchanged file produces no FileChangedShell event", 0, #changed_events)
+  elseif scenario == "conflict" then
+    vim.api.nvim_buf_set_lines(focus_buf, 0, -1, false, { "local unsaved edit" })
+    assert(vim.bo[focus_buf].modified == true,
+      "local fixture edit did not mark the buffer modified")
+    write_external(path, { "conflicting external disk version" })
+    trigger_native_focus_cycle()
+    check("modified-buffer focus return reports one conflict", 1, #changed_events)
+    check("modified-buffer focus return reports conflict reason", "conflict", changed_events[1].reason)
+    assert_lines(focus_buf, { "local unsaved edit" },
+      "external conflict must not overwrite local unsaved edits")
+    check("external conflict preserves the local modified flag", true, vim.bo[focus_buf].modified)
 
-  -- Modify the file externally, then switch buffers/windows repeatedly while
-  -- the changed buffer remains visible but is not the current buffer.
-  send_user_motion(switch_win_a, "l")
-  local focus_gains_before_switch = focus_gained_events
-  local focus_losses_before_switch = focus_lost_events
-  write_external(path, {
-    "disk version two after focus loss",
-    "second line proves content changed",
-  })
+  elseif scenario == "buffer_switch" then
+    -- Keep the changed file visible in an inactive window. Repeated real
+    -- BufWinEnter events in other windows must not scan it. A terminal focus
+    -- return must then discover and reload that same visible buffer.
+    local focus_win = vim.api.nvim_get_current_win()
+    vim.cmd("vsplit")
+    local switch_win_a = vim.api.nvim_get_current_win()
+    vim.cmd("enew")
+    local switch_buf_a = vim.api.nvim_get_current_buf()
+    vim.cmd("vsplit")
+    local switch_win_b = vim.api.nvim_get_current_win()
+    vim.cmd("enew")
+    local switch_buf_b = vim.api.nvim_get_current_buf()
+    vim.api.nvim_buf_set_lines(switch_buf_a, 0, -1, false, { "window switch fixture" })
+    assert(focus_win ~= switch_win_a and focus_win ~= switch_win_b
+        and switch_win_a ~= switch_win_b,
+      "window-switch fixture did not create three independent windows")
+    assert(vim.api.nvim_win_get_buf(focus_win) == focus_buf,
+      "externally monitored buffer is not visible in its own window")
 
-  for _ = 1, 4 do
-    vim.api.nvim_set_current_win(switch_win_a)
-    vim.api.nvim_win_set_buf(switch_win_a, spare_buf_a)
-    vim.api.nvim_win_set_buf(switch_win_a, switch_buf_a)
-    vim.api.nvim_set_current_win(switch_win_b)
-    vim.api.nvim_win_set_buf(switch_win_b, spare_buf_b)
-    vim.api.nvim_win_set_buf(switch_win_b, switch_buf_b)
+    local spare_buf_a = vim.api.nvim_create_buf(false, true)
+    local spare_buf_b = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_create_autocmd("BufWinEnter", {
+      group = group,
+      callback = function(event)
+        if event.buf == switch_buf_a or event.buf == switch_buf_b
+            or event.buf == spare_buf_a or event.buf == spare_buf_b then
+          buffer_entry_events = buffer_entry_events + 1
+        end
+      end,
+    })
+
+    write_external(path, {
+      "disk version after unrelated window switches",
+      "visible inactive buffer must wait for terminal focus return",
+    })
+    local focus_gains_before_switch = focus_gained_events
+    local focus_losses_before_switch = focus_lost_events
+    for _ = 1, 4 do
+      vim.api.nvim_set_current_win(switch_win_a)
+      vim.api.nvim_win_set_buf(switch_win_a, spare_buf_a)
+      vim.api.nvim_win_set_buf(switch_win_a, switch_buf_a)
+      vim.api.nvim_set_current_win(switch_win_b)
+      vim.api.nvim_win_set_buf(switch_win_b, spare_buf_b)
+      vim.api.nvim_win_set_buf(switch_win_b, switch_buf_b)
+    end
+    assert(buffer_entry_events >= 8,
+      ("expected at least eight real BufWinEnter events, observed %d"):format(buffer_entry_events))
+    assert(vim.api.nvim_get_current_win() ~= focus_win
+        and vim.api.nvim_win_get_buf(focus_win) == focus_buf,
+      "the externally changed buffer became current during the window-switch scenario")
+    check("buffer/window switching does not synthesize terminal focus events", {
+      focus_losses_before_switch, focus_gains_before_switch,
+    }, { focus_lost_events, focus_gained_events })
+    check("buffer/window switching does not trigger FileChangedShell", 0, #changed_events)
+    assert_lines(focus_buf, { "disk version one" },
+      "unrelated buffer/window activity must not scan the inactive visible file")
+
+    trigger_native_focus_cycle()
+    check("terminal focus return discovers the inactive visible external change", 1, #changed_events)
+    check("inactive visible buffer is the one reported changed", focus_buf, changed_events[1].buffer)
+    check("inactive visible buffer is reported as a clean change", "changed", changed_events[1].reason)
+    assert_lines(focus_buf, {
+      "disk version after unrelated window switches",
+      "visible inactive buffer must wait for terminal focus return",
+    }, "inactive visible buffer reload after TUI FocusGained")
   end
-  assert(buffer_entry_events >= 8,
-    ("expected at least eight real BufWinEnter events, observed %d"):format(buffer_entry_events))
-  assert(vim.api.nvim_get_current_win() ~= focus_win
-      and vim.api.nvim_win_get_buf(focus_win) == focus_buf,
-    "the externally changed buffer became current during the window-switch scenario")
-  check("buffer/window switching does not synthesize terminal focus events", {
-    focus_losses_before_switch,
-    focus_gains_before_switch,
-  }, { focus_lost_events, focus_gained_events })
-  check("buffer/window switching does not trigger FileChangedShell", 0, #changed_events)
-  assert_lines(focus_buf, { "disk version one" },
-    "unrelated buffer/window activity must not check a different visible file")
-  print("PASS: real BufWinEnter and window switching do not scan other visible files")
-
-  gain_native_focus("first external change focus return")
-  check("first focus return reports exactly one external change", 1, #changed_events)
-  check("first focus return reports the correct buffer", focus_buf, changed_events[1].buffer)
-  check("first focus return reports a clean change", "changed", changed_events[1].reason)
-  assert_lines(focus_buf, {
-    "disk version two after focus loss",
-    "second line proves content changed",
-  }, "native TUI FocusGained reload")
-  print("PASS: real TUI FocusGained detects and reloads an external change")
-
-  -- A later external write is detected by the next real terminal focus cycle.
-  local unchanged_event_count = #changed_events
-  send_user_motion(switch_win_a, "l")
-  write_external(path, {
-    "disk version three, second external change",
-    "third version still has two lines",
-  })
-  gain_native_focus("second external change focus return")
-  check("next focus return reports the later external change",
-    unchanged_event_count + 1, #changed_events)
-  check("second external change reason", "changed", changed_events[#changed_events].reason)
-  assert_lines(focus_buf, {
-    "disk version three, second external change",
-    "third version still has two lines",
-  }, "second native TUI FocusGained reload")
-  print("PASS: a later external change is detected on the next focus return")
-
-  -- A conflict must be reported without replacing unsaved local content.
-  send_user_motion(switch_win_a, "l")
-  vim.api.nvim_buf_set_lines(focus_buf, 0, -1, false, { "local unsaved edit" })
-  assert(vim.bo[focus_buf].modified == true,
-    "local fixture edit did not mark the buffer modified")
-  write_external(path, { "conflicting external disk version" })
-  local before_conflict = #changed_events
-  gain_native_focus("modified-buffer conflict focus return")
-  check("modified-buffer focus return reports one conflict",
-    before_conflict + 1, #changed_events)
-  check("modified-buffer focus return reports conflict reason",
-    "conflict", changed_events[#changed_events].reason)
-  assert_lines(focus_buf, { "local unsaved edit" },
-    "external conflict must not overwrite local unsaved edits")
-  check("external conflict preserves the local modified flag", true, vim.bo[focus_buf].modified)
-  print("PASS: real TUI FocusGained preserves unsaved local edits on external conflict")
 
   cleanup()
   cleanup_test = nil
+  print("PASS: PTY focus scenario " .. scenario)
 end
 
-local test_thread = coroutine.create(function()
+vim.defer_fn(function()
   local ok, err = xpcall(run, debug.traceback)
   if not ok then
     fail_test(err)
     return
   end
-
-  print("PASS: PTY terminal focus reports preserve external-change detection without per-window :checktime")
+  print("PASS: automated PTY terminal-focus regression scenario")
   vim.cmd("qa!")
-end)
-
-vim.defer_fn(function()
-  local ok, err = coroutine.resume(test_thread)
-  if not ok then
-    fail_test(debug.traceback(test_thread, tostring(err)))
-  end
 end, 10)
