@@ -56,8 +56,8 @@ local original_executable_for_provision = vim.fn.executable
 local original_install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site")
 local isolated_install_dir = vim.fn.tempname()
 config.setup({ install_dir = isolated_install_dir })
-expect_equal({}, treesitter.get_installed("parsers"),
-  "isolated parser fixture starts with no installed parsers")
+assert(vim.deep_equal({}, treesitter.get_installed("parsers")),
+  "isolated parser fixture must start with no installed parsers")
 
 local install_calls = 0
 treesitter.install = function(languages, opts)
@@ -88,7 +88,14 @@ local provision_callback = assert(provision_autocmds[1].callback,
   "Treesitter provisioning autocmd must be a Lua callback")
 assert(vim.fn.exepath("tree-sitter") ~= "",
   "the real pinned tree-sitter CLI must be available for provisioning")
+vim.fn.executable = function(name, ...)
+  if name == "tree-sitter" then
+    return 1
+  end
+  return original_executable_for_provision(name, ...)
+end
 local callback_ok, callback_error = pcall(provision_callback)
+vim.fn.executable = original_executable_for_provision
 assert(callback_ok, callback_error)
 expect_equal(1, install_calls, "Mason completion installs missing configured parsers")
 expect_equal(0, update_calls, "installing missing parsers does not update existing parsers")
