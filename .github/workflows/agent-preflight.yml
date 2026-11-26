@@ -14,6 +14,7 @@ on:
       - "scripts/ci/validate-agent-preflight.cjs"
       - "tests/ci/agent-process-contract.test.cjs"
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   workflow_dispatch:
 
 concurrency:
