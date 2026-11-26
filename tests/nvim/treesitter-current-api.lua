@@ -137,13 +137,21 @@ local function open_fixture(fixture)
     assert_equal(false, trees[1]:root():has_error(),
       fixture.filetype .. " accepts JSON5-only syntax without parser errors")
   end
-  assert(vim.b.ts_highlight == true,
-    fixture.filetype .. " buffer did not activate Neovim's Treesitter highlighter")
+  local highlights_query_ok, highlights_query = pcall(vim.treesitter.query.get, fixture.language, "highlights")
+  local has_highlights_query = highlights_query_ok and highlights_query ~= nil
+  if has_highlights_query then
+    assert_equal(true, vim.b.ts_highlight,
+      fixture.filetype .. " activates Neovim's Treesitter highlighter when highlights.scm exists")
+  else
+    assert(vim.b.ts_highlight ~= true,
+      fixture.filetype .. " must not mark Treesitter highlighting active without a highlights.scm query")
+    print("PASS: " .. fixture.filetype .. " has no highlights.scm query; parser remains available without a highlighter")
+  end
   assert(vim.bo.syntax == "ON",
     fixture.filetype .. " lost the legacy Vim regex highlighting layer")
   assert(vim.b.current_syntax ~= nil,
     fixture.filetype .. " did not load its Vim regex syntax definitions")
-  print("PASS: " .. fixture.filetype .. " parsed with Treesitter and Vim regex highlighting")
+  print("PASS: " .. fixture.filetype .. " parsed with the available Treesitter and Vim syntax layers")
   return filename
 end
 
