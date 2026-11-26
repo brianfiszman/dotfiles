@@ -35,6 +35,7 @@ done
 test_root="${RUNNER_TEMP-${TMPDIR-/tmp}}/nvim-terminal-focus-${GITHUB_RUN_ID-local}-$$"
 mkdir -p "$test_root"
 command_file="$test_root/start-neovim.command"
+terminal_window_focus_script="$test_root/terminal-window-focus.swift"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
 ready_file="$test_root/neovim.ready"
@@ -104,6 +105,121 @@ exec $q_nvim --cmd 'set nomore shortmess+=I' \
   -c 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
+
+# Snapshot Terminal.app's existing windows before Launch Services opens the
+# dedicated .command session. The return transition clicks that exact new
+# window's title bar instead of activating every Terminal window at once.
+cat > "$terminal_window_focus_script" <<'SWIFT'
+import AppKit
+import CoreGraphics
+import Foundation
+
+let terminalBundleID = "com.apple.Terminal"
+let mode = CommandLine.arguments.dropFirst().first ?? ""
+
+func terminalWindows() -> [(id: CGWindowID, bounds: CGRect, name: String)] {
+  guard let terminal = NSRunningApplication.runningApplications(
+    withBundleIdentifier: terminalBundleID
+  ).first else {
+    return []
+  }
+  guard let entries = CGWindowListCopyWindowInfo(
+    .optionOnScreenOnly, kCGNullWindowID
+  ) as? [[String: Any]] else {
+    return []
+  }
+
+  return entries.compactMap { entry in
+    guard
+      (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == terminal.processIdentifier,
+      (entry[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
+      let number = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
+      let boundsDictionary = entry[kCGWindowBounds as String] as? CFDictionary
+    else {
+      return nil
+    }
+
+    var bounds = CGRect.zero
+    guard CGRectMakeWithDictionaryRepresentation(boundsDictionary, &bounds) else {
+      return nil
+    }
+    let name = entry[kCGWindowName as String] as? String ?? "<untitled>"
+    return (id: number, bounds: bounds, name: name)
+  }
+}
+
+if mode == "snapshot" {
+  print(terminalWindows().map { String($0.id) }.joined(separator: ","))
+  exit(0)
+}
+
+guard mode == "activate", CommandLine.arguments.count == 3 else {
+  fputs("Usage: terminal-window-focus.swift snapshot | activate <previous-window-ids>\n", stderr)
+  exit(2)
+}
+
+let previousIDs = Set(CommandLine.arguments[2].split(separator: ",").compactMap { UInt32($0) })
+let candidates = terminalWindows().filter { !previousIDs.contains($0.id) }
+guard candidates.count == 1, let target = candidates.first else {
+  let details = terminalWindows().map {
+    "id=\($0.id) name=\($0.name) bounds=\($0.bounds)"
+  }.joined(separator: "; ")
+  fputs("Expected exactly one new Terminal.app window for the Neovim TTY; found \(candidates.count). Windows: \(details)\n", stderr)
+  exit(1)
+}
+guard target.bounds.width > 100, target.bounds.height > 40 else {
+  fputs("Terminal.app target window has unusable bounds: \(target.bounds)\n", stderr)
+  exit(1)
+}
+guard CGPreflightPostEventAccess() else {
+  fputs("The runner cannot post a native mouse event to activate the Terminal.app window.\n", stderr)
+  exit(1)
+}
+guard let source = CGEventSource(stateID: .hidSystemState) else {
+  fputs("Could not create a native mouse event source.\n", stderr)
+  exit(1)
+}
+
+// Click the title bar of the one window created for this test. This is a real
+// WindowServer mouse event; it does not synthesize Neovim focus bytes, invoke
+// Terminal AppleEvents, or activate unrelated Terminal windows.
+let titleBarPoint = CGPoint(x: target.bounds.midX, y: target.bounds.minY + 10)
+guard
+  let mouseDown = CGEvent(
+    mouseEventSource: source,
+    mouseType: .leftMouseDown,
+    mouseCursorPosition: titleBarPoint,
+    mouseButton: .left
+  ),
+  let mouseUp = CGEvent(
+    mouseEventSource: source,
+    mouseType: .leftMouseUp,
+    mouseCursorPosition: titleBarPoint,
+    mouseButton: .left
+  )
+else {
+  fputs("Could not construct native mouse events for Terminal.app window \(target.id).\n", stderr)
+  exit(1)
+}
+
+mouseDown.post(tap: .cghidEventTap)
+Thread.sleep(forTimeInterval: 0.05)
+mouseUp.post(tap: .cghidEventTap)
+
+let deadline = Date().addingTimeInterval(5)
+while Date() < deadline {
+  let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+  if frontmost == terminalBundleID, terminalWindows().first?.id == target.id {
+    print("[macos-focus] Clicked and selected the exact Neovim Terminal.app window id=\(target.id) at \(titleBarPoint)")
+    exit(0)
+  }
+  Thread.sleep(forTimeInterval: 0.1)
+}
+
+let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
+fputs("Terminal.app window \(target.id) did not become the frontmost Terminal window after the native click; frontmost app=\(frontmost).\n", stderr)
+exit(1)
+SWIFT
 
 read_counter() {
   local file=""
@@ -314,6 +430,11 @@ if result.returncode != 0:
     raise SystemExit(result.returncode)
 PY
 }
+activate_neovim_terminal_window() {
+  local previous_window_ids="$1"
+  swift "$terminal_window_focus_script" activate "$previous_window_ids"
+}
+
 wait_for_counter_increase() {
   local name="$1"
   local previous="$2"
@@ -341,6 +462,8 @@ wait_for_counter_increase() {
   return 1
 }
 
+terminal_windows_before="$(swift "$terminal_window_focus_script" snapshot)"
+printf '[macos-focus] Terminal.app window IDs before test launch: %s\n' "${terminal_windows_before:-none}"
 printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
 open -a Terminal "$command_file"
 if ! wait_for_launcher; then
@@ -368,8 +491,8 @@ printf '[macos-focus] Selecting Finder before explicitly foregrounding the Neovi
 open -a Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 
-printf '[macos-focus] Explicitly activating Terminal.app and requiring a native FocusGained event.\n'
-activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal"
+printf '[macos-focus] Clicking the exact Neovim Terminal.app window and requiring a native FocusGained event.\n'
+activate_neovim_terminal_window "$terminal_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
   'Terminal.app activation generated a real Neovim FocusGained event'
 
@@ -381,9 +504,8 @@ wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
 
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
-printf '[macos-focus] Reactivating Terminal.app and requiring another native FocusGained event.\n'
-open -a Terminal
-activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal"
+printf '[macos-focus] Clicking the same Neovim Terminal.app window again and requiring another native FocusGained event.\n'
+activate_neovim_terminal_window "$terminal_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
   'Terminal.app reactivation generated a real Neovim FocusGained event'
 lost_final="$(read_counter dotfiles_macos_focus_lost)"

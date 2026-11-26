@@ -11,13 +11,14 @@ end
 local function feed(keys, after_input)
   local thread = coroutine.running()
   assert(thread, "real editor input must run from the test coroutine")
-  local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
-  -- feedkeys accepts Neovim's internal termcodes (including <S-Tab>) and
-  -- executes the same insert mappings as physical keyboard input.
-  -- "x" drains the typed input queue before the deferred mode assertion.
-  -- The "!" flag prevents feedkeys from synthesizing <Esc> when that queue
-  -- becomes empty, so Insert mode remains active for the timer callback.
-  vim.api.nvim_feedkeys(termcodes, "mtx!", false)
+  -- nvim_input queues the same raw key sequence as user input, including
+  -- special-key notation and mappings, but returns without blocking the main
+  -- loop. Do not use feedkeys(..., "x!") here: keeping Insert mode active while
+  -- synchronously draining typeahead blocks this coroutine before its timer
+  -- can run.
+  local accepted = vim.api.nvim_input(keys)
+  assert(accepted == #keys,
+    ("Neovim accepted %d of %d input bytes for %q"):format(accepted, #keys, keys))
 
   -- Yield the test coroutine. Neovim's main loop consumes the queued input
   -- before a later timer checks the editor state and resumes the scenario.

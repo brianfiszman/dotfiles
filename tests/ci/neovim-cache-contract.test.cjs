@@ -185,9 +185,11 @@ test("the fresh DAP adapter installation regression remains wired into the cold 
   assert.match(restoreScript, /dap-neotest-trigger\.lua/);
 });
 
-test("headless LuaSnip fixture drains real typed input before checking Insert mode", () => {
-  assert.match(luasnipIdleLifetime, /nvim_feedkeys\(termcodes, "mtx", false\)/,
-    "the x flag must drain queued typed input before mode assertions");
+test("headless LuaSnip fixture queues real typed input without blocking Insert mode", () => {
+  assert.ok(luasnipIdleLifetime.includes("vim.api.nvim_input(keys)"),
+    "use non-blocking user input so the event loop can run deferred Insert-mode assertions");
+  assert.doesNotMatch(luasnipIdleLifetime, /nvim_feedkeys\([^\n]*["'][^"']*x/,
+    "blocking feedkeys execution must not hold the event loop while Insert mode remains active");
 });
 
 test("macOS Terminal focus launch uses bounded native Launch Services transitions without RPC", () => {
@@ -216,8 +218,20 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
     "the test must explicitly activate Finder and verify it became frontmost before asserting FocusLost");
   assert.match(macosFocusScript, /NSWorkspace\.shared\.frontmostApplication/,
     "the native activation helper must verify the actual frontmost application");
+  assert.ok(macosFocusScript.includes("CGWindowListCopyWindowInfo"),
+    "identify the exact Terminal.app window created for the Neovim TTY");
+  assert.ok(macosFocusScript.includes("mouseEventSource: source"),
+    "construct a real window-specific mouse event");
+  assert.ok(macosFocusScript.includes("mouseDown.post(tap: .cghidEventTap)"),
+    "post the click through the native WindowServer event stream");
+  assert.equal((macosFocusScript.match(/^\\s*open -a Terminal(?:\\s|$)/gm) || []).length, 1,
+    "open Terminal only for the initial TTY launch, not as an app-wide focus substitute");
+  assert.equal((macosFocusScript.match(/activate_neovim_terminal_window "\\$terminal_windows_before"/g) || []).length, 2,
+    "both focus-gain assertions must target the same exact Neovim Terminal.app window");
+  assert.ok(macosFocusScript.includes('swift "$terminal_window_focus_script" activate'),
+    "activate only the newly-created Neovim Terminal.app window");
   assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application "com\.apple\.Terminal"/,
-    "do not activate all Terminal windows and steal focus from the Neovim TUI session");
+    "do not activate every Terminal.app window and steal focus from the Neovim TTY session");
   assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
   assert.doesNotMatch(macosFocusScript, /run_terminal_applescript|NSAppleScript/,
     "focus activation must not block on Terminal AppleEvents");
