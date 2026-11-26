@@ -38,11 +38,11 @@ command_file="$test_root/start-neovim.command"
 terminal_window_focus_script="$test_root/terminal-window-focus.swift"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
-socket_path="/tmp/nvim-terminal-focus-$(id -u)-$.sock"
+socket_path="/tmp/nvim-terminal-focus-$(id -u)-$$.sock"
 
 socket_length="$(printf '%s' "$socket_path" | wc -c | tr -d ' ')"
 if ((socket_length >= 100)); then
-  printf 'The temporary Neovim RPC socket path is too long for macOS: %s\\n' "$socket_path" >&2
+  printf 'The temporary Neovim RPC socket path is too long for macOS: %s\n' "$socket_path" >&2
   exit 1
 fi
 ready_file="$test_root/neovim.ready"
@@ -370,10 +370,10 @@ read_file_counter() {
   case "$1" in
     dotfiles_macos_focus_lost) file="$focus_lost_file" ;;
     dotfiles_macos_focus_gained) file="$focus_gained_file" ;;
-    *) printf 'Unknown focus counter: %s\\n' "$1" >&2; return 2 ;;
+    *) printf 'Unknown focus counter: %s\n' "$1" >&2; return 2 ;;
   esac
   if [[ -s "$file" ]]; then
-    tr -d '\\r\\n' < "$file"
+    tr -d '\r\n' < "$file"
   else
     printf '0'
   fi
@@ -462,17 +462,17 @@ wait_for_ready() {
   local deadline=$((SECONDS + 30))
   local rpc_ready=""
   while ((SECONDS < deadline)); do
-    if [[ -S "$socket_path" ]] && [[ -s "$ready_file" ]] && [[ "$(tr -d '\\r\\n' < "$ready_file")" == "1" ]]; then
-      printf '[macos-focus] Neovim reached UIEnter; waiting for its RPC server to answer.\\n'
+    if [[ -S "$socket_path" ]] && [[ -s "$ready_file" ]] && [[ "$(tr -d '\r\n' < "$ready_file")" == "1" ]]; then
+      printf '[macos-focus] Neovim reached UIEnter; waiting for its RPC server to answer.\n'
       rpc_ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" || true)"
       if [[ "$rpc_ready" == "1" ]]; then
-        printf '[macos-focus] Neovim attached its real TTY UI and its RPC server is responsive.\\n'
+        printf '[macos-focus] Neovim attached its real TTY UI and its RPC server is responsive.\n'
         return 0
       fi
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not complete a responsive Neovim startup within 30 seconds.\\n' >&2
+  printf 'Terminal.app did not complete a responsive Neovim startup within 30 seconds.\n' >&2
   print_startup_diagnostics >&2
   return 1
 }
@@ -488,17 +488,17 @@ wait_for_counter_gt() {
     current="$(read_counter "$name" || true)"
     file_current="$(read_file_counter "$name" || true)"
     if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
-      printf 'PASS: %s (RPC %s -> %s; file counter=%s)\\n' "$description" "$previous" "$current" "${file_current-unavailable}"
+      printf 'PASS: %s (RPC %s -> %s; file counter=%s)\n' "$description" "$previous" "$current" "${file_current-unavailable}"
       return 0
     fi
     if [[ "$file_current" =~ ^[0-9]+$ ]] && ((file_current > previous)); then
-      printf 'FAIL: %s; callback file advanced to %s but independent RPC counter remained %s\\n' \\
+      printf 'FAIL: %s; callback file advanced to %s but independent RPC counter remained %s\n' "$description" "$file_current" "${current-unavailable}" >&2
         "$description" "$file_current" "${current-unavailable}" >&2
       return 2
     fi
     sleep 0.1
   done
-  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\\n' \\
+  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\n' "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
     "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
   return 1
 }
