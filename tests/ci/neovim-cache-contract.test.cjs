@@ -191,6 +191,10 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(macosFocusScript, /wait_for_ready/);
   assert.match(macosFocusScript, /wait_for_terminal_tty/);
   assert.match(macosFocusScript, /wait_for_frontmost_application/);
+  assert.ok(macosFocusScript.includes("application.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])"),
+    "Finder and Terminal must be explicitly activated through AppKit, not only observed as frontmost");
+  assert.ok(macosFocusScript.includes('activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"'));
+  assert.ok(macosFocusScript.includes('activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"'));
   assert.ok(macosFocusScript.includes("NSWorkspace.shared.frontmostApplication?.bundleIdentifier"));
   assert.match(macosFocusScript, /Neovim received/);
   assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
