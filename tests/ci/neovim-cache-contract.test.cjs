@@ -185,6 +185,10 @@ test("macOS Terminal focus launch has a bounded Launch Services and scripting fa
   assert.match(macosFocusScript, /nvim-rpc\.py/);
   assert.match(macosFocusScript, /export TERM=xterm-256color/);
   assert.match(macosFocusScript, /export DOTFILES_SKIP_MASON_LSP_INSTALL=1/,
+  assert.match(macosFocusScript, /export DOTFILES_SKIP_TREESITTER_PROVISIONING=1/,
+    "the native-focus-only Terminal test must not start asynchronous parser provisioning");
+  assert.match(macosFocusScript, /--cmd \'lua vim\\.g\\.dotfiles_macos_focus_ready = 1/,
+    "focus counters and readiness must be installed before user startup plugins run");
     "the native-focus-only Terminal test must skip unrelated asynchronous Mason LSP provisioning");
   assert.match(macosFocusScript, /NVIM_RPC_TIMEOUT_SECONDS=10 python3/,
     "startup and focus RPC reads must tolerate slow UI startup while retaining the five-minute step cap");
