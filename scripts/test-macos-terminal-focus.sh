@@ -15,7 +15,7 @@ if [[ -z "$NVIM_TEST_DIR" ]]; then
 fi
 
 NVIM_BIN="$(command -v "$NVIM_BIN")"
-for required_command in open osascript python3 swift tty ps; do
+for required_command in open osascript python3 tty ps; do
   command -v "$required_command" >/dev/null 2>&1 || {
     printf 'Required macOS GUI test command is missing: %s\n' "$required_command" >&2
     exit 1
@@ -251,68 +251,6 @@ wait_for_terminal_tty() {
   return 1
 }
  
-activate_and_wait_for_frontmost_application() {
-  local bundle_id="$1"
-  local app_name="$2"
-  python3 - "$bundle_id" "$app_name" <<'PY'
-import subprocess
-import sys
-
-bundle_id, app_name = sys.argv[1:3]
-swift = """import AppKit
-import Foundation
-
-let bundleID = CommandLine.arguments[1]
-let appName = CommandLine.arguments[2]
-guard let application = NSRunningApplication.runningApplications(
-  withBundleIdentifier: bundleID
-).first else {
-  fputs("Cannot activate \\(appName): application is not running.\\n", stderr)
-  exit(1)
-}
-
-let activated = application.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
-guard activated else {
-  fputs("AppKit refused to activate \\(appName).\\n", stderr)
-  exit(1)
-}
-
-let deadline = Date().addingTimeInterval(10)
-while Date() < deadline {
-  let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
-  if frontmost == bundleID {
-    print("[macos-focus] AppKit activated and verified \\(appName) (\\(bundleID))")
-    exit(0)
-  }
-  RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-}
-
-let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
-fputs("Expected \\(appName) (\\(bundleID)) to become frontmost; got \\(frontmost).\\n", stderr)
-exit(1)
-"""
-
-try:
-    result = subprocess.run(
-        ["swift", "-", bundle_id, app_name],
-        input=swift,
-        text=True,
-        check=False,
-        timeout=30,
-        capture_output=True,
-    )
-except subprocess.TimeoutExpired:
-    print(f"AppKit activation for {app_name} exceeded its 30-second deadline", file=sys.stderr)
-    raise SystemExit(124)
-
-if result.stdout:
-    print(result.stdout, end="")
-if result.returncode != 0:
-    if result.stderr:
-        print(result.stderr, file=sys.stderr, end="")
-    raise SystemExit(result.returncode)
-PY
-}
 wait_for_counter_increase() {
   local name="$1"
   local previous="$2"
@@ -352,9 +290,9 @@ if ! wait_for_launcher; then
 fi
 wait_for_ready
 wait_for_terminal_tty
-open -a Terminal
-activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
 
+# Launch Services opened this .command in Terminal.app. Keep that exact TUI
+# window selected; activating all Terminal windows can switch to another tab.
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
 [[ "$lost_before" =~ ^[0-9]+$ && "$gained_before" =~ ^[0-9]+$ ]] || {
@@ -364,8 +302,7 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
 }
 
 printf '[macos-focus] Activating Finder to force Terminal.app to lose key-window focus.\n'
-open -a Finder "$test_root"
-activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
@@ -376,7 +313,6 @@ if ! wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 25 \
   'Terminal.app reactivation generated a real Neovim FocusGained event' true; then
   printf '[macos-focus] Retrying Launch Services activation of Terminal.app.\n'
   open -a Terminal
-  wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
   wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 100 \
     'Launch Services reactivation generated a real Neovim FocusGained event'
 fi
