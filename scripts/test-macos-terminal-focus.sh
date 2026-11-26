@@ -250,8 +250,8 @@ wait_for_terminal_tty() {
   printf 'Terminal.app did not publish the Neovim session TTY within 10 seconds at %s\n' "$tty_file" >&2
   return 1
 }
-
-wait_for_frontmost_application() {
+ 
+activate_and_wait_for_frontmost_application() {
   local bundle_id="$1"
   local app_name="$2"
   python3 - "$bundle_id" "$app_name" <<'PY'
@@ -264,17 +264,31 @@ import Foundation
 
 let bundleID = CommandLine.arguments[1]
 let appName = CommandLine.arguments[2]
+guard let application = NSRunningApplication.runningApplications(
+  withBundleIdentifier: bundleID
+).first else {
+  fputs("Cannot activate \\(appName): application is not running.\\n", stderr)
+  exit(1)
+}
+
+let activated = application.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+guard activated else {
+  fputs("AppKit refused to activate \\(appName).\\n", stderr)
+  exit(1)
+}
+
 let deadline = Date().addingTimeInterval(10)
 while Date() < deadline {
   let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
   if frontmost == bundleID {
-    print("[macos-focus] Frontmost application verified: \\\\(appName) (\\\\(bundleID))")
+    print("[macos-focus] AppKit activated and verified \\(appName) (\\(bundleID))")
     exit(0)
   }
   RunLoop.current.run(until: Date().addingTimeInterval(0.1))
 }
+
 let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
-fputs("Expected \\\\(appName) (\\\\(bundleID)) to become frontmost; got \\\\(frontmost).\\\\n", stderr)
+fputs("Expected \\(appName) (\\(bundleID)) to become frontmost; got \\(frontmost).\\n", stderr)
 exit(1)
 """
 
@@ -284,11 +298,11 @@ try:
         input=swift,
         text=True,
         check=False,
-        timeout=15,
+        timeout=30,
         capture_output=True,
     )
 except subprocess.TimeoutExpired:
-    print(f"Frontmost-application check for {app_name} exceeded its 15-second deadline", file=sys.stderr)
+    print(f"AppKit activation for {app_name} exceeded its 30-second deadline", file=sys.stderr)
     raise SystemExit(124)
 
 if result.stdout:
@@ -339,7 +353,7 @@ fi
 wait_for_ready
 wait_for_terminal_tty
 open -a Terminal
-wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
+activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
@@ -351,7 +365,7 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
 
 printf '[macos-focus] Activating Finder to force Terminal.app to lose key-window focus.\n'
 open -a Finder
-wait_for_frontmost_application "com.apple.finder" "Finder"
+activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
