@@ -15,6 +15,45 @@ state as user data, not disposable test fixtures.
 - Do not recreate, overwrite, close, or discard work merely because it is missing
   from the current conversation context.
 
+## Mandatory agent preflight gate
+
+This is a hard gate, not optional reading guidance. Before the first repository
+mutation (file edit, commit, push, workflow rerun, PR/issue mutation, or merge),
+complete and verify the applicable steps below. A previous assistant's summary
+or an older checkpoint does not satisfy them.
+
+1. Read this file. For substantial or resumed work, also follow
+   `.agents/skills/execution-continuity/SKILL.md`: read canonical
+   `AGENT_STATE.md`, the tail of the current monthly log, and recover the live
+   branch/PR/issue/run state.
+2. Classify the task and read the specialist skills that own it. For behavioral
+   work this includes `automated-verification`; for an unclear failure,
+   `diagnostic-experiments`; for Actions, `github-actions-validation`; for
+   Neovim behavior, `neovim-maintenance` and `neovim-headless-testing`;
+   for state/docs, `agent-memory-hygiene`. Read the actual files, not just
+   their names or descriptions.
+3. Resolve the active artifact from live GitHub state. Record the exact branch,
+   PR, issue, head SHA, relevant workflow run IDs/events, and changed paths.
+   Check that every CI result cited tests the exact SHA being discussed.
+4. Before fixing a failure, read its complete relevant log and the code/test at
+   the SHA that ran. State one falsifiable root cause and the smallest
+   discriminating reproduction. Do not push speculative changes just to see
+   what CI says. Follow the two-attempt stop rule in
+   `.agents/skills/diagnostic-experiments/SKILL.md`.
+5. Turn each confirmed, reusable failure mechanism into a regression test and
+   update the existing owning skill/incident record. Do not document an
+   unverified hypothesis as fact. Keep state/worklog changes on a separate
+   docs branch/PR, never inside a functional PR.
+6. Before completion, inspect the full final diff, execute focused and
+   applicable broader tests, re-fetch the final PR head, and report exact-SHA
+   evidence. Tests written, queued, skipped, mocked, pending, and passed are
+   different states; never conflate them.
+
+If a required source, skill, or live GitHub state cannot be read, stop the
+affected mutation and report the blocker as unavailable. Do not silently bypass
+this gate because the conversation is long, a task is familiar, or a prior
+session appears to have completed the same step.
+
 ## Safety rules
 
 - Never run the installer against a real home directory during tests.
