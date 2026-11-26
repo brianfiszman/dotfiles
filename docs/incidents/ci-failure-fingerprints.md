@@ -78,74 +78,9 @@ A successful run uploaded a 271 MB ZIP because the artifact path included the
 entire isolated workspace. Upload only root-level phase logs and relevant XDG
 state logs; exclude `data/`, `cache/`, plugin checkouts, and Mason packages.
 
-## PR #124 macOS Terminal.app focus: possible click-target occlusion
-
-**Status: hypothesis only; no root cause confirmed.** On PR #124 head
-`ff84ba7a9af554e71be7524876263de284d00c8d`, run
-[#712](https://github.com/brianfiszman/dotfiles/actions/runs/45877998509)
-(attempt 2), macOS job
-[140114434442](https://github.com/brianfiszman/dotfiles/actions/runs/45877998509/job/140114434442)
-passed locked plugin restore and all five Avante native-library checks. The
-focus helper launched Neovim in a real Terminal.app TTY (`/dev/ttys000`) and
-observed its `UIEnter` readiness marker. It then activated Finder and verified
-Finder as the frontmost app. A native click was posted at the center of Terminal
-window 29 (bounds `(40, 57, 585, 371)`) using
-`combinedSessionState`; Terminal did not become frontmost, Finder remained
-active, and no `FocusGained` event was observed. The dependent Python-provider
-step was skipped.
-
-Static review found a possible fixture-level occlusion path in
-`scripts/test-macos-terminal-focus.sh`: immediately before clicking Terminal,
-the test runs `open -a Finder "$test_root"`. This activates Finder **and opens
-the fixture folder in Finder**. The subsequent Swift helper filters the
-`CGWindowListCopyWindowInfo(.optionOnScreenOnly, ...)` result down to Terminal
-windows, checks that the click is inside the Terminal window's own bounds, and
-does not inspect windows above the target. Apple documents that
-`optionOnScreenOnly` returns windows from front to back:
-[Apple API contract](https://developer.apple.com/documentation/coregraphics/cgwindowlistoption/optiononscreenonly).
-A Finder folder window may therefore cover the click point while the Terminal
-window remains present in the on-screen list. This is plausible, not established:
-the current logs do not include the complete window stack or Finder window
-bounds at click time.
-
-**Next discriminating check:** immediately before posting the event, collect the
-full on-screen window list in z-order and log each window's owner/PID, ID, layer,
-name, and bounds. Find the target Terminal window's index and report every
-window above it whose bounds intersect the click point. Do not try another
-event source, click coordinate, or activation API before this native
-visibility/occlusion check. Keep the assertion on a real Neovim TTY focus
-autocmd; never synthesize Neovim focus bytes.
-
-The cold plugin-restore phase and the macOS focus assertion are independent:
-plugin restore/Avante artifacts passed; the focus transition remains unverified.
-This is the current macOS priority, separate from the Linux cache-hit crash.
-
-## PR #124 Linux cache-hit forced-build SIGSEGV: task-count observation
-
-On the same exact PR head and run #712, Linux restored the lazy.nvim and
-Tree-sitter caches successfully. The separate `plugin-cache-build` command
-(`+Lazy! build all`) created and completed **93** Lazy build tasks before the
-Neovim child exited with SIGSEGV after the explicit task/error and configured
-hook assertions. The cold restore in run
-[#711](https://github.com/brianfiszman/dotfiles/actions/runs/45877323621)
-created 9 build tasks; the cache-hit restore itself in #712 created 3 before
-the separate forced pass.
-
-At the pinned lazy.nvim revision, `Manage.build()` sets `force = true`, and
-the build-task skip predicate returns `false` for every plugin when forced.
-The runner therefore constructs a task for every plugin, including plugins
-without a build function/file. Even these no-op tasks pass through task
-creation/completion and schedule Lazy render/plugin events. This is a concrete
-difference between normal restore and `build all`; it is **not yet a proven
-cause** of the SIGSEGV. No further Linux CI retry is authorized by the
-two-attempt stop rule; a native backtrace/local reproduction is still required.
-Keep this investigation secondary to the macOS focus work.
-
 ## Cross-references
 
 - Workflow/check interpretation:
   [`.agents/skills/github-actions-validation/SKILL.md`](../../.agents/skills/github-actions-validation/SKILL.md)
 - Runtime/plugin fingerprints:
   [`neovim-runtime-fingerprints.md`](neovim-runtime-fingerprints.md)
-- Bounded diagnostic method:
-  [`.agents/skills/diagnostic-experiments/SKILL.md`](../../.agents/skills/diagnostic-experiments/SKILL.md)
