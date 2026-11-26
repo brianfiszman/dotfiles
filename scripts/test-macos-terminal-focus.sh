@@ -38,6 +38,7 @@ command_file="$test_root/start-neovim.command"
 terminal_window_focus_script="$test_root/terminal-window-focus.swift"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
+socket_path="$test_root/nvim.sock"
 ready_file="$test_root/neovim.ready"
 focus_lost_file="$test_root/focus-lost.count"
 focus_gained_file="$test_root/focus-gained.count"
@@ -64,6 +65,7 @@ printf -v q_cache '%q' "$NVIM_TEST_DIR/cache"
 printf -v q_nvim '%q' "$NVIM_BIN"
 printf -v q_pid '%q' "$pid_file"
 printf -v q_tty '%q' "$tty_file"
+printf -v q_socket '%q' "$socket_path"
 printf -v q_init '%q' "$NVIM_TEST_DIR/config/nvim/init.lua"
 printf -v q_ready_file '%q' "$ready_file"
 printf -v q_focus_lost_file '%q' "$focus_lost_file"
@@ -100,7 +102,7 @@ echo \$\$ > $q_pid
   printf '[launcher] config: %s\n' $q_init
 } >> $q_launcher_log
 tty > $q_tty 2>> $q_launcher_log
-exec $q_nvim --cmd 'set nomore shortmess+=I' \
+exec $q_nvim --listen $q_socket --cmd 'set nomore shortmess+=I' \
   --startuptime $q_timing_log -V12$q_verbose_log -u $q_init \
   -c 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
 EOF
@@ -326,7 +328,15 @@ fputs("Terminal.app window \(target.id) did not become the frontmost Terminal wi
 exit(1)
 SWIFT
 
+remote_expr() {
+  "$NVIM_BIN" --server "$socket_path" --remote-expr "$1" 2>/dev/null | tr -d '\\r\\n'
+}
+
 read_counter() {
+  remote_expr "get(g:, '$1', 0)"
+}
+
+read_file_counter() {
   local file=""
   case "$1" in
     dotfiles_macos_focus_lost) file="$focus_lost_file" ;;
