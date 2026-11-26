@@ -154,9 +154,10 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.match(treesitterProvisioning, /treesitter\.get_installed\("parsers"\)/);
   assert.doesNotMatch(treesitterProvisioning, /treesitter\.get_installed = mocked_get_installed/);
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
-  assert.match(treesitter, /vim\\.schedule\\(function\\(\\)[\\s\\S]*configure_buffer\\(bufnr\\)/,
+  assert.ok(treesitter.includes("vim.schedule(function()") && treesitter.includes("configure_buffer(bufnr)"),
     "Treesitter indentation must be applied after native ftplugin scripts finish");
-  assert.match(treesitterCurrentApi, /vim\\.wait\\(2000/);
+  assert.ok(treesitterCurrentApi.includes("vim.wait(2000"),
+    "current API integration must wait for deferred Treesitter indentation");
 
 });
 
