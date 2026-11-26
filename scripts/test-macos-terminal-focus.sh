@@ -41,7 +41,8 @@ tty_file="$test_root/terminal.tty"
 
 cleanup() {
   if [[ -S "$socket_path" ]]; then
-    "$NVIM_BIN" --server "$socket_path" --remote-send ':qa!<CR>' >/dev/null 2>&1 || true
+    NVIM_RPC_TIMEOUT_SECONDS=2 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
+      "$NVIM_BIN" --server "$socket_path" --remote-send ':qa!<CR>' >/dev/null 2>&1 || true
   fi
   if [[ -s "$pid_file" ]]; then
     child_pid="$(cat "$pid_file")"
@@ -92,7 +93,8 @@ EOF
 chmod 700 "$command_file"
 
 remote_expr() {
-  "$NVIM_BIN" --server "$socket_path" --remote-expr "$1" 2>/dev/null | tr -d '\r\n'
+  NVIM_RPC_TIMEOUT_SECONDS=2 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
+    "$NVIM_BIN" --server "$socket_path" --remote-expr "$1"
 }
 
 read_counter() {
@@ -100,25 +102,31 @@ read_counter() {
 }
 
 wait_for_ready() {
-  for _ in {1..150}; do
+  local deadline=$((SECONDS + 30))
+  local ready=""
+
+  while ((SECONDS < deadline)); do
     if [[ -S "$socket_path" ]]; then
-      ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" || true)"
+      ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" 2>/dev/null || true)"
       if [[ "$ready" == "1" ]]; then
         return 0
       fi
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not start Neovim with a responsive RPC server. Inspect %s\n' "$command_file" >&2
+  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds. Inspect %s\n' \
+    "$command_file" >&2
   return 1
 }
 
 wait_for_counter_gt() {
-  name="$1"
-  previous="$2"
-  description="$3"
-  current=""
-  for _ in {1..100}; do
+  local name="$1"
+  local previous="$2"
+  local description="$3"
+  local current=""
+  local deadline=$((SECONDS + 10))
+
+  while ((SECONDS < deadline)); do
     current="$(read_counter "$name" || true)"
     if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
       printf 'PASS: %s (%s -> %s)\n' "$description" "$previous" "$current"
@@ -126,20 +134,22 @@ wait_for_counter_gt() {
     fi
     sleep 0.1
   done
-  printf 'FAIL: %s; expected %s to increase beyond %s, got %s\n' \
+  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got %s\n' \
     "$description" "$name" "$previous" "${current-unavailable}" >&2
   return 1
 }
 
 
 wait_for_terminal_tty() {
-  for _ in {1..100}; do
+  local deadline=$((SECONDS + 10))
+  while ((SECONDS < deadline)); do
     if [[ -s "$tty_file" ]]; then
       return 0
     fi
     sleep 0.1
   done
-  printf 'Terminal.app did not publish the Neovim session TTY at %s\n' "$tty_file" >&2
+  printf 'Terminal.app did not publish the Neovim session TTY within 10 seconds at %s\n' \
+    "$tty_file" >&2
   return 1
 }
 
@@ -200,8 +210,9 @@ wait_for_counter_increase() {
   local description="$4"
   local quiet="${5:-false}"
   local current=""
+  local deadline=$((SECONDS + (attempts + 9) / 10))
 
-  for ((attempt = 0; attempt < attempts; attempt++)); do
+  while ((SECONDS < deadline)); do
     current="$(read_counter "$name" || true)"
     if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
       if [[ "$quiet" != "true" ]]; then
