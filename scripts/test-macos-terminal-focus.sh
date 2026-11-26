@@ -90,7 +90,7 @@ export XDG_CONFIG_HOME=$q_config
 export XDG_DATA_HOME=$q_data
 export XDG_STATE_HOME=$q_state
 export XDG_CACHE_HOME=$q_cache
-eecho \$\$ > $q_pid
+echo \$\$ > $q_pid
 {
   printf '[launcher] shell started; pid=%s\n' "\$\$"
   printf '[launcher] Neovim executable: %s\n' $q_nvim
