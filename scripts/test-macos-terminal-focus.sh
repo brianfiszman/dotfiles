@@ -38,7 +38,13 @@ command_file="$test_root/start-neovim.command"
 terminal_window_focus_script="$test_root/terminal-window-focus.swift"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
-socket_path="$test_root/nvim.sock"
+socket_path="/tmp/nvim-terminal-focus-$(id -u)-$.sock"
+
+socket_length="$(printf '%s' "$socket_path" | wc -c | tr -d ' ')"
+if ((socket_length >= 100)); then
+  printf 'The temporary Neovim RPC socket path is too long for macOS: %s\\n' "$socket_path" >&2
+  exit 1
+fi
 ready_file="$test_root/neovim.ready"
 focus_lost_file="$test_root/focus-lost.count"
 focus_gained_file="$test_root/focus-gained.count"
@@ -53,6 +59,7 @@ cleanup() {
       kill "$child_pid" 2>/dev/null || true
     fi
   fi
+  rm -f "$socket_path"
   rm -rf "$test_root"
 }
 trap cleanup EXIT
@@ -104,7 +111,7 @@ echo \$\$ > $q_pid
 tty > $q_tty 2>> $q_launcher_log
 exec $q_nvim --listen $q_socket --cmd 'set nomore shortmess+=I' \
   --startuptime $q_timing_log -V12$q_verbose_log -u $q_init \
-  -c 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
+  -c 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.g.dotfiles_macos_focus_ready = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() vim.g.dotfiles_macos_focus_ready = 1; assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
 
@@ -329,7 +336,29 @@ exit(1)
 SWIFT
 
 remote_expr() {
-  "$NVIM_BIN" --server "$socket_path" --remote-expr "$1" 2>/dev/null | tr -d '\\r\\n'
+  python3 - "$NVIM_BIN" "$socket_path" "$1" <<'PY'
+import subprocess
+import sys
+
+try:
+    result = subprocess.run(
+        [sys.argv[1], "--server", sys.argv[2], "--remote-expr", sys.argv[3]],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=2,
+    )
+except subprocess.TimeoutExpired:
+    print("[macos-focus] ERROR: Neovim RPC remote-expr exceeded its 2-second deadline.", file=sys.stderr)
+    raise SystemExit(124)
+
+if result.returncode != 0:
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="")
+    raise SystemExit(result.returncode)
+
+sys.stdout.write(result.stdout.rstrip("\r\n"))
+PY
 }
 
 read_counter() {
@@ -431,14 +460,19 @@ print_startup_diagnostics() {
 
 wait_for_ready() {
   local deadline=$((SECONDS + 30))
+  local rpc_ready=""
   while ((SECONDS < deadline)); do
     if [[ -S "$socket_path" ]] && [[ -s "$ready_file" ]] && [[ "$(tr -d '\\r\\n' < "$ready_file")" == "1" ]]; then
-      printf '[macos-focus] Neovim attached its real TTY UI and published the UIEnter ready marker.\\n'
-      return 0
+      printf '[macos-focus] Neovim reached UIEnter; waiting for its RPC server to answer.\\n'
+      rpc_ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" || true)"
+      if [[ "$rpc_ready" == "1" ]]; then
+        printf '[macos-focus] Neovim attached its real TTY UI and its RPC server is responsive.\\n'
+        return 0
+      fi
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not complete Neovim startup within 30 seconds.\\n' >&2
+  printf 'Terminal.app did not complete a responsive Neovim startup within 30 seconds.\\n' >&2
   print_startup_diagnostics >&2
   return 1
 }
@@ -447,19 +481,24 @@ wait_for_counter_gt() {
   local previous="$2"
   local description="$3"
   local current=""
+  local file_current=""
   local deadline=$((SECONDS + 10))
 
   while ((SECONDS < deadline)); do
     current="$(read_counter "$name" || true)"
     file_current="$(read_file_counter "$name" || true)"
     if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
-      printf 'PASS: %s (RPC %s -> %s; file counter=%s)\n' "$description" "$previous" "$current" "${file_current-unavailable}"
+      printf 'PASS: %s (RPC %s -> %s; file counter=%s)\\n' "$description" "$previous" "$current" "${file_current-unavailable}"
       return 0
+    fi
+    if [[ "$file_current" =~ ^[0-9]+$ ]] && ((file_current > previous)); then
+      printf 'FAIL: %s; callback file advanced to %s but independent RPC counter remained %s\\n' \\
+        "$description" "$file_current" "${current-unavailable}" >&2
+      return 2
     fi
     sleep 0.1
   done
-  file_current="$(read_file_counter "$name" || true)"
-  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\n' \
+  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\\n' \\
     "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
   return 1
 }
