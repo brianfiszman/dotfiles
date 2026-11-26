@@ -581,9 +581,12 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
   exit 1
 }
 
+lost_initial_before="$(read_counter dotfiles_macos_focus_lost)"
 printf '[macos-focus] Selecting Finder before explicitly foregrounding the Neovim Terminal.app window.\n'
 open -a Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+wait_for_counter_gt dotfiles_macos_focus_lost "$lost_initial_before" \
+  'Finder activation generated a real Neovim FocusLost event before closing its test window'
 close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 
@@ -596,10 +599,10 @@ lost_before="$(read_counter dotfiles_macos_focus_lost)"
 printf '[macos-focus] Activating Finder to force the selected Terminal.app window to lose key-window focus.\n'
 open -a Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
+  'Finder activation generated a real Neovim FocusLost event before closing its test window'
 close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
-wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
-  'Finder activation generated a real Terminal.app FocusLost event'
 
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Clicking the same Neovim Terminal.app window again and requiring another native FocusGained event.\n'
