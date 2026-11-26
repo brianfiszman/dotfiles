@@ -98,8 +98,14 @@ async function determineIntegrationRequirement({ context, github }) {
       if (!Array.isArray(jobs)) {
         return required("baseline job-list API response was incomplete; fail open to full integration");
       }
-      const integration = jobs.find((job) => job.name === INTEGRATION_JOB_NAME);
-      if (!integration || integration.conclusion !== "success") continue;
+      // Matrix job names include resolved axis values, e.g. "(Neovim v0.12.6)".
+      // A reusable baseline requires every matching matrix cell to have passed.
+      const integrationJobs = jobs.filter((job) =>
+        job && typeof job.name === "string" &&
+        (job.name === INTEGRATION_JOB_NAME || job.name.startsWith(INTEGRATION_JOB_NAME + " ("))
+      );
+      if (integrationJobs.length === 0 ||
+          integrationJobs.some((job) => job.conclusion !== "success")) continue;
 
       // The workflow run's resolved run-name is exposed as display_title by the
       // Actions API. Unlike job summaries, it is present in listWorkflowRuns.
