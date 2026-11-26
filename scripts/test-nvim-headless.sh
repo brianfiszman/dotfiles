@@ -333,6 +333,7 @@ restore_plugins() {
     # A restored checkout is already at the locked revision, so lazy.nvim
     # correctly skips normal build hooks. Force them on cache hits to ensure
     # cached sources never become a substitute for actual build validation.
+    restore_checks+=("+lua local config = require('lazy.core.config'); config.options.concurrency = 1; assert(config.options.concurrency == 1); print('PASS: forced plugin builds are serialized to avoid shared toolchain/cache races')")
     restore_checks+=("+Lazy! build all" "+lua local failures = {}; for name, plugin in pairs(require('lazy.core.config').plugins) do for _, task in ipairs(plugin._.tasks or {}) do if task.name == 'build' and task:has_errors() then table.insert(failures, name .. ': ' .. task:output(vim.log.levels.ERROR)) end end end; assert(#failures == 0, 'lazy.nvim build hook failures: ' .. table.concat(failures, '\\n')); print('PASS: no lazy.nvim build task reported errors')" "$verify_build_hooks")
   else
     restore_checks+=("$verify_build_hooks")
