@@ -537,7 +537,7 @@ PY
 }
 close_new_finder_windows() {
   local previous_window_ids="$1"
-  printf '[macos-focus] Closing only Finder windows created after the pre-activation snapshot: %s\n' "\${previous_window_ids:-none}"
+  printf '[macos-focus] Closing only Finder windows created after the pre-activation snapshot: %s\n' "${previous_window_ids:-none}"
   osascript - "$previous_window_ids" <<'APPLESCRIPT'
 on run argv
   set previousText to item 1 of argv
