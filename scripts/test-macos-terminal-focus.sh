@@ -234,10 +234,12 @@ wait_for_ready() {
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds.\\n' >&2
+  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds.\n' >&2
   print_startup_diagnostics >&2
   return 1
-}wait_for_counter_gt() {
+}
+
+wait_for_counter_gt() {
   local name="$1"
   local previous="$2"
   local description="$3"
