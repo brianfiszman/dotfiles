@@ -23,14 +23,28 @@ function validateAgentPreflight(body) {
   }
 
   const lines = body.split(/\r?\n/);
-  if (!lines.some((line) => /^##\s+Agent preflight \(required; CI-enforced\)\s*$/i.test(line.trim()))) {
+  const sectionStart = lines.findIndex((line) =>
+    /^##\s+Agent preflight \(required; CI-enforced\)\s*$/i.test(line.trim())
+  );
+  if (sectionStart === -1) {
     errors.push("missing section: ## Agent preflight (required; CI-enforced)");
   }
+
+  let sectionEnd = lines.length;
+  if (sectionStart !== -1) {
+    for (let index = sectionStart + 1; index < lines.length; index += 1) {
+      if (/^##\s+/.test(lines[index].trim())) {
+        sectionEnd = index;
+        break;
+      }
+    }
+  }
+  const preflightLines = sectionStart === -1 ? [] : lines.slice(sectionStart + 1, sectionEnd);
 
   const values = {};
   for (const field of REQUIRED_FIELDS) {
     const prefix = "- " + field + ":";
-    const line = lines.find((candidate) => candidate.trimStart().startsWith(prefix));
+    const line = preflightLines.find((candidate) => candidate.trimStart().startsWith(prefix));
     if (!line) {
       errors.push("missing required field: " + field);
       continue;
