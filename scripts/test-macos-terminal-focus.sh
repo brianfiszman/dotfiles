@@ -678,6 +678,8 @@ assert_finder_frontmost() {
 }
 activate_neovim_terminal_window() {
   local previous_window_ids="$1"
+  printf '[macos-focus] Bringing Terminal.app to the foreground before selecting its exact Neovim TTY window.\n'
+  activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
   run_terminal_window_helper activate "$previous_window_ids"
 }
 
@@ -700,7 +702,6 @@ wait_for_probe_ready
 # PTY and counts only bytes returned by the terminal emulator; it never injects
 # CSI I/O. A successful raw pass proves the native terminal boundary.
 printf '[macos-focus] Selecting the exact Terminal.app window for the raw TTY probe.\n'
-activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
 activate_neovim_terminal_window "$terminal_windows_before"
 probe_lost_before="$(read_probe_counter "$probe_focus_lost_file")"
 printf '[macos-focus] Raw probe: opening the unique Finder fixture folder.\n'
