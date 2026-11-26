@@ -236,6 +236,13 @@ wait_for_terminal_tty() {
   local deadline=$((SECONDS + 10))
   while ((SECONDS < deadline)); do
     if [[ -s "$tty_file" ]]; then
+      local target_tty
+      target_tty="$(tr -d '\r\n' < "$tty_file")"
+      [[ "$target_tty" == /dev/ttys* ]] || {
+        printf 'Unexpected Neovim Terminal.app TTY: %s\n' "$target_tty" >&2
+        return 1
+      }
+      printf '[macos-focus] Neovim is attached to Terminal.app TTY %s.\n' "$target_tty"
       return 0
     fi
     sleep 0.1
@@ -244,63 +251,44 @@ wait_for_terminal_tty() {
   return 1
 }
 
-run_terminal_applescript() {
-  local action="$1"
-  wait_for_terminal_tty
-  local target_tty
-  target_tty="$(tr -d '\r\n' < "$tty_file")"
-  [[ "$target_tty" == /dev/ttys* ]] || {
-    printf 'Unexpected Neovim Terminal.app TTY: %s\n' "$target_tty" >&2
-    return 1
-  }
-
-  printf '[macos-focus] Requesting Terminal.app %s for exact Neovim TTY %s.\n' "$action" "$target_tty"
-  python3 - "$target_tty" "$action" <<'PY'
+wait_for_frontmost_application() {
+  local bundle_id="$1"
+  local app_name="$2"
+  python3 - "$bundle_id" "$app_name" <<'PY'
 import subprocess
 import sys
 
-target_tty, action = sys.argv[1:3]
-script = """on run argv
-  set targetTTY to item 1 of argv
-  set actionName to item 2 of argv
+bundle_id, app_name = sys.argv[1:3]
+swift = """import AppKit
+import Foundation
 
-  if actionName is "terminal" then
-    tell application "Terminal"
-      set matchingWindows to every window whose tty of tab 1 contains targetTTY
-      if (count of matchingWindows) is 0 then error "No Terminal window owns Neovim TTY " & targetTTY
-      set targetWindow to item 1 of matchingWindows
-      set targetTab to tab 1 of targetWindow
-      set selected of targetTab to true
-      set index of targetWindow to 1
-      activate
-      delay 0.2
-      if frontmost of targetWindow is false then error "Neovim Terminal window did not become frontmost"
-      return "Terminal selected exact Neovim TTY " & targetTTY & "; window id " & (id of targetWindow)
-    end tell
-  else if actionName is "finder" then
-    tell application "Finder"
-      activate
-      delay 0.2
-      if frontmost is false then error "Finder did not become frontmost"
-      return "Finder is frontmost"
-    end tell
-  else
-    error "Unknown activation action: " & actionName
-  end if
-end run
+let bundleID = CommandLine.arguments[1]
+let appName = CommandLine.arguments[2]
+let deadline = Date().addingTimeInterval(10)
+while Date() < deadline {
+  let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
+  if frontmost == bundleID {
+    print("[macos-focus] Frontmost application verified: \\\\(appName) (\\\\(bundleID))")
+    exit(0)
+  }
+  RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+}
+let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
+fputs("Expected \\\\(appName) (\\\\(bundleID)) to become frontmost; got \\\\(frontmost).\\\\n", stderr)
+exit(1)
 """
 
 try:
     result = subprocess.run(
-        ["osascript", "-", target_tty, action],
-        input=script,
+        ["swift", "-", bundle_id, app_name],
+        input=swift,
         text=True,
         check=False,
         timeout=15,
         capture_output=True,
     )
 except subprocess.TimeoutExpired:
-    print(f"Terminal AppleScript {action!r} exceeded its 15-second deadline", file=sys.stderr)
+    print(f"Frontmost-application check for {app_name} exceeded its 15-second deadline", file=sys.stderr)
     raise SystemExit(124)
 
 if result.stdout:
@@ -349,7 +337,8 @@ if ! wait_for_launcher; then
   }
 fi
 wait_for_ready
-run_terminal_applescript "terminal"
+open -a Terminal
+wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
@@ -361,7 +350,8 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
 
 printf '[macos-focus] Activating Finder to force Terminal.app to lose key-window focus.\n'
 open -a Finder
-run_terminal_applescript "finder"
+open -a Finder
+wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
@@ -371,7 +361,8 @@ open -a Terminal
 if ! wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 25 \
   'Terminal.app reactivation generated a real Neovim FocusGained event' true; then
   printf '[macos-focus] Launch Services did not restore the Neovim TTY; using exact Terminal TTY activation fallback.\n'
-  run_terminal_applescript "terminal"
+  open -a Terminal
+wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
   wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 100 \
     'AppKit activation generated a real Neovim FocusGained event'
 fi
