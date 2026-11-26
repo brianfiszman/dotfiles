@@ -132,7 +132,7 @@ test("Linux headless runner selects and reports GNU timeout on Ubuntu", () => {
     "record the resolved supervisor and version in CI logs");
   assert.ok(restoreScript.includes('"$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit"'),
     "run bounded Neovim phases through the selected supervisor");
-  assert.doesNotMatch(restoreScript, /^\\s*timeout --signal=/m,
+  assert.doesNotMatch(restoreScript, /^\s*timeout --signal=/m,
     "do not invoke the ambiguous generic timeout directly");
   assert.ok(workflow.includes("sha256sum gnutimeout find grep tee tar unzip"),
     "Ubuntu runner preflight must require GNU timeout");
