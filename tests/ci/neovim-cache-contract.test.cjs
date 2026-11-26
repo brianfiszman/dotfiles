@@ -183,27 +183,25 @@ test("the fresh DAP adapter installation regression remains wired into the cold 
   assert.match(restoreScript, /dap-neotest-trigger\.lua/);
 });
 
-test("macOS Terminal focus launch records native focus events without RPC", () => {
+test("macOS Terminal focus launch uses bounded native Launch Services transitions without RPC", () => {
   const focusStep = workflow.slice(
     workflow.indexOf("- name: Verify Terminal.app window activation reports native Neovim focus events"),
     workflow.indexOf("- name: Run isolated real provider provisioning and fresh-start checks")
   );
   assert.match(focusStep, /timeout-minutes: 5/);
   assert.ok(macosFocusScript.includes('open -a Terminal "$command_file"'));
-  assert.ok(macosFocusScript.includes('open -a Terminal'));
-  assert.ok(macosFocusScript.includes('open -a Finder'), "Finder activation must use Launch Services");
-    "Finder focus must use a visible window opened on the isolated test directory");
+  assert.ok(macosFocusScript.includes("open -a Finder"));
+  assert.ok(macosFocusScript.includes("open -a Terminal"));
   assert.match(macosFocusScript, /wait_for_launcher/);
   assert.match(macosFocusScript, /wait_for_ready/);
   assert.match(macosFocusScript, /wait_for_terminal_tty/);
-  assert.ok(macosFocusScript.includes('open -a Finder') && macosFocusScript.includes('open -a Terminal'));
-  assert.ok(macosFocusScript.includes('open -a Finder'));
-  assert.ok(macosFocusScript.includes('open -a Terminal'));
-  assert.ok(!macosFocusScript.includes("activate_and_wait_for_frontmost_application") && !macosFocusScript.includes("application.activate("),
-    "native focus transitions must use Launch Services and preserve the active Neovim Terminal window");
-  assert.match(macosFocusScript, /Neovim received/);
+  assert.ok(macosFocusScript.includes("FocusLost"));
+  assert.ok(macosFocusScript.includes("FocusGained"));
+  assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application/);
+  assert.doesNotMatch(macosFocusScript, /application\.activate\(/,
+    "do not activate all Terminal windows and steal focus from the Neovim TUI session");
   assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
   assert.doesNotMatch(macosFocusScript, /run_terminal_applescript|NSAppleScript/,
     "focus activation must not block on Terminal AppleEvents");
   assert.match(treesitterCurrentApi, /syntax ~= ""/);
-});;
+});
