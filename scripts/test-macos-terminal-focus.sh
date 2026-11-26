@@ -95,6 +95,7 @@ export TERM=xterm-256color
 # This test validates native Terminal.app focus events only. The independent
 # startup/LSP integration path covers Mason package installation.
 export DOTFILES_SKIP_MASON_LSP_INSTALL=1
+export DOTFILES_SKIP_TREESITTER_PROVISIONING=1
 echo \$\$ > $q_pid
 {
   printf '[launcher] shell started; pid=%s\n' "\$\$"
@@ -102,9 +103,9 @@ echo \$\$ > $q_pid
   printf '[launcher] config: %s\n' $q_init
 } >> $q_launcher_log
 tty > $q_tty 2>> $q_launcher_log
-exec $q_nvim --listen $q_socket --cmd 'set nomore' \
-  --startuptime $q_timing_log -V12$q_verbose_log -u $q_init \
-  -c 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1' 2>> $q_launcher_log
+exec $q_nvim --listen $q_socket --cmd 'set nomore shortmess+=I' \
+  --cmd 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1' \
+  --startuptime $q_timing_log -V12$q_verbose_log -u $q_init 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
 
