@@ -145,6 +145,8 @@ test("no baseline skips runtime integration only for an entirely allowlisted age
     "tests/ci/neovim-integration-decision.test.cjs",
     "scripts/ci/validate-agent-preflight.cjs",
     "tests/ci/agent-process-contract.test.cjs",
+    "scripts/ci/neovim-integration-gate.cjs",
+    "tests/ci/neovim-integration-gate.test.cjs",
   ];
   const github = fakeGithub({
     runs: [],
@@ -415,21 +417,11 @@ test("workflow run name carries the immutable PR baseline and keeps the heavy jo
   assert.match(workflow, /- "tests\/ci\/\*\*"/);
 });
 
-test("the static integration gate aggregates the decision and both runtime jobs", () => {
+test("the Neovim runtime workflow stays separate from the process-only integration gate", () => {
   const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
   const workflow = readFileSync(workflowPath, "utf8");
-  const gateStart = workflow.indexOf("  integration-gate:");
-  assert.notEqual(gateStart, -1, "stable integration gate must exist");
-  const gate = workflow.slice(gateStart);
-  assert.ok(gate.includes("name: Neovim integration gate"));
-  assert.ok(gate.includes("- integration-decision"));
-  assert.ok(gate.includes("- python-provider-macos"));
-  assert.ok(gate.includes("- headless-startup"));
-  assert.ok(gate.includes("if: " + "$" + "{{ always() }}"));
-  assert.ok(gate.includes("INTEGRATION_REQUIRED"));
-  assert.ok(gate.includes('require_success "Linux headless integration"'));
-  assert.ok(gate.includes('require_success "macOS plugin/provider integration"'));
-  assert.ok(gate.includes("Unexpected runtime integration result"));
+  assert.doesNotMatch(workflow, /^  integration-gate:/m);
+  assert.doesNotMatch(workflow, /name: Neovim integration gate/);
 });
 
 test("a Python provider macOS script-only delta requires full integration", async () => {
@@ -471,6 +463,8 @@ test("path classifier keeps runtime paths mandatory and isolates only explicit a
     "tests/ci/neovim-integration-decision.test.cjs",
     "scripts/ci/validate-agent-preflight.cjs",
     "tests/ci/agent-process-contract.test.cjs",
+    "scripts/ci/neovim-integration-gate.cjs",
+    "tests/ci/neovim-integration-gate.test.cjs",
   ]) {
     assert.equal(
       existsSync(resolve(__dirname, "../..", path)),

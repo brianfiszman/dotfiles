@@ -148,6 +148,11 @@ test("dedicated agent workflow validates PR preflight and keeps GUI integration 
   assert.match(workflow, /PR_BODY:.*pull_request\.body/);
   assert.match(workflow, /node scripts\/ci\/validate-agent-preflight\.cjs/);
   assert.match(workflow, /node --test tests\/ci\/agent-process-contract\.test\.cjs/);
+  assert.match(workflow, /node --test tests\/ci\/neovim-integration-gate\.test\.cjs/);
+  assert.match(workflow, /name: Neovim integration gate/);
+  assert.match(workflow, /actions: read/);
+  assert.match(workflow, /workflow_id: NEOVIM_WORKFLOW_ID/);
+  assert.match(workflow, /neovim-integration-gate\.cjs/);
   assert.ok(
     workflow.indexOf("node scripts/ci/validate-agent-preflight.cjs")
       < workflow.indexOf("node --test tests/ci/agent-process-contract.test.cjs"),
@@ -157,4 +162,6 @@ test("dedicated agent workflow validates PR preflight and keeps GUI integration 
   const neovimWorkflow = normalize(read(".github/workflows/neovim-headless.yml"));
   assert.doesNotMatch(neovimWorkflow, /node scripts\/ci\/validate-agent-preflight\.cjs/);
   assert.doesNotMatch(neovimWorkflow, /node --test tests\/ci\/agent-process-contract\.test\.cjs/);
+  assert.doesNotMatch(neovimWorkflow, /name: Neovim integration gate/);
+  assert.doesNotMatch(neovimWorkflow, /integration-gate:/);
 });

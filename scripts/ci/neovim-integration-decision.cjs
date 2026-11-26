@@ -15,6 +15,8 @@ const AGENT_PROCESS_ONLY_FILES = new Set([
   "AGENT_WORKLOG.md",
   "scripts/ci/neovim-integration-decision.cjs",
   "tests/ci/neovim-integration-decision.test.cjs",
+  "scripts/ci/neovim-integration-gate.cjs",
+  "tests/ci/neovim-integration-gate.test.cjs",
   "scripts/ci/validate-agent-preflight.cjs",
   "tests/ci/agent-process-contract.test.cjs",
 ]);
@@ -149,7 +151,7 @@ async function determineIntegrationRequirement({ context, github }) {
       if (nonProcessPaths.length === 0) {
         return {
           required: false,
-          reason: "only explicitly allowlisted agent-process policy, workflow, template, state, log, validator, and contract-test paths changed; the dedicated agent-preflight workflow validates them",
+          reason: "only explicitly allowlisted agent-process policy, workflow, template, state, log, validator, gate verifier, and contract-test paths changed; the dedicated agent-preflight workflow validates them",
         };
       }
       return required(
