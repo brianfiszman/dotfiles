@@ -97,6 +97,9 @@ jobs:
       - name: Test Neovim focus PTY startup-prompt handling
         run: python3 tests/ci/test-nvim-focus-pty.py
 
+      - name: Test bounded Neovim RPC commands
+        run: python3 tests/ci/test-nvim-rpc-timeout.py
+
       - name: Test real lazy.nvim bootstrap failure and recovery paths
         run: node --test tests/ci/neovim-bootstrap.test.cjs
 
@@ -195,6 +198,7 @@ jobs:
         run: bash ./scripts/test-nvim-headless.sh restore
 
       - name: Verify Terminal.app window activation reports native Neovim focus events
+        timeout-minutes: 5
         env:
           NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
           NVIM_BIN: nvim
