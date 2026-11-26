@@ -91,6 +91,10 @@ export XDG_CONFIG_HOME=$q_config
 export XDG_DATA_HOME=$q_data
 export XDG_STATE_HOME=$q_state
 export XDG_CACHE_HOME=$q_cache
+export TERM=xterm-256color
+# This test validates native Terminal.app focus events only. The independent
+# startup/LSP integration path covers Mason package installation.
+export DOTFILES_SKIP_MASON_LSP_INSTALL=1
 echo \$\$ > $q_pid
 {
   printf '[launcher] shell started; pid=%s\n' "\$\$"
