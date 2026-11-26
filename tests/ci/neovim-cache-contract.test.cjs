@@ -14,6 +14,7 @@ const lspConfigPath = resolve(__dirname, "../../.config/nvim/lua/lsp/config.lua"
 const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
 const macosFocusScriptPath = resolve(__dirname, "../../scripts/test-macos-terminal-focus.sh");
+const luasnipIdleLifetimePath = resolve(__dirname, "../nvim/luasnip-idle-lifetime.lua");
 const pluginConfigPath = resolve(__dirname, "../../.config/nvim/lua/plugins.lua");
 
 const workflow = readFileSync(workflowPath, "utf8");
@@ -25,6 +26,7 @@ const lspConfig = readFileSync(lspConfigPath, "utf8");
 const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
 const macosFocusScript = readFileSync(macosFocusScriptPath, "utf8");
+const luasnipIdleLifetime = readFileSync(luasnipIdleLifetimePath, "utf8");
 const pluginConfig = readFileSync(pluginConfigPath, "utf8");
 
 const trustedCacheCondition =
@@ -183,6 +185,11 @@ test("the fresh DAP adapter installation regression remains wired into the cold 
   assert.match(restoreScript, /dap-neotest-trigger\.lua/);
 });
 
+test("headless LuaSnip fixture drains real typed input before checking Insert mode", () => {
+  assert.match(luasnipIdleLifetime, /nvim_feedkeys\(termcodes, "mtx", false\)/,
+    "the x flag must drain queued typed input before mode assertions");
+});
+
 test("macOS Terminal focus launch uses bounded native Launch Services transitions without RPC", () => {
   const focusStep = workflow.slice(
     workflow.indexOf("- name: Verify Terminal.app window activation reports native Neovim focus events"),
@@ -203,8 +210,13 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
   );
   assert.ok(nvimLaunch.indexOf("-u $q_init") < nvimLaunch.indexOf("-c 'lua"),
     "native focus autocmds must be registered after init.lua, matching the post-config command phase");
-  assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application/);
-  assert.doesNotMatch(macosFocusScript, /application\.activate\(/,
+  assert.ok(macosFocusScript.includes('open -a Finder "$test_root"'),
+    "Finder must open a real window before the focus transition");
+  assert.ok(macosFocusScript.includes('activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"'),
+    "the test must explicitly activate Finder and verify it became frontmost before asserting FocusLost");
+  assert.match(macosFocusScript, /NSWorkspace\.shared\.frontmostApplication/,
+    "the native activation helper must verify the actual frontmost application");
+  assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application "com\.apple\.Terminal"/,
     "do not activate all Terminal windows and steal focus from the Neovim TUI session");
   assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
   assert.doesNotMatch(macosFocusScript, /run_terminal_applescript|NSAppleScript/,
