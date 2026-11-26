@@ -183,4 +183,8 @@ test("macOS Terminal focus launch has a bounded Launch Services and scripting fa
   assert.match(macosFocusScript, /timeout=15/);
   assert.match(macosFocusScript, /--startuptime/);
   assert.match(macosFocusScript, /nvim-rpc\.py/);
+  assert.match(macosFocusScript, /NVIM_RPC_TIMEOUT_SECONDS=10 python3/,
+    "startup and focus RPC reads must tolerate slow UI startup while retaining the five-minute step cap");
+  assert.match(restoreScript, /config\\.options\\.concurrency = 1/,
+    "cache-hit build hooks must be serialized to avoid concurrent native toolchain/cache races");
 });
