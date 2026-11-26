@@ -105,7 +105,7 @@ EOF
 chmod 700 "$command_file"
 
 remote_expr() {
-  NVIM_RPC_TIMEOUT_SECONDS=2 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
+  NVIM_RPC_TIMEOUT_SECONDS=10 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
     "$NVIM_BIN" --server "$socket_path" --remote-expr "$1"
 }
 
