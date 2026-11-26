@@ -205,9 +205,9 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(pluginConfig, /Using configured concurrency limit/);
   assert.match(restoreScript, /\+Lazy! build all/,
     "cache hits must explicitly run build hooks for unchanged plugin checkouts");
-  assert.match(macosFocusScript, /request_appkit_activation "com\.apple\.finder" "Finder"/,
+  assert.ok(macosFocusScript.includes('request_appkit_activation "com.apple.finder" "Finder"'),
     "Finder must be explicitly activated through AppKit before asserting FocusLost");
-  assert.match(macosFocusScript, /request_appkit_activation "com\\.apple\\.Terminal" "Terminal\\.app"/,
+  assert.ok(macosFocusScript.includes('request_appkit_activation "com.apple.Terminal" "Terminal.app"'),
     "Terminal.app must be activated before and after the Finder transition");
   assert.ok(macosFocusScript.includes("NSWorkspace.shared.frontmostApplication?.bundleIdentifier"),
     "AppKit must verify the requested app became frontmost");
