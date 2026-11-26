@@ -354,32 +354,38 @@ fi
 wait_for_ready
 wait_for_terminal_tty
 
-# Launch Services opened this .command in Terminal.app. Keep that exact TUI
-# window selected; activating all Terminal windows can switch to another tab.
-lost_before="$(read_counter dotfiles_macos_focus_lost)"
+# Launch Services opened this .command in Terminal.app, but the hosted runner's
+# initially active application is not guaranteed. Drive a complete activation
+# cycle first so the test proves the Neovim TUI is attached to the window that
+# actually receives keyboard focus, rather than assuming it was selected.
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
-[[ "$lost_before" =~ ^[0-9]+$ && "$gained_before" =~ ^[0-9]+$ ]] || {
-  printf 'Neovim focus counters were not initialized by their autocmds (lost=%s gained=%s).\n' \
-    "$lost_before" "$gained_before" >&2
+[[ "$gained_before" =~ ^[0-9]+$ ]] || {
+  printf 'Neovim FocusGained counter was not initialized: %s\n' "$gained_before" >&2
   exit 1
 }
 
-printf '[macos-focus] Activating Finder to force Terminal.app to lose key-window focus.\n'
+printf '[macos-focus] Selecting Finder before explicitly foregrounding the Neovim Terminal.app window.\n'
+open -a Finder "$test_root"
+activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+
+printf '[macos-focus] Explicitly activating Terminal.app and requiring a native FocusGained event.\n'
+activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal"
+wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
+  'Terminal.app activation generated a real Neovim FocusGained event'
+
+lost_before="$(read_counter dotfiles_macos_focus_lost)"
+printf '[macos-focus] Activating Finder to force the selected Terminal.app window to lose key-window focus.\n'
 open -a Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
-gained_after="$(read_counter dotfiles_macos_focus_gained)"
 
-printf '[macos-focus] Reactivating Terminal.app through Launch Services.\n'
+gained_after="$(read_counter dotfiles_macos_focus_gained)"
+printf '[macos-focus] Reactivating Terminal.app and requiring another native FocusGained event.\n'
 open -a Terminal
-if ! wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 25 \
-  'Terminal.app reactivation generated a real Neovim FocusGained event' true; then
-  printf '[macos-focus] Retrying Launch Services activation of Terminal.app.\n'
-  open -a Terminal
-  wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 100 \
-    'Launch Services reactivation generated a real Neovim FocusGained event'
-fi
+activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal"
+wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
+  'Terminal.app reactivation generated a real Neovim FocusGained event'
 lost_final="$(read_counter dotfiles_macos_focus_lost)"
 gained_final="$(read_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Final native event counts: FocusLost=%s FocusGained=%s\n' \
