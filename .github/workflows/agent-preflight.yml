@@ -1,0 +1,127 @@
+name: Agent preflight and process contracts
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "AGENTS.md"
+      - ".github/pull_request_template.md"
+      - ".github/workflows/agent-preflight.yml"
+      - "AGENT_STATE.md"
+      - "AGENT_WORKLOG.md"
+      - "docs/agent-log/**"
+      - "scripts/ci/validate-agent-preflight.cjs"
+      - "scripts/ci/neovim-integration-decision.cjs"
+      - "scripts/ci/neovim-integration-gate.cjs"
+      - "tests/ci/neovim-integration-decision.test.cjs"
+      - "tests/ci/neovim-integration-gate.test.cjs"
+      - "tests/ci/agent-process-contract.test.cjs"
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  workflow_dispatch:
+
+concurrency:
+  group: agent-preflight-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  agent-preflight:
+    name: Agent preflight and process contracts
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Enforce mandatory agent preflight evidence in pull requests
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: node scripts/ci/validate-agent-preflight.cjs
+
+      - name: Test mandatory agent development-process contracts
+        run: node --test tests/ci/agent-process-contract.test.cjs
+
+      - name: Test exact-head Neovim integration gate contracts
+        run: node --test tests/ci/neovim-integration-gate.test.cjs
+  integration-gate:
+    name: Neovim integration gate
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 75
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Wait for and verify the exact-head Neovim workflow run
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const {
+              NEOVIM_WORKFLOW_ID,
+              evaluateNeovimRun,
+              selectLatestMatchingRun,
+            } = require("./scripts/ci/neovim-integration-gate.cjs");
+
+            const pullRequest = context.payload && context.payload.pull_request;
+            if (!pullRequest || !pullRequest.head || !pullRequest.base ||
+                !pullRequest.head.sha || !pullRequest.base.sha ||
+                !Number.isInteger(pullRequest.number)) {
+              throw new Error("Pull-request payload is incomplete; cannot verify Neovim integration.");
+            }
+            const identity = {
+              prNumber: pullRequest.number,
+              headSha: pullRequest.head.sha,
+              baseSha: pullRequest.base.sha,
+            };
+            const deadline = Date.now() + 70 * 60 * 1000;
+            let matchingRun = null;
+
+            while (Date.now() < deadline) {
+              const response = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: NEOVIM_WORKFLOW_ID,
+                event: "pull_request",
+                branch: pullRequest.head.ref,
+                per_page: 100,
+              });
+              const runs = response.data && response.data.workflow_runs;
+              if (!Array.isArray(runs)) {
+                throw new Error("Neovim workflow-runs API response is missing workflow_runs.");
+              }
+              matchingRun = selectLatestMatchingRun(runs, identity);
+              if (matchingRun && matchingRun.status === "completed") {
+                const jobsResponse = await github.rest.actions.listJobsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: matchingRun.id,
+                  filter: "latest",
+                  per_page: 100,
+                });
+                const jobs = jobsResponse.data && jobsResponse.data.jobs;
+                const result = evaluateNeovimRun(matchingRun, jobs, identity);
+                if (!result.passed) {
+                  throw new Error("Neovim integration gate failed for run #" +
+                    matchingRun.run_number + ": " + result.reason);
+                }
+                core.info("Neovim integration gate passed for exact PR #" +
+                  identity.prNumber + " head " + identity.headSha +
+                  " and base " + identity.baseSha + ".");
+                core.info("Evidence mode: " + result.mode + ". " + result.reason);
+                return;
+              }
+              core.info(matchingRun
+                ? "Waiting for exact-head Neovim run #" + matchingRun.run_number +
+                  " (status: " + matchingRun.status + ")."
+                : "Waiting for a Neovim run matching this exact PR/head/base.");
+              await new Promise((resolve) => setTimeout(resolve, 15000));
+            }
+            throw new Error("Timed out waiting for a completed Neovim run matching exact PR #" +
+              identity.prNumber + ", head " + identity.headSha + ", base " + identity.baseSha + ".");
+

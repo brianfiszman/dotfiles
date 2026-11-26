@@ -1,10 +1,11 @@
 "use strict";
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   determineIntegrationRequirement,
+  isAgentProcessOnlyPath,
   isIntegrationPath,
   parseIntegrationBaseline,
 } = require("../../scripts/ci/neovim-integration-decision.cjs");
@@ -115,25 +116,103 @@ test("incomplete PR payload fails open", async () => {
   assert.match(result.reason, /payload is incomplete/);
 });
 
-test("no successful same-PR integration baseline fails open", async () => {
+test("no successful same-PR integration baseline requires runtime integration for runtime changes", async () => {
   const result = await determineIntegrationRequirement({
     context: makeContext(),
-    github: fakeGithub({ runs: [] }),
+    github: fakeGithub({
+      runs: [],
+      comparison: {
+        status: "ahead",
+        total_commits: 1,
+        files: [{ filename: ".config/nvim/init.lua" }],
+      },
+    }),
   });
   assert.equal(result.required, true);
   assert.match(result.reason, /no previous successful full integration/);
+  assert.match(result.reason, /process-only exception does not apply/);
 });
 
-test("different PRs and missing PR associations cannot provide a baseline", async () => {
+test("no baseline skips runtime integration only for an entirely allowlisted agent-process diff", async () => {
+  const changedFiles = [
+    "AGENTS.md",
+    ".github/pull_request_template.md",
+    ".github/workflows/agent-preflight.yml",
+    "AGENT_STATE.md",
+    "AGENT_WORKLOG.md",
+    "docs/agent-log/2026-11.md",
+    "scripts/ci/neovim-integration-decision.cjs",
+    "tests/ci/neovim-integration-decision.test.cjs",
+    "scripts/ci/validate-agent-preflight.cjs",
+    "tests/ci/agent-process-contract.test.cjs",
+    "scripts/ci/neovim-integration-gate.cjs",
+    "tests/ci/neovim-integration-gate.test.cjs",
+  ];
+  const github = fakeGithub({
+    runs: [],
+    comparison: {
+      status: "ahead",
+      total_commits: 2,
+      files: changedFiles.map((filename) => ({ filename })),
+    },
+  });
+  const result = await determineIntegrationRequirement({ context: makeContext(), github });
+  assert.equal(result.required, false);
+  assert.match(result.reason, /explicitly allowlisted agent-process/);
+  assert.equal(github.calls.comparisons.length, 1);
+  assert.equal(github.calls.comparisons[0].args.base, BASE_SHA);
+  assert.equal(github.calls.comparisons[0].args.head, CURRENT_HEAD_SHA);
+});
+
+test("a mixed agent-process and runtime diff still requires full integration without a baseline", async () => {
+  const github = fakeGithub({
+    runs: [],
+    comparison: {
+      status: "ahead",
+      total_commits: 2,
+      files: [
+        { filename: "AGENTS.md" },
+        { filename: "tests/nvim/lazydev-lazy-loading.lua" },
+      ],
+    },
+  });
+  const result = await determineIntegrationRequirement({ context: makeContext(), github });
+  assert.equal(result.required, true);
+  assert.match(result.reason, /process-only exception does not apply/);
+  assert.match(result.reason, /tests\/nvim/);
+});
+
+test("an incomplete base-to-head comparison never activates the process-only exception", async () => {
+  for (const comparison of [
+    { status: "behind", total_commits: 1, files: [{ filename: "AGENTS.md" }] },
+    { status: "ahead", total_commits: 1, files: [] },
+    { status: "ahead", total_commits: 1, files: [{ previous_filename: "AGENTS.md" }] },
+    { status: "ahead", total_commits: 250, files: [{ filename: "AGENTS.md" }] },
+  ]) {
+    const result = await determineIntegrationRequirement({
+      context: makeContext(),
+      github: fakeGithub({ runs: [], comparison }),
+    });
+    assert.equal(result.required, true);
+    assert.match(result.reason, /comparison may be incomplete/);
+  }
+});
+
+test("different PRs and missing PR associations cannot provide a reusable baseline", async () => {
   for (const run of [
     baseline({ pull_requests: [{ number: 90 }] }),
     baseline({ pull_requests: [] }),
     baseline({ pull_requests: undefined }),
   ]) {
-    const github = fakeGithub({ runs: [run] });
+    const github = fakeGithub({
+      runs: [run],
+      comparison: { status: "ahead", total_commits: 1, files: [{ filename: ".config/nvim/init.lua" }] },
+    });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);
-    assert.equal(github.calls.comparisons.length, 0);
+    assert.equal(github.calls.jobs.length, 0);
+    assert.equal(github.calls.comparisons.length, 1,
+      "without a reusable baseline the complete base-to-head diff must be examined");
   }
 });
 
@@ -141,11 +220,50 @@ test("skipped, failed and cancelled integration runs cannot provide a baseline",
   for (const conclusion of ["skipped", "failure", "cancelled"]) {
     const github = fakeGithub({
       jobsByRun: { 123: [{ name: "Fresh install and headless startup", conclusion }] },
+      comparison: { status: "ahead", total_commits: 1, files: [{ filename: ".config/nvim/init.lua" }] },
     });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);
-    assert.equal(github.calls.comparisons.length, 0);
+    assert.equal(github.calls.comparisons.length, 1,
+      "a non-successful integration job is not a baseline; compare the complete PR delta");
   }
+});
+
+test("matrix-expanded integration job names are accepted when every matrix cell passed", async () => {
+  const github = fakeGithub({
+    jobsByRun: {
+      123: [
+        { name: "Fresh install and headless startup (Neovim v0.12.6)", conclusion: "success" },
+        { name: "Fresh install and headless startup (Neovim nightly)", conclusion: "success" },
+      ],
+    },
+    comparison: { status: "ahead", total_commits: 1, files: [{ filename: "AGENT_WORKLOG.md" }] },
+  });
+  const result = await determineIntegrationRequirement({ context: makeContext(), github });
+  assert.equal(result.required, false);
+  assert.equal(github.calls.jobs.length, 1);
+  assert.equal(github.calls.comparisons.length, 1);
+});
+
+test("a failed matrix cell invalidates an otherwise successful integration baseline", async () => {
+  const github = fakeGithub({
+    jobsByRun: {
+      123: [
+        { name: "Fresh install and headless startup (Neovim v0.12.6)", conclusion: "success" },
+        { name: "Fresh install and headless startup (Neovim nightly)", conclusion: "failure" },
+      ],
+    },
+    comparison: {
+      status: "ahead",
+      total_commits: 1,
+      files: [{ filename: ".config/nvim/init.lua" }],
+    },
+  });
+  const result = await determineIntegrationRequirement({ context: makeContext(), github });
+  assert.equal(result.required, true);
+  assert.match(result.reason, /no previous successful full integration/);
+  assert.equal(github.calls.jobs.length, 1);
+  assert.equal(github.calls.comparisons.length, 1);
 });
 
 test("documentation-only delta skips integration after a successful baseline on the current base SHA", async () => {
@@ -158,11 +276,15 @@ test("documentation-only delta skips integration after a successful baseline on 
 });
 
 test("a master/base SHA change invalidates the previous successful integration baseline", async () => {
-  const github = fakeGithub({ baselineBaseSha: "e".repeat(40) });
+  const github = fakeGithub({
+    baselineBaseSha: "e".repeat(40),
+    comparison: { status: "ahead", total_commits: 1, files: [{ filename: ".config/nvim/init.lua" }] },
+  });
   const result = await determineIntegrationRequirement({ context: makeContext(), github });
   assert.equal(result.required, true);
   assert.match(result.reason, /current PR base SHA/);
-  assert.equal(github.calls.comparisons.length, 0);
+  assert.match(result.reason, /process-only exception does not apply/);
+  assert.equal(github.calls.comparisons.length, 1);
 });
 
 test("baseline metadata must match the historical PR head", async () => {
@@ -187,8 +309,9 @@ test("configuration and test changes require integration", async () => {
   for (const filename of [
     ".config/nvim/lua/lsp/native.lua",
     "tests/nvim/lazydev-lazy-loading.lua",
-    "scripts/ci/neovim-integration-decision.cjs",
-    "tests/ci/neovim-integration-decision.test.cjs",
+    "tests/ci/neovim-cache-contract.test.cjs",
+    "scripts/ci/neovim-bootstrap.cjs",
+    "scripts/test-macos-terminal-focus.sh",
   ]) {
     const github = fakeGithub({
       comparison: { status: "ahead", total_commits: 1, files: [{ filename }] },
@@ -211,12 +334,15 @@ test("renaming a relevant file out of the watched tree still requires integratio
 });
 
 test("current-head, failed, cancelled and unrelated-PR runs are excluded", async () => {
-  const github = fakeGithub({ runs: [
-    baseline({ id: 999, head_sha: CURRENT_HEAD_SHA }),
-    baseline({ id: 124, conclusion: "failure" }),
-    baseline({ id: 125, conclusion: "cancelled" }),
-    baseline({ id: 126, pull_requests: [{ number: 90 }] }),
-  ] });
+  const github = fakeGithub({
+    runs: [
+      baseline({ id: 999, head_sha: CURRENT_HEAD_SHA }),
+      baseline({ id: 124, conclusion: "failure" }),
+      baseline({ id: 125, conclusion: "cancelled" }),
+      baseline({ id: 126, pull_requests: [{ number: 90 }] }),
+    ],
+    comparison: { status: "ahead", total_commits: 1, files: [{ filename: ".config/nvim/init.lua" }] },
+  });
   const result = await determineIntegrationRequirement({ context: makeContext(), github });
   assert.equal(result.required, true);
   assert.equal(github.calls.jobs.length, 0);
@@ -291,6 +417,13 @@ test("workflow run name carries the immutable PR baseline and keeps the heavy jo
   assert.match(workflow, /- "tests\/ci\/\*\*"/);
 });
 
+test("the Neovim runtime workflow stays separate from the process-only integration gate", () => {
+  const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless.yml");
+  const workflow = readFileSync(workflowPath, "utf8");
+  assert.doesNotMatch(workflow, /^  integration-gate:/m);
+  assert.doesNotMatch(workflow, /name: Neovim integration gate/);
+});
+
 test("a Python provider macOS script-only delta requires full integration", async () => {
   const github = fakeGithub({
     comparison: {
@@ -304,19 +437,46 @@ test("a Python provider macOS script-only delta requires full integration", asyn
   assert.match(result.reason, /integration-relevant files changed/);
 });
 
-test("path classifier includes integration inputs but not continuity-only docs", () => {
+test("path classifier keeps runtime paths mandatory and isolates only explicit agent-process files", () => {
   for (const path of [
     ".config/nvim/init.lua",
     "tests/nvim/lazydev-lazy-loading.lua",
     ".agents/skills/neovim-maintenance/SKILL.md",
-    "scripts/ci/neovim-integration-decision.cjs",
-    "tests/ci/neovim-integration-decision.test.cjs",
+    "scripts/ci/neovim-bootstrap.cjs",
+    "tests/ci/neovim-cache-contract.test.cjs",
     "scripts/test-nvim-headless.sh",
     "scripts/test-python-provider-macos.sh",
+    "scripts/test-macos-terminal-focus.sh",
     ".github/workflows/neovim-headless.yml",
     "install.sh",
     "README.md",
   ]) assert.equal(isIntegrationPath(path), true, path);
-  assert.equal(isIntegrationPath("AGENT_WORKLOG.md"), false);
+
+  for (const path of [
+    "AGENTS.md",
+    ".github/pull_request_template.md",
+    ".github/workflows/agent-preflight.yml",
+    "AGENT_STATE.md",
+    "AGENT_WORKLOG.md",
+    "docs/agent-log/2026-11.md",
+    "scripts/ci/neovim-integration-decision.cjs",
+    "tests/ci/neovim-integration-decision.test.cjs",
+    "scripts/ci/validate-agent-preflight.cjs",
+    "tests/ci/agent-process-contract.test.cjs",
+    "scripts/ci/neovim-integration-gate.cjs",
+    "tests/ci/neovim-integration-gate.test.cjs",
+  ]) {
+    assert.equal(
+      existsSync(resolve(__dirname, "../..", path)),
+      true,
+      "agent-process allowlist fixture must reference an existing repository path: " + path
+    );
+    assert.equal(isAgentProcessOnlyPath(path), true, path);
+    assert.equal(isIntegrationPath(path), false, path);
+  }
+
+  assert.equal(isAgentProcessOnlyPath("tests/ci/neovim-cache-contract.test.cjs"), false);
+  assert.equal(isAgentProcessOnlyPath("scripts/ci/neovim-integration-decision.test.cjs"), false);
+  assert.equal(isIntegrationPath("scripts/ci/neovim-integration-decision.test.cjs"), true);
   assert.equal(isIntegrationPath("docs/neovim-modernization-backlog.md"), false);
 });
