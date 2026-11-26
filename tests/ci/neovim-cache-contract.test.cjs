@@ -13,6 +13,7 @@ const lspConfigPath = resolve(__dirname, "../../.config/nvim/lua/lsp/config.lua"
 const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
 const macosFocusScriptPath = resolve(__dirname, "../../scripts/test-macos-terminal-focus.sh");
+const pluginConfigPath = resolve(__dirname, "../../.config/nvim/lua/plugins.lua");
 
 const workflow = readFileSync(workflowPath, "utf8");
 const restoreScript = readFileSync(restoreScriptPath, "utf8");
@@ -22,6 +23,7 @@ const lspConfig = readFileSync(lspConfigPath, "utf8");
 const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
 const macosFocusScript = readFileSync(macosFocusScriptPath, "utf8");
+const pluginConfig = readFileSync(pluginConfigPath, "utf8");
 
 const trustedCacheCondition =
   "$" + "{{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}";
@@ -193,11 +195,11 @@ test("macOS Terminal focus launch has a bounded Launch Services and scripting fa
     "focus counters and readiness must be installed before user startup plugins run");
   assert.match(macosFocusScript, /NVIM_RPC_TIMEOUT_SECONDS=10 python3/,
     "startup and focus RPC reads must tolerate slow UI startup while retaining the five-minute step cap");
-  const concurrencyIndex = restoreScript.indexOf("local build_concurrency=");
-  const prependIndex = restoreScript.indexOf('restore_checks=("$build_concurrency" "${restore_checks[@]}")');
-  const runIndex = restoreScript.indexOf('run_nvim "plugin-restore"');
-  assert.ok(concurrencyIndex >= 0 && prependIndex > concurrencyIndex && runIndex > prependIndex,
-    "plugin build hooks must be serialized before Lazy restore starts");
+  assert.match(restoreScript, /DOTFILES_LAZY_CONCURRENCY=1/,
+    "plugin restore must request serialized build hooks through lazy.setup");
+  assert.match(pluginConfig, /DOTFILES_LAZY_CONCURRENCY/);
+  assert.match(pluginConfig, /concurrency = lazy_concurrency/);
+  assert.match(pluginConfig, /Using configured concurrency limit/);
   assert.doesNotMatch(restoreScript, /\+Lazy! build all/,
     "do not execute build hooks twice in the same Neovim process after Lazy! restore already ran them");
 });
