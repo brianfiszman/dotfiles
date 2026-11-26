@@ -121,7 +121,12 @@ local function open_fixture(fixture)
   local indent_query_ok, indent_query = pcall(vim.treesitter.query.get, fixture.language, "indents")
   local has_indent_query = indent_query_ok and indent_query ~= nil
   if has_indent_query then
-    assert_equal("v:lua.require'nvim-treesitter'.indentexpr()", vim.bo.indentexpr,
+    local expected_indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+    assert(vim.wait(2000, function()
+      return vim.bo.indentexpr == expected_indentexpr
+    end, 10), fixture.filetype .. " did not receive the current Treesitter indentexpr after ftplugin setup: "
+      .. vim.inspect(vim.bo.indentexpr))
+    assert_equal(expected_indentexpr, vim.bo.indentexpr,
       fixture.filetype .. " uses the current Treesitter indentexpr")
   else
     assert(vim.bo.indentexpr ~= "v:lua.require'nvim-treesitter'.indentexpr()",
