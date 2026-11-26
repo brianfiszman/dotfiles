@@ -312,7 +312,7 @@ jobs:
             ${{ runner.temp }}/nvim-headless-smoke/state/nvim/*.log
           if-no-files-found: ignore
 
-  
+
   integration-gate:
     name: Neovim integration gate
     needs:
