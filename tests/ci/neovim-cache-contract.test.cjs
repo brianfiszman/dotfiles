@@ -171,24 +171,25 @@ test("the fresh DAP adapter installation regression remains wired into the cold 
   assert.match(restoreScript, /dap-neotest-trigger\.lua/);
 });
 
-test("macOS Terminal focus launch records native focus events without blocking RPC", () => {
+test("macOS Terminal focus launch records native focus events without RPC", () => {
   const focusStep = workflow.slice(
     workflow.indexOf("- name: Verify Terminal.app window activation reports native Neovim focus events"),
     workflow.indexOf("- name: Run isolated real provider provisioning and fresh-start checks")
   );
   assert.match(focusStep, /timeout-minutes: 5/);
-  assert.match(macosFocusScript, /open -a Terminal "\\$command_file"/);
+  assert.ok(macosFocusScript.includes('open -a Terminal "$command_file"'));
   assert.match(macosFocusScript, /wait_for_launcher/);
   assert.match(macosFocusScript, /launch_through_terminal_scripting/);
-  assert.match(macosFocusScript, /\\["osascript", "-", sys\\.argv\\[1\\]\\]/);
+  assert.ok(macosFocusScript.includes('["osascript", "-", sys.argv[1]]'));
   assert.match(macosFocusScript, /timeout=15/);
   assert.match(macosFocusScript, /--startuptime/);
-  assert.match(macosFocusScript, /DOTFILES_FOCUS_READY_FILE/);
-  assert.match(macosFocusScript, /DOTFILES_FOCUS_LOST_FILE/);
-  assert.match(macosFocusScript, /DOTFILES_FOCUS_GAINED_FILE/);
-  assert.match(macosFocusScript, /nvim\\.api\\.nvim_create_autocmd\\("FocusLost"/);
-  assert.match(macosFocusScript, /nvim\\.api\\.nvim_create_autocmd\\("FocusGained"/);
-  assert.match(macosFocusScript, /nvim\\.api\\.nvim_create_autocmd\\("VimEnter"/);
+  for (const marker of ["DOTFILES_FOCUS_READY_FILE", "DOTFILES_FOCUS_LOST_FILE", "DOTFILES_FOCUS_GAINED_FILE"]) {
+    assert.ok(macosFocusScript.includes(marker), "missing file-based focus marker " + marker);
+  }
+  for (const event of ["FocusLost", "FocusGained", "VimEnter"]) {
+    assert.ok(macosFocusScript.includes('vim.api.nvim_create_autocmd("' + event + '"'),
+      "missing file-based Neovim autocmd for " + event);
+  }
   assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
   assert.match(macosFocusScript, /export TERM=xterm-256color/);
   assert.match(macosFocusScript, /export DOTFILES_SKIP_MASON_LSP_INSTALL=1/,
