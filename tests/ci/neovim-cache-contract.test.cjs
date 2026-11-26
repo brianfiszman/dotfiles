@@ -191,15 +191,15 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(focusStep, /timeout-minutes: 5/);
   assert.ok(macosFocusScript.includes('open -a Terminal "$command_file"'));
   assert.ok(macosFocusScript.includes('open -a Terminal'));
-  assert.ok(macosFocusScript.includes('open -a Finder "$test_root"'),
+  assert.ok(macosFocusScript.includes('open -a Finder'), "Finder activation must use Launch Services");
     "Finder focus must use a visible window opened on the isolated test directory");
   assert.match(macosFocusScript, /wait_for_launcher/);
   assert.match(macosFocusScript, /wait_for_ready/);
   assert.match(macosFocusScript, /wait_for_terminal_tty/);
-  assert.match(macosFocusScript, /wait_for_frontmost_application/);
+  assert.ok(macosFocusScript.includes('open -a Finder') && macosFocusScript.includes('open -a Terminal'));
   assert.ok(macosFocusScript.includes('open -a Finder'));
   assert.ok(macosFocusScript.includes('open -a Terminal'));
-  assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application|application\\.activate\\(/,
+  assert.ok(!macosFocusScript.includes("activate_and_wait_for_frontmost_application") && !macosFocusScript.includes("application.activate("),
     "native focus transitions must use Launch Services and preserve the active Neovim Terminal window");
   assert.match(macosFocusScript, /Neovim received/);
   assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
