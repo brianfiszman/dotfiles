@@ -88,7 +88,7 @@ test("preflight CI rejects omitted learning, vague searches, placeholders, and u
 test("preflight validator ignores required fields placed outside the Agent preflight section", () => {
   const fieldOutsideSection = completePreflight.replace(
     "- Falsifiable hypothesis: the PR-body preflight validator rejects missing project-learning evidence before fast checks pass.",
-    "## Validation\\n- Falsifiable hypothesis: the PR-body preflight validator rejects missing project-learning evidence before fast checks pass."
+    "## Validation" + "\n" + "- Falsifiable hypothesis: the PR-body preflight validator rejects missing project-learning evidence before fast checks pass."
   );
   assert.ok(
     validateAgentPreflight(fieldOutsideSection).some((error) => /missing required field: Falsifiable hypothesis/.test(error))
