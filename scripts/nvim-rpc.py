@@ -47,7 +47,7 @@ def main() -> int:
             sys.stderr.write(result.stderr)
         return result.returncode
 
-    sys.stdout.write(result.stdout.replace("\\r", "").replace("\\n", ""))
+    sys.stdout.write(sys.stdout.write(result.stdout.replace("\r", "").replace("\n", ""))
     return 0
 
 
