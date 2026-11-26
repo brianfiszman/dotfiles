@@ -115,10 +115,9 @@ test("compiled parser cache is keyed by platform, architecture, toolchain, Neovi
   assert.match(block, /treesitter-current-api\.lua/);
 });
 
-test("plugin cache hits force all lazy.nvim build hooks and fail on task errors", () => {
+test("plugin restore runs configured build hooks once, serially, and fails on task errors", () => {
   assert.match(workflow, /DOTFILES_PLUGIN_CACHE_HIT: \$\{\{ steps\.lazy-plugin-cache\.outputs\.cache-hit \}\}/);
   assert.match(restoreScript, /DOTFILES_PLUGIN_CACHE_HIT:-false/);
-  assert.match(restoreScript, /\+Lazy! build all/);
   assert.match(restoreScript, /task:has_errors\(\)/);
   assert.match(restoreScript, /luasnip-jsregexp\.so/);
   assert.match(restoreScript, /avante_\*\.so/);
@@ -192,10 +191,11 @@ test("macOS Terminal focus launch has a bounded Launch Services and scripting fa
     "focus counters and readiness must be installed before user startup plugins run");
   assert.match(macosFocusScript, /NVIM_RPC_TIMEOUT_SECONDS=10 python3/,
     "startup and focus RPC reads must tolerate slow UI startup while retaining the five-minute step cap");
-  const concurrencyIndex = restoreScript.indexOf("config.options.concurrency = 1");
-  const restoreIndex = restoreScript.indexOf('"+Lazy! restore"');
-  assert.ok(concurrencyIndex >= 0 && restoreIndex > concurrencyIndex,
-    "plugin build hooks must be serialized before Lazy's forced restore starts");
-  assert.doesNotMatch(restoreScript, /\\+Lazy! build all/,
+  const concurrencyIndex = restoreScript.indexOf("local build_concurrency=");
+  const prependIndex = restoreScript.indexOf('restore_checks=("$build_concurrency" "${restore_checks[@]}")');
+  const runIndex = restoreScript.indexOf('run_nvim "plugin-restore"');
+  assert.ok(concurrencyIndex >= 0 && prependIndex > concurrencyIndex && runIndex > prependIndex,
+    "plugin build hooks must be serialized before Lazy restore starts");
+  assert.doesNotMatch(restoreScript, /\+Lazy! build all/,
     "do not execute build hooks twice in the same Neovim process after Lazy! restore already ran them");
 });
