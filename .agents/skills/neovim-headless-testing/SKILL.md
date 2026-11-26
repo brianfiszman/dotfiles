@@ -161,9 +161,15 @@ When a test invokes `nvim_input()`, do not immediately block in
 `vim.wait()` in the same synchronous `+luafile` chunk and assume the editor
 will consume queued typeahead. Either return to the main loop and assert from a
 `vim.defer_fn()` callback, or use
-`nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx", false)`
+`nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "mtx!", false)`
 to synchronously drain real typed keys while still honoring user mappings.
 The `"m"` flag is important: `"n"` would bypass the mapping under test.
+When using `"x"` to execute the typeahead immediately, include `"!"` when the
+test must remain in Insert mode after the queue drains. Without it, the
+feedkeys execution can leave Insert mode before a deferred assertion runs;
+the CI failure signature is an unexpected `vim.fn.mode() == "n"` immediately
+after feeding `"i"`. Assert the mode after the drain rather than assuming the
+requested key was consumed.
 
 ## Lazy-loading assertions
 
@@ -304,6 +310,57 @@ patch a maintainer's real plugin checkout as part of CI.
   handoff.
 - Distinguish a harness failure (before Neovim executes) from a configuration or
   behavior failure.
+
+## Native macOS GUI focus tests
+
+A terminal PTY test and a native macOS application-focus test prove different
+layers and must remain separate:
+
+- A Linux PTY driver that writes terminal focus-reporting sequences
+  (`ESC [ O` / `ESC [ I`) verifies Neovim's TUI parser and the test harness.
+  It does not prove that macOS WindowServer, Terminal.app, or AppKit generated
+  a native focus transition.
+- The macOS integration must run Neovim inside a real Terminal.app TTY and
+  observe Neovim's actual `FocusLost` / `FocusGained` autocmds. Persist event
+  counters outside the TUI so the shell runner can assert them.
+- Verifying `NSWorkspace.shared.frontmostApplication` proves only which
+  application is frontmost. It does not prove that the Terminal.app window
+  containing the tested Neovim TTY had keyboard focus or emitted an event.
+- Establish the precondition explicitly: activate Finder, activate Terminal.app,
+  and wait for the Neovim process to report a real `FocusGained`. Only then
+  activate Finder and require `FocusLost`; finally reactivate Terminal.app and
+  require another `FocusGained`. A timeout is a failure, never a reason to
+  skip the assertion.
+- Keep the target TTY identity and Neovim PID in diagnostics. Use AppKit/Launch
+  Services to switch applications; do not synthesize focus escape sequences in
+  this test, because that would only retest the PTY/parser layer.
+
+## CI failure-learning protocol
+
+For every red workflow run, use this sequence before changing implementation:
+
+1. Fetch the exact workflow run, failed job, failed step, and complete relevant
+   log. Record the tested merge SHA and PR head SHA; do not diagnose a new run
+   from a previous run's summary.
+2. Read the source and test files at the exact SHA that CI executed. Confirm the
+   failing assertion is present in that revision before describing the cause.
+3. Identify the first actionable failure. Separate a product regression, test
+   fixture bug, CI harness bug, and runner/environment limitation.
+4. State one falsifiable root-cause hypothesis and reproduce it with the
+   narrowest automated test available. For hosted-only behavior, use a
+   dedicated runner-level integration test with observable preconditions and
+   event counters; do not replace it with a synthetic test of a different layer.
+5. Turn every confirmed, non-obvious failure mechanism into both a regression
+   test and an update to this skill or the relevant incident note. Do not encode
+   an unverified hypothesis as project guidance.
+6. Validate the exact new commit in CI. A change is not "fixed" merely because
+   it was pushed or because a local/contract test passed. Report the run URL,
+   tested SHA, and each required job's result. Never hide, skip, weaken, or
+   downgrade a failing assertion just to obtain a green workflow.
+
+Do not create one commit per guessed fix. Group changes that address the same
+verified root cause, run the focused test first, then run the relevant full
+integration suite.
 
 ## Completion
 
