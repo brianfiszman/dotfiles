@@ -11,8 +11,9 @@ state updates land through a dedicated docs PR. Keep this file at 40 lines or fe
   [`84a26a2`](https://github.com/brianfiszman/dotfiles/commit/84a26a2082fb7a927276e61358fa10435b2ff6d3).
 - **Issue #91:** open; Draft [PR #124](https://github.com/brianfiszman/dotfiles/pull/124),
   branch `perf/neovim-ci-cache-91`, current head `11be15eba35e5044e9ac482bab55ff9baaa9dbdd`.
-  Latest observed PR run #668 is queued on this SHA; earlier #665 is historical and failed.
-- **Process:** Draft [PR #125](https://github.com/brianfiszman/dotfiles/pull/125),
+  Latest observed PR run #668 failed Fast checks: cache-contract assertions
+  still expect the old `mtx` and reject explicit Terminal activation; Linux/macOS
+  integration jobs were still in progress at last inspection.
   branch `docs/mandatory-agent-process-2026-11`. Source head before this
   checkpoint: `000e89416387aabab9923a8a5966b9f9d69da312`.
 
