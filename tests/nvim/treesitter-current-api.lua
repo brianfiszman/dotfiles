@@ -91,7 +91,6 @@ local fixtures = {
     filetype = "json5",
     extension = ".json5",
     language = "json5",
-    expect_indent = false,
     expect_clean_parse = true,
     source = {
       "{",
@@ -119,9 +118,15 @@ local function open_fixture(fixture)
   vim.cmd("edit " .. vim.fn.fnameescape(filename))
 
   assert_equal(fixture.filetype, vim.bo.filetype, fixture.filetype .. " filetype detection")
-  if fixture.expect_indent ~= false then
+  local indent_query_ok, indent_query = pcall(vim.treesitter.query.get, fixture.language, "indents")
+  local has_indent_query = indent_query_ok and indent_query ~= nil
+  if has_indent_query then
     assert_equal("v:lua.require'nvim-treesitter'.indentexpr()", vim.bo.indentexpr,
       fixture.filetype .. " uses the current Treesitter indentexpr")
+  else
+    assert(vim.bo.indentexpr ~= "v:lua.require'nvim-treesitter'.indentexpr()",
+      fixture.filetype .. " must not enable Treesitter indentation without an indents.scm query")
+    print("PASS: " .. fixture.filetype .. " retains its native indentexpr because no indents.scm query exists")
   end
 
   local parser = vim.treesitter.get_parser(0)
