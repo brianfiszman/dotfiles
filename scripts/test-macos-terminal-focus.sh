@@ -179,7 +179,7 @@ guard CGPreflightPostEventAccess() else {
   fputs("The runner cannot post a native mouse event to activate the Terminal.app window.\n", stderr)
   exit(1)
 }
-guard let source = CGEventSource(stateID: .hidSystemState) else {
+guard let source = CGEventSource(stateID: .combinedSessionState) else {
   fputs("Could not create a native mouse event source.\n", stderr)
   exit(1)
 }
@@ -188,6 +188,12 @@ guard let source = CGEventSource(stateID: .hidSystemState) else {
 // title-bar click can select the window without focusing the Terminal TTY view.
 // This is a real WindowServer event, not a synthetic Neovim focus notification.
 let contentPoint = CGPoint(x: target.bounds.midX, y: target.bounds.midY)
+let mainDisplayBounds = CGDisplayBounds(CGMainDisplayID())
+guard target.bounds.contains(contentPoint) else {
+  fputs("Computed click point \(contentPoint) is outside Terminal.app window \(target.id) bounds \(target.bounds).\n", stderr)
+  exit(1)
+}
+print("[macos-focus] WindowServer target: id=\(target.id) name=\(target.name) bounds=\(target.bounds); mainDisplay=\(mainDisplayBounds); click=\(contentPoint); sourceState=combinedSessionState; tap=cghidEventTap")
 guard
   let mouseDown = CGEvent(
     mouseEventSource: source,
@@ -221,7 +227,7 @@ while Date() < deadline {
 }
 
 let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
-fputs("Terminal.app window \(target.id) did not become the frontmost Terminal window after the native click; frontmost app=\(frontmost).\n", stderr)
+fputs("Terminal.app window \(target.id) did not become the frontmost Terminal window after the native click; bounds=\(target.bounds), click=\(contentPoint), mainDisplay=\(mainDisplayBounds), frontmost app=\(frontmost).\n", stderr)
 exit(1)
 SWIFT
 

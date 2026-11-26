@@ -237,6 +237,12 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
     "the native activation helper must verify the actual frontmost application");
   assert.ok(macosFocusScript.includes("CGWindowListCopyWindowInfo"),
     "identify the exact Terminal.app window created for the Neovim TTY");
+  assert.ok(macosFocusScript.includes("CGEventSource(stateID: .combinedSessionState)"),
+    "synthetic input from this logged-in runner must use the combined session state");
+  assert.doesNotMatch(macosFocusScript, /CGEventSource\\(stateID: \\.hidSystemState\\)/,
+    "the hardware-only event state is not appropriate for a user-session test");
+  assert.ok(macosFocusScript.includes("CGDisplayBounds(CGMainDisplayID())"),
+    "report the main display coordinate space alongside the target window and click");
   assert.ok(macosFocusScript.includes("mouseEventSource: source"),
     "construct a real window-specific mouse event");
   assert.ok(macosFocusScript.includes("target.bounds.midY"));
