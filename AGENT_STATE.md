@@ -1,33 +1,29 @@
 # Agent execution state
 
-_Last updated: 2026-11-25 (America/Argentina/Buenos_Aires)_
+_Last updated: 2026-11-26 (America/Argentina/Buenos_Aires)_
 
-Canonical copy lives on `master`. Functional branches must not edit this file;
-state updates land through a dedicated docs PR. Keep this file at 40 lines or fewer.
+Canonical checkpoint lives on `master`; this docs PR proposes the updated handoff. Keep <=40 lines.
 
 ## Current focus
 
-- **Repository:** `brianfiszman/dotfiles`; latest merge is PR #120, commit
-  [`a9fe7da`](https://github.com/brianfiszman/dotfiles/commit/a9fe7daaf89e8dfc43f4ab8425d7a267ea3563fa).
-- **Issue #33:** Draft [PR #121](https://github.com/brianfiszman/dotfiles/pull/121),
-  branch `fix/checktime-focus-33`, head `e7b94594844ae152b5c917ff0e17cc4b10e1b393`.
-- **Policy:** latest stable Neovim/upstream APIs by default; no older-version
-  compatibility unless Brian explicitly requests it.
+- **Repository:** latest master merge is PR #121, [`84a26a2`](https://github.com/brianfiszman/dotfiles/commit/84a26a2082fb7a927276e61358fa10435b2ff6d3).
+- **Issue #91:** open; Draft [PR #124](https://github.com/brianfiszman/dotfiles/pull/124), head `045ae7cf049563d86da3eef672c465a85db6d344`. Keep paused and do not modify.
+- **Process:** Draft [PR #125](https://github.com/brianfiszman/dotfiles/pull/125), branch `docs/mandatory-agent-process-2026-11`. Verified source/work checkpoint: `6dd838b0311e47bfde2ecb0a0dbd48d187e80f00`.
 
 ## Verified
 
-- PR #117 merged as [`7f06b95`](https://github.com/brianfiszman/dotfiles/commit/7f06b9548dfe0f225cc8ed7707dabe5ce48accbc); issue #31 closed.
-- PR #119 merged as [`fcc1abe`](https://github.com/brianfiszman/dotfiles/commit/fcc1abe7959c898b304adac1acdcd85fe7fc2575); issue #32 closed.
-- PR #120 merged as [`a9fe7da`](https://github.com/brianfiszman/dotfiles/commit/a9fe7daaf89e8dfc43f4ab8425d7a267ea3563fa); PR #113 superseded.
-- PR #121 removes only the unconditional `BufWinEnter :checktime` callback; Neovim 0.12.6 performs native timestamp checks on UI FocusGained.
-- Exact PR #121 head passed workflow [#45530863126](https://github.com/brianfiszman/dotfiles/actions/runs/45530863126), 4/4 jobs. The focused native-focus regression passed in 9 seconds.
-- Brian delegated standing merge authority after acceptance, exact-head CI, final review, mergeability, and required QA gates pass. This does not bypass manual checks.
+- PR #121 merged as `84a26a2`; issue #33 closed.
+- Neovim [run #697](https://github.com/brianfiszman/dotfiles/actions/runs/45856318022) reproduced the previously known macOS Terminal focus timeout. The GUI script is byte-identical to master; run #679 and its one same-SHA retry already exhausted the two-attempt rule.
+- Neovim [run #699](https://github.com/brianfiszman/dotfiles/actions/runs/45861812257) passed on exact head `6dd838b`: fast checks and integration decision passed; Linux and macOS runtime jobs were skipped by the process-only classifier.
+- Agent [run #21](https://github.com/brianfiszman/dotfiles/actions/runs/45861812355) passed on exact head `6dd838b`: preflight validator, process contracts, gate contracts, and exact-head `Neovim integration gate` all passed against run #699 and the current base SHA.
+- Agent push [run #20](https://github.com/brianfiszman/dotfiles/actions/runs/45861174948) exposed the root-level YAML indentation mistake; commit `6dd838b` fixed it and added a raw-YAML regression, which passed in run #21.
+- Active ruleset [Protect master — Mandatory CI](https://github.com/brianfiszman/dotfiles/rules/28175818) is active, strict, and requires the five expected contexts. The macOS context is skipped only for this verified process-only diff.
+- PR #124 remains paused and untouched.
 
 ## Pending
 
-- PR #121 remains draft. Real macOS terminal focus-loss/focus-gain and unsaved-conflict behavior is not yet manually verified; do not merge before it passes.
-- #34, #36–#40, #45, #69, #91, and #107 remain in the live backlog; see the canonical index and issues.
+- Revalidate this state/worklog-only checkpoint on its exact new head, then inspect the final PR checks and full diff before changing PR status.
 
 ## Next action
 
-- Perform the three-step physical-terminal check documented in PR #121. Then recheck the exact diff and mark Ready/merge only if it passes.
+- Do not resume PR #124 until PR #125 has passed final-head verification, review, and integration.

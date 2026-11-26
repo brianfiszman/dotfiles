@@ -15,6 +15,18 @@
 - After:
 - Preserved behavior:
 
+## Agent preflight (required; CI-enforced)
+
+Complete every field with concrete sources and findings before requesting review. If no relevant prior learning exists, state which project sources you searched before saying so.
+
+- Issue/task:
+- Prior project learning searched:
+- Related prior failures and disposition:
+- Existing regression tests reviewed:
+- Falsifiable hypothesis:
+- Smallest discriminating automated test:
+- Automated validation plan:
+
 ## Tests and evidence
 
 - Exact tested head SHA:
