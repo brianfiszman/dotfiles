@@ -12,6 +12,7 @@ const treesitterProvisioningPath = resolve(__dirname, "../nvim/treesitter-provis
 const lspConfigPath = resolve(__dirname, "../../.config/nvim/lua/lsp/config.lua");
 const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
+const macosFocusScriptPath = resolve(__dirname, "../../scripts/test-macos-terminal-focus.sh");
 
 const workflow = readFileSync(workflowPath, "utf8");
 const restoreScript = readFileSync(restoreScriptPath, "utf8");
@@ -20,6 +21,7 @@ const treesitterProvisioning = readFileSync(treesitterProvisioningPath, "utf8");
 const lspConfig = readFileSync(lspConfigPath, "utf8");
 const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
+const macosFocusScript = readFileSync(macosFocusScriptPath, "utf8");
 
 const trustedCacheCondition =
   "$" + "{{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}";
@@ -166,4 +168,19 @@ test("the fresh DAP adapter installation regression remains wired into the cold 
   assert.match(restoreScript, /dap-lazy-loading\.lua/);
   assert.match(restoreScript, /dap-command-trigger\.lua/);
   assert.match(restoreScript, /dap-neotest-trigger\.lua/);
+});
+
+test("macOS Terminal focus launch has a bounded Launch Services and scripting fallback", () => {
+  const focusStep = workflow.slice(
+    workflow.indexOf("- name: Verify Terminal.app window activation reports native Neovim focus events"),
+    workflow.indexOf("- name: Run isolated real provider provisioning and fresh-start checks")
+  );
+  assert.match(focusStep, /timeout-minutes: 5/);
+  assert.match(macosFocusScript, /open -a Terminal "\$command_file"/);
+  assert.match(macosFocusScript, /wait_for_launcher/);
+  assert.match(macosFocusScript, /launch_through_terminal_scripting/);
+  assert.match(macosFocusScript, /\["osascript", "-", sys\.argv\[1\]\]/);
+  assert.match(macosFocusScript, /timeout=15/);
+  assert.match(macosFocusScript, /--startuptime/);
+  assert.match(macosFocusScript, /nvim-rpc\.py/);
 });
