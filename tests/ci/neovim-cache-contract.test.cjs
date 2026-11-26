@@ -205,12 +205,14 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(pluginConfig, /Using configured concurrency limit/);
   assert.match(restoreScript, /\+Lazy! build all/,
     "cache hits must explicitly run build hooks for unchanged plugin checkouts");
-  assert.ok(macosFocusScript.includes('request_appkit_activation "com.apple.finder" "Finder"'),
-    "Finder must be explicitly activated through AppKit before asserting FocusLost");
-  assert.ok(macosFocusScript.includes('request_appkit_activation "com.apple.Terminal" "Terminal.app"'),
-    "Terminal.app must be activated before and after the Finder transition");
-  assert.ok(macosFocusScript.includes("NSWorkspace.shared.frontmostApplication?.bundleIdentifier"),
-    "AppKit must verify the requested app became frontmost");
+  assert.ok(macosFocusScript.includes('run_terminal_applescript "finder"'),
+    "Finder activation must be a real application activation, not synthetic terminal input");
+  assert.ok(macosFocusScript.includes('run_terminal_applescript "terminal"'),
+    "the exact Neovim Terminal tab must be selected before and after the Finder transition");
+  assert.ok(macosFocusScript.includes("every window whose tty of tab 1 contains targetTTY"),
+    "Terminal activation must target the window containing the Neovim TTY");
+  assert.ok(macosFocusScript.includes("set selected of targetTab to true"));
+  assert.ok(macosFocusScript.includes("set index of targetWindow to 1"));
   assert.match(macosFocusScript, /Neovim received/);
   assert.match(treesitterCurrentApi, /syntax ~= ""/);
 });
