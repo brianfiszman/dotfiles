@@ -30,7 +30,7 @@ def main() -> None:
     success = run_helper(
         sys.executable,
         "-c",
-        "print('42\r\n')",
+        "print('42\\r\\n')",
     )
     assert success.returncode == 0, success.stderr
     assert success.stdout == "42", repr(success.stdout)
