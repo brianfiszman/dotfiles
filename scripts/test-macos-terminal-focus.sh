@@ -34,40 +34,26 @@ done
 
 test_root="${RUNNER_TEMP-${TMPDIR-/tmp}}/nvim-terminal-focus-${GITHUB_RUN_ID-local}-$$"
 mkdir -p "$test_root"
-socket_path="/tmp/nvim-terminal-focus-$(id -u)-$$.sock"
 command_file="$test_root/start-neovim.command"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
+ready_file="$test_root/neovim.ready"
+focus_lost_file="$test_root/focus-lost.count"
+focus_gained_file="$test_root/focus-gained.count"
 launcher_log="$test_root/launcher.log"
 startup_verbose_log="$test_root/neovim-verbose.log"
 startup_timing_log="$test_root/neovim-startuptime.log"
 
 cleanup() {
-  if [[ -S "$socket_path" ]]; then
-    env HOME="$NVIM_TEST_DIR/home" \
-      XDG_CONFIG_HOME="$NVIM_TEST_DIR/config" \
-      XDG_DATA_HOME="$NVIM_TEST_DIR/data" \
-      XDG_STATE_HOME="$NVIM_TEST_DIR/state" \
-      XDG_CACHE_HOME="$NVIM_TEST_DIR/cache" \
-      NVIM_RPC_TIMEOUT_SECONDS=2 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
-      "$NVIM_BIN" --server "$socket_path" --remote-send ':qa!<CR>' >/dev/null 2>&1 || true
-  fi
   if [[ -s "$pid_file" ]]; then
     child_pid="$(cat "$pid_file")"
     if [[ "$child_pid" =~ ^[0-9]+$ ]] && kill -0 "$child_pid" 2>/dev/null; then
       kill "$child_pid" 2>/dev/null || true
     fi
   fi
-  rm -f "$socket_path"
   rm -rf "$test_root"
 }
 trap cleanup EXIT
-
-socket_length="$(printf '%s' "$socket_path" | wc -c | tr -d ' ')"
-if ((socket_length >= 100)); then
-  printf 'The temporary Neovim RPC socket path is too long for macOS: %s\n' "$socket_path" >&2
-  exit 1
-fi
 
 printf -v q_home '%q' "$NVIM_TEST_DIR/home"
 printf -v q_config '%q' "$NVIM_TEST_DIR/config"
@@ -75,10 +61,12 @@ printf -v q_data '%q' "$NVIM_TEST_DIR/data"
 printf -v q_state '%q' "$NVIM_TEST_DIR/state"
 printf -v q_cache '%q' "$NVIM_TEST_DIR/cache"
 printf -v q_nvim '%q' "$NVIM_BIN"
-printf -v q_socket '%q' "$socket_path"
 printf -v q_pid '%q' "$pid_file"
 printf -v q_tty '%q' "$tty_file"
 printf -v q_init '%q' "$NVIM_TEST_DIR/config/nvim/init.lua"
+printf -v q_ready_file '%q' "$ready_file"
+printf -v q_focus_lost_file '%q' "$focus_lost_file"
+printf -v q_focus_gained_file '%q' "$focus_gained_file"
 printf -v q_launcher_log '%q' "$launcher_log"
 printf -v q_verbose_log '%q' "$startup_verbose_log"
 printf -v q_timing_log '%q' "$startup_timing_log"
@@ -101,6 +89,9 @@ export TERM=xterm-256color
 # startup/LSP integration path covers Mason package installation.
 export DOTFILES_SKIP_MASON_LSP_INSTALL=1
 export DOTFILES_SKIP_TREESITTER_PROVISIONING=1
+export DOTFILES_FOCUS_READY_FILE=$q_ready_file
+export DOTFILES_FOCUS_LOST_FILE=$q_focus_lost_file
+export DOTFILES_FOCUS_GAINED_FILE=$q_focus_gained_file
 echo \$\$ > $q_pid
 {
   printf '[launcher] shell started; pid=%s\n' "\$\$"
@@ -108,25 +99,25 @@ echo \$\$ > $q_pid
   printf '[launcher] config: %s\n' $q_init
 } >> $q_launcher_log
 tty > $q_tty 2>> $q_launcher_log
-exec $q_nvim --listen $q_socket --cmd 'set nomore shortmess+=I' \
-  --cmd 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1' \
+exec $q_nvim --cmd 'set nomore shortmess+=I' \
+  --cmd 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0) end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("VimEnter", { once = true, callback = function() vim.schedule(function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end) end })' \
   --startuptime $q_timing_log -V12$q_verbose_log -u $q_init 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
 
-remote_expr() {
-  env HOME="$NVIM_TEST_DIR/home" \
-    XDG_CONFIG_HOME="$NVIM_TEST_DIR/config" \
-    XDG_DATA_HOME="$NVIM_TEST_DIR/data" \
-    XDG_STATE_HOME="$NVIM_TEST_DIR/state" \
-    XDG_CACHE_HOME="$NVIM_TEST_DIR/cache" \
-    NVIM_RPC_TIMEOUT_SECONDS=10 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
-    "$NVIM_BIN" --server "$socket_path" --remote-expr "$1"
-}
 read_counter() {
-  remote_expr "get(g:, '$1', 0)"
+  local file=""
+  case "$1" in
+    dotfiles_macos_focus_lost) file="$focus_lost_file" ;;
+    dotfiles_macos_focus_gained) file="$focus_gained_file" ;;
+    *) printf 'Unknown focus counter: %s\\n' "$1" >&2; return 2 ;;
+  esac
+  if [[ -s "$file" ]]; then
+    tr -d '\\r\\n' < "$file"
+  else
+    printf '0'
+  fi
 }
-
 wait_for_launcher() {
   local deadline=$((SECONDS + 5))
   local child_pid=""
@@ -186,19 +177,6 @@ print_startup_diagnostics() {
   else
     printf '[macos-focus] The generated .command never reached its launcher marker.\n'
   fi
-  if [[ -S "$socket_path" ]]; then
-    printf '[macos-focus] RPC socket exists: %s\n' "$socket_path"
-    ls -l "$socket_path" || true
-    if command -v lsof >/dev/null 2>&1; then
-      lsof -nP -U 2>/dev/null | grep -F "$socket_path" || true
-    fi
-  else
-    printf '[macos-focus] RPC socket is missing: %s\n' "$socket_path"
-  fi
-  if [[ -s "$test_root/rpc-stderr.log" ]]; then
-    printf '[macos-focus] Last RPC client error:\n'
-    cat "$test_root/rpc-stderr.log"
-  fi
   if [[ -s "$pid_file" ]]; then
     local child_pid
     child_pid="$(cat "$pid_file")"
@@ -222,23 +200,17 @@ print_startup_diagnostics() {
 
 wait_for_ready() {
   local deadline=$((SECONDS + 30))
-  local ready=""
-  local rpc_error="$test_root/rpc-stderr.log"
-
   while ((SECONDS < deadline)); do
-    if [[ -S "$socket_path" ]]; then
-      ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" 2>"$rpc_error" || true)"
-      if [[ "$ready" == "1" ]]; then
-        return 0
-      fi
+    if [[ -s "$ready_file" ]] && [[ "$(tr -d '\\r\\n' < "$ready_file")" == "1" ]]; then
+      printf '[macos-focus] Neovim reached VimEnter and published its ready marker.\\n'
+      return 0
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds.\n' >&2
+  printf 'Terminal.app did not complete Neovim startup within 30 seconds.\\n' >&2
   print_startup_diagnostics >&2
   return 1
 }
-
 wait_for_counter_gt() {
   local name="$1"
   local previous="$2"
@@ -365,7 +337,7 @@ wait_for_ready
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
 [[ "$lost_before" =~ ^[0-9]+$ && "$gained_before" =~ ^[0-9]+$ ]] || {
-  printf 'Neovim focus counters were not readable over RPC (lost=%s gained=%s).\n' \
+  printf 'Neovim focus counters were not initialized by their autocmds (lost=%s gained=%s).\n' \
     "$lost_before" "$gained_before" >&2
   exit 1
 }
