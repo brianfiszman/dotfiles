@@ -197,6 +197,12 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
   assert.match(macosFocusScript, /wait_for_terminal_tty/);
   assert.ok(macosFocusScript.includes("FocusLost"));
   assert.ok(macosFocusScript.includes("FocusGained"));
+  const nvimLaunch = macosFocusScript.slice(
+    macosFocusScript.indexOf("exec $q_nvim"),
+    macosFocusScript.indexOf("\nEOF", macosFocusScript.indexOf("exec $q_nvim"))
+  );
+  assert.ok(nvimLaunch.indexOf("-u $q_init") < nvimLaunch.indexOf("-c 'lua"),
+    "native focus autocmds must be registered after init.lua, matching the post-config command phase");
   assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application/);
   assert.doesNotMatch(macosFocusScript, /application\.activate\(/,
     "do not activate all Terminal windows and steal focus from the Neovim TUI session");
