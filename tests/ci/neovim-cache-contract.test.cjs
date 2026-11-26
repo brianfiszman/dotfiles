@@ -201,6 +201,10 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(pluginConfig, /DOTFILES_LAZY_CONCURRENCY/);
   assert.match(pluginConfig, /concurrency = lazy_concurrency/);
   assert.match(pluginConfig, /Using configured concurrency limit/);
-  assert.doesNotMatch(restoreScript, /\\+Lazy! build all/,
-    "do not execute build hooks twice in the same Neovim process after Lazy! restore already ran them");
+  assert.match(restoreScript, /\\+Lazy! build all/,
+    "cache hits must explicitly run build hooks for unchanged plugin checkouts");
+  assert.match(macosFocusScript, /request_appkit_activation "com\\.apple\\.finder" "Finder"/,
+    "Finder must be explicitly activated through AppKit before asserting FocusLost");
+  assert.match(macosFocusScript, /request_appkit_activation "com\\.apple\\.Terminal" "Terminal\\.app"/,
+    "Terminal.app reactivation fallback must use the same native AppKit path");
 });
