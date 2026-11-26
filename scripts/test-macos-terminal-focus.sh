@@ -581,6 +581,11 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
   exit 1
 }
 
+printf '[macos-focus] Establishing the exact Neovim Terminal.app window as the focused starting point.\n'
+activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
+activate_neovim_terminal_window "$terminal_windows_before"
+printf '[macos-focus] Terminal.app is frontmost and the Neovim TTY window is selected before switching to Finder.\n'
+
 lost_initial_before="$(read_counter dotfiles_macos_focus_lost)"
 printf '[macos-focus] Selecting Finder before explicitly foregrounding the Neovim Terminal.app window.\n'
 open -a Finder "$test_root"
