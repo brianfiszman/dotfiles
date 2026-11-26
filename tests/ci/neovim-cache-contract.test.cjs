@@ -234,7 +234,9 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
     .filter((line) => line.trim() === 'open -a Terminal "$command_file"');
   assert.equal(terminalLaunchLines.length, 1,
     "open Terminal only for the initial TTY launch, not as an app-wide focus substitute");
-  assert.equal((macosFocusScript.match(/activate_neovim_terminal_window "\\$terminal_windows_before"/g) || []).length, 2,
+  const targetedTerminalActivations = macosFocusScript.split("\n")
+    .filter((line) => line.trim() === 'activate_neovim_terminal_window "$terminal_windows_before"');
+  assert.equal(targetedTerminalActivations.length, 2,
     "both focus-gain assertions must target the same exact Neovim Terminal.app window");
   assert.ok(macosFocusScript.includes('swift "$terminal_window_focus_script" activate'),
     "activate only the newly-created Neovim Terminal.app window");
