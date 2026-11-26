@@ -17,42 +17,18 @@ state as user data, not disposable test fixtures.
 
 ## Mandatory agent preflight gate
 
-This is a hard gate, not optional reading guidance. Before the first repository
-mutation (file edit, commit, push, workflow rerun, PR/issue mutation, or merge),
-complete and verify the applicable steps below. A previous assistant's summary
-or an older checkpoint does not satisfy them.
+This is a hard execution gate, not optional reading guidance. It applies regardless of model size, capability, confidence, or how familiar the task appears. Before the first repository mutation (file edit, test edit, CI change, commit, push, workflow rerun, PR/issue mutation, or merge), recover and consult the project's prior knowledge.
 
-1. Read this file. For substantial or resumed work, also follow
-   `.agents/skills/execution-continuity/SKILL.md`: read canonical
-   `AGENT_STATE.md`, the tail of the current monthly log, and recover the live
-   branch/PR/issue/run state.
-2. Classify the task and read the specialist skills that own it. For behavioral
-   work this includes `automated-verification`; for an unclear failure,
-   `diagnostic-experiments`; for Actions, `github-actions-validation`; for
-   Neovim behavior, `neovim-maintenance` and `neovim-headless-testing`;
-   for state/docs, `agent-memory-hygiene`. Read the actual files, not just
-   their names or descriptions.
-3. Resolve the active artifact from live GitHub state. Record the exact branch,
-   PR, issue, head SHA, relevant workflow run IDs/events, and changed paths.
-   Check that every CI result cited tests the exact SHA being discussed.
-4. Before fixing a failure, read its complete relevant log and the code/test at
-   the SHA that ran. State one falsifiable root cause and the smallest
-   discriminating reproduction. Do not push speculative changes just to see
-   what CI says. Follow the two-attempt stop rule in
-   `.agents/skills/diagnostic-experiments/SKILL.md`.
-5. Turn each confirmed, reusable failure mechanism into a regression test and
-   update the existing owning skill/incident record. Do not document an
-   unverified hypothesis as fact. Keep state/worklog changes on a separate
-   docs branch/PR, never inside a functional PR.
-6. Before completion, inspect the full final diff, execute focused and
-   applicable broader tests, re-fetch the final PR head, and report exact-SHA
-   evidence. Tests written, queued, skipped, mocked, pending, and passed are
-   different states; never conflate them.
+1. Read `AGENTS.md` and the applicable specialist skills. For substantial or resumed work, follow `.agents/skills/execution-continuity/SKILL.md`: read canonical `AGENT_STATE.md`, the current monthly worklog, and live GitHub state.
+2. Search for prior learning about the same symptom, component, dependency, and failure signature. Search the linked issue and relevant open/closed PRs and review threads; `docs/agent-log/`, `docs/incidents/`, and `docs/decisions/`; specialist skills; existing regression tests; and relevant GitHub Actions runs and complete failure logs. Search by error text and affected file/function, not just by task title.
+3. Extract what the project already learned: confirmed root causes, reproductions, fixes, rejected hypotheses, failed approaches, and known limitations. Revalidate each relevant finding against the active branch and exact tested SHA. Reuse confirmed reproductions and do not repeat a rejected approach unless new evidence shows the underlying conditions changed.
+4. Record the sources searched, relevant prior findings, and their disposition in the PR's **Agent preflight** section using `.github/pull_request_template.md`. Write `none found after searching ...` only after checking the relevant project sources. Conversation history, model memory, or another assistant's summary never substitutes for repository evidence.
+5. Resolve the active branch, issue, PR, exact head SHA, changed paths, workflow IDs, and events from live GitHub state. Read the complete relevant failure log and the source/test at the SHA that actually ran.
+6. Before a fix, state one falsifiable root-cause hypothesis and the smallest discriminating automated reproduction. Follow the two-attempt stop rule in `.agents/skills/diagnostic-experiments/SKILL.md`; do not push guesses to use CI as a diagnostic tool.
+7. Turn every confirmed reusable failure into a regression test and update its owning skill or incident record. Do not state an unverified hypothesis as fact. Keep canonical state/worklog changes on a separate docs-only PR.
+8. Before completion, inspect the full final diff, execute focused and applicable broader tests, re-fetch the exact final PR head, and report only observed exact-SHA evidence. Tests written, mocked, skipped, pending, failed, and passed are different states.
 
-If a required source, skill, or live GitHub state cannot be read, stop the
-affected mutation and report the blocker as unavailable. Do not silently bypass
-this gate because the conversation is long, a task is familiar, or a prior
-session appears to have completed the same step.
+CI validates that every pull request records the prior-learning search and the diagnosis/reproduction plan. If a required source, skill, prior incident, or live GitHub state cannot be read, stop the affected mutation and report the blocker as unavailable. Never bypass this gate because the model is sophisticated, the change looks obvious, or the same class of task was handled before.
 
 ## Safety rules
 

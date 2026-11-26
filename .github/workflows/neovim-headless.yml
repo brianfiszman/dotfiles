@@ -16,6 +16,7 @@ on:
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
       - "AGENTS.md"
+      - ".github/pull_request_template.md"
       - "AGENT_STATE.md"
       - "AGENT_WORKLOG.md"
       - "docs/agent-log/**"
@@ -66,6 +67,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Enforce mandatory agent preflight evidence in pull requests
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: node scripts/ci/validate-agent-preflight.cjs
 
       - name: Test mandatory agent development-process contracts
         run: node --test tests/ci/agent-process-contract.test.cjs
