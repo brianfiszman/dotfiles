@@ -41,6 +41,26 @@ test("AGENTS.md makes prior project learning a hard gate before every mutation",
   assert.ok(agents.includes("a workflow that runs without a required-status rule is advisory"));
 });
 
+test("AGENTS.md requires proactive context compaction without losing task-critical state", () => {
+  const agents = normalize(read("AGENTS.md"));
+  for (const required of [
+    "## Context compaction before saturation",
+    "Compact it proactively",
+    "Objective and priority",
+    "Live artifact identity",
+    "Decisions and authority",
+    "Evidence",
+    "Uncertainty and history that changes the next action",
+    "one concrete, smallest discriminating step",
+    "Never compress away the user's priority",
+    "Do not preserve chain-of-thought or a transcript",
+    "A conversation summary is only a navigation aid",
+    "two-attempt diagnostic stop rules",
+  ]) {
+    assert.ok(agents.includes(required), "context-compaction contract is missing: " + required);
+  }
+});
+
 test("specialist skills retain the project's diagnostic and verification safeguards", () => {
   const required = [
     [".agents/skills/execution-continuity/SKILL.md", /canonical checkpoint/],

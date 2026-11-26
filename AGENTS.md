@@ -28,6 +28,48 @@ This is a hard execution gate, not optional reading guidance. It applies regardl
 7. Turn every confirmed reusable failure into a regression test and update its owning skill or incident record. Do not state an unverified hypothesis as fact. Keep canonical state/worklog changes on a separate docs-only PR.
 8. Before completion, inspect the full final diff, execute focused and applicable broader tests, re-fetch the exact final PR head, and report only observed exact-SHA evidence. Tests written, mocked, skipped, pending, failed, and passed are different states.
 
+## Context compaction before saturation
+
+Treat working context as a limited execution resource. Compact it proactively
+when a session becomes long, tool/output volume grows, the same evidence is being
+re-read, reasoning starts looping, an interruption occurs, or the context may
+soon be truncated. Do not wait until important state is lost.
+
+When compacting, preserve only what is needed to continue the active task:
+1. **Objective and priority:** the user's current goal, explicit priority order,
+   acceptance criteria, and constraints.
+2. **Live artifact identity:** repository, issue/PR, branch, exact current head
+   and base SHAs, and the relevant run IDs/events. Re-fetch live state after
+   interruptions or uncertain writes.
+3. **Decisions and authority:** user-approved scope, merge/delegation rules,
+   stop limits, and actions explicitly not authorized.
+4. **Evidence:** verified facts with links and exact-SHA scope; clearly separate
+   passed, failed, skipped, pending, unavailable, and not-run work.
+5. **Uncertainty and history that changes the next action:** open hypotheses
+   labelled unconfirmed, rejected approaches, exhausted attempts, and why they
+   must not be repeated.
+6. **Next action:** one concrete, smallest discriminating step, its expected
+   evidence, and any blocker.
+
+Discard raw logs after extracting the relevant lines, repeated tool output,
+superseded state, speculative branches that do not affect the next decision,
+and conversational chronology with no continuing value. Do not preserve
+chain-of-thought or a transcript; preserve conclusions, evidence, decisions,
+and pointers to canonical sources. Never compress away the user's priority,
+uncertainty, safety constraints, failed-attempt count, or exact artifact identity.
+
+Prefer updating the existing canonical PR/issue, monthly worklog, or
+`AGENT_STATE.md` through its required docs-only PR rather than creating a new
+summary file. The monthly worklog is append-only; keep `AGENT_STATE.md` short
+and current. A conversation summary is only a navigation aid, not project
+evidence. After compaction, continue from the recorded next action without
+making the user repeat information or narrating every tool call; report only
+meaningful milestones, decisions, or blockers.
+
+This rule supplements, and never bypasses, the mandatory agent preflight,
+live-state verification, exact-SHA evidence, and two-attempt diagnostic stop
+rules above.
+
 CI validates that every pull request records the required preflight fields and runs the process-contract tests. This detects omitted or malformed records; it cannot prove that an agent genuinely read a source or that a claim in the PR body is truthful. Agents must cite concrete issue, PR, run, file, and test references, and reviewers must challenge unsupported claims. A workflow check only blocks merges when repository branch protection or a ruleset requires that successful check. Before describing this as merge-blocking, inspect the live repository rules; a workflow that runs without a required-status rule is advisory. If a required source, skill, prior incident, or live GitHub state cannot be read, stop the affected mutation and report the blocker as unavailable. Never bypass this gate because the model is sophisticated, the change looks obvious, or the same class of task was handled before.
 
 ## Safety rules
