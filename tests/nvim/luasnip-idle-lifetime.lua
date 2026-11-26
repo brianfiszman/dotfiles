@@ -14,7 +14,9 @@ local function feed(keys, after_input)
   local termcodes = vim.api.nvim_replace_termcodes(keys, true, false, true)
   -- feedkeys accepts Neovim's internal termcodes (including <S-Tab>) and
   -- executes the same insert mappings as physical keyboard input.
-  vim.api.nvim_feedkeys(termcodes, "mt", false)
+  -- "x" drains the typed input queue before the deferred mode assertion;
+  -- without it, headless CI can run the timer while "i" is still queued.
+  vim.api.nvim_feedkeys(termcodes, "mtx", false)
 
   -- Yield the test coroutine. Neovim's main loop consumes the queued input
   -- before a later timer checks the editor state and resumes the scenario.
