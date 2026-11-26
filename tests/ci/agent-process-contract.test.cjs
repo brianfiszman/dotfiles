@@ -5,7 +5,12 @@ const test = require("node:test");
 
 const root = path.resolve(__dirname, "../..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
-const normalize = (source) => source.replace(/\\s+/g, " ").trim();
+const normalize = (source) => source.replace(/\s+/g, " ").trim();
+
+test("semantic text normalization collapses Markdown wrapping and repeated whitespace", () => {
+  assert.equal(normalize("Before the first repository\n mutation"), "Before the first repository mutation");
+  assert.equal(normalize("one\t\n  two"), "one two");
+});
 
 test("AGENTS.md defines a mandatory preflight before repository mutations", () => {
   const agents = normalize(read("AGENTS.md"));
