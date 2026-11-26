@@ -337,6 +337,7 @@ if ! wait_for_launcher; then
   }
 fi
 wait_for_ready
+wait_for_terminal_tty
 open -a Terminal
 wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
 
@@ -350,7 +351,6 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
 
 printf '[macos-focus] Activating Finder to force Terminal.app to lose key-window focus.\n'
 open -a Finder
-open -a Finder
 wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
@@ -360,11 +360,11 @@ printf '[macos-focus] Reactivating Terminal.app through Launch Services.\n'
 open -a Terminal
 if ! wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 25 \
   'Terminal.app reactivation generated a real Neovim FocusGained event' true; then
-  printf '[macos-focus] Launch Services did not restore the Neovim TTY; using exact Terminal TTY activation fallback.\n'
+  printf '[macos-focus] Retrying Launch Services activation of Terminal.app.\n'
   open -a Terminal
-wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
+  wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
   wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 100 \
-    'AppKit activation generated a real Neovim FocusGained event'
+    'Launch Services reactivation generated a real Neovim FocusGained event'
 fi
 lost_final="$(read_counter dotfiles_macos_focus_lost)"
 gained_final="$(read_counter dotfiles_macos_focus_gained)"
