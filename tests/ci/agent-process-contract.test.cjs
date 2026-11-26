@@ -85,6 +85,16 @@ test("preflight CI rejects omitted learning, vague searches, placeholders, and u
   assert.ok(validateAgentPreflight(unsupportedFailure).some((error) => /must link an issue\/PR\/run and state their disposition/.test(error)));
 });
 
+test("preflight validator ignores required fields placed outside the Agent preflight section", () => {
+  const fieldOutsideSection = completePreflight.replace(
+    "- Falsifiable hypothesis: the PR-body preflight validator rejects missing project-learning evidence before fast checks pass.",
+    "## Validation\\n- Falsifiable hypothesis: the PR-body preflight validator rejects missing project-learning evidence before fast checks pass."
+  );
+  assert.ok(
+    validateAgentPreflight(fieldOutsideSection).some((error) => /missing required field: Falsifiable hypothesis/.test(error))
+  );
+});
+
 test("preflight validator rejects a missing section and unreviewed regression coverage", () => {
   const withoutSection = completePreflight.replace(
     "## Agent preflight (required; CI-enforced)",
@@ -131,7 +141,7 @@ test("canonical agent state stays bounded and the worklog pointer remains discov
 
 test("dedicated agent workflow validates PR preflight and keeps GUI integration out of process-only CI", () => {
   const workflow = normalize(read(".github/workflows/agent-preflight.yml"));
-  assert.match(workflow, /pull_request:/);
+  assert.ok(workflow.includes("pull_request: types: [opened, synchronize, reopened, edited]"));
   assert.match(workflow, /AGENTS\.md/);
   assert.match(workflow, /\.github\/pull_request_template\.md/);
   assert.match(workflow, /name: Enforce mandatory agent preflight evidence in pull requests/);
