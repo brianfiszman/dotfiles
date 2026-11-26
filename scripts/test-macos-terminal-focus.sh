@@ -78,10 +78,11 @@ printf -v q_launcher_log '%q' "$launcher_log"
 printf -v q_verbose_log '%q' "$startup_verbose_log"
 printf -v q_timing_log '%q' "$startup_timing_log"
 
-# Opening a .command file in Terminal.app starts Neovim on the app's actual
-# terminal PTY. The return transition selects the exact session window through
-# Terminal's scripting dictionary; it does not synthesize terminal focus bytes
-# or use System Events UI/Accessibility scripting.
+# Launch Neovim on Terminal.app's actual terminal PTY. Launch Services opens
+# the .command file first; Terminal's AppleScript do-script command is a
+# fallback for runners where opening the document does not execute it.
+# The Finder/Terminal focus transition remains native and never synthesizes
+# terminal focus bytes or uses System Events UI/Accessibility scripting.
 cat > "$command_file" <<EOF
 #!/bin/bash
 set -Eeuo pipefail
@@ -114,8 +115,14 @@ read_counter() {
 
 wait_for_launcher() {
   local deadline=$((SECONDS + 5))
+  local child_pid=""
   while ((SECONDS < deadline)); do
-    [[ -s "$pid_file" ]] && return 0
+    if [[ -s "$pid_file" ]]; then
+      child_pid="$(cat "$pid_file")"
+      if [[ "$child_pid" =~ ^[0-9]+$ ]] && kill -0 "$child_pid" 2>/dev/null; then
+        return 0
+      fi
+    fi
     sleep 0.1
   done
   return 1
