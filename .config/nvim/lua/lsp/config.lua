@@ -131,9 +131,16 @@ function M.setup()
   M.capabilities = cmp_nvim_lsp.default_capabilities()
   cmp_nvim_lsp.setup()
 
+  -- Focus PTY tests validate native terminal focus/checktime behavior, not
+  -- Mason provisioning. Installing every LSP server in each short-lived PTY
+  -- process emits asynchronous notifications that can consume terminal input.
+  -- The normal startup and LuaLS integration paths leave this unset and still
+  -- exercise the complete ensure_installed list.
+  local skip_mason_lsp_install = vim.env.DOTFILES_SKIP_MASON_LSP_INSTALL == "1"
+
   -- Mason installs tools only. Explicit vim.lsp.enable() calls below own activation.
   M.mason_options = {
-    ensure_installed = M.mason_servers,
+    ensure_installed = skip_mason_lsp_install and {} or M.mason_servers,
     automatic_enable = false,
   }
   require("mason-lspconfig").setup(M.mason_options)
