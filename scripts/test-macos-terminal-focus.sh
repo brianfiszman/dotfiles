@@ -232,58 +232,83 @@ wait_for_counter_gt() {
 }
 
 
-request_appkit_activation() {
-  local bundle_id="$1"
-  local app_name="$2"
-  local swift_script="$test_root/activate-app.swift"
-
-  printf '[macos-focus] Requesting native %s activation through AppKit.\n' "$app_name"
-  cat > "$swift_script" <<'SWIFT'
-import AppKit
-import Foundation
-
-let bundleID = CommandLine.arguments[1]
-let appName = CommandLine.arguments[2]
-guard let application = NSRunningApplication.runningApplications(
-  withBundleIdentifier: bundleID
-).first else {
-  fputs("Cannot activate \(appName): application is not running.\n", stderr)
-  exit(1)
+wait_for_terminal_tty() {
+  local deadline=$((SECONDS + 10))
+  while ((SECONDS < deadline)); do
+    if [[ -s "$tty_file" ]]; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  printf 'Terminal.app did not publish the Neovim session TTY within 10 seconds at %s\n' "$tty_file" >&2
+  return 1
 }
 
-let activated = application.activate(options: [.activateAllWindows])
-guard activated else {
-  fputs("AppKit refused to activate \(appName).\n", stderr)
-  exit(1)
-}
+run_terminal_applescript() {
+  local action="$1"
+  wait_for_terminal_tty
+  local target_tty
+  target_tty="$(tr -d '\r\n' < "$tty_file")"
+  [[ "$target_tty" == /dev/ttys* ]] || {
+    printf 'Unexpected Neovim Terminal.app TTY: %s\n' "$target_tty" >&2
+    return 1
+  }
 
-let deadline = Date().addingTimeInterval(5)
-while NSWorkspace.shared.frontmostApplication?.bundleIdentifier != bundleID && Date() < deadline {
-  RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-}
-let frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
-print("AppKit activation: requested=\(bundleID), frontmost=\(frontmostBundleID), isActive=\(application.isActive)")
-guard frontmostBundleID == bundleID else {
-  fputs("AppKit did not make \(appName) the frontmost application.\n", stderr)
-  exit(1)
-}
-SWIFT
-
-  python3 - "$swift_script" "$bundle_id" "$app_name" <<'PY'
+  printf '[macos-focus] Requesting Terminal.app %s for exact Neovim TTY %s.\n' "$action" "$target_tty"
+  python3 - "$target_tty" "$action" <<'PY'
 import subprocess
 import sys
 
+target_tty, action = sys.argv[1:3]
+script = """on run argv
+  set targetTTY to item 1 of argv
+  set actionName to item 2 of argv
+
+  if actionName is "terminal" then
+    tell application "Terminal"
+      set matchingWindows to every window whose tty of tab 1 contains targetTTY
+      if (count of matchingWindows) is 0 then error "No Terminal window owns Neovim TTY " & targetTTY
+      set targetWindow to item 1 of matchingWindows
+      set targetTab to tab 1 of targetWindow
+      set selected of targetTab to true
+      set index of targetWindow to 1
+      activate
+      delay 0.2
+      if frontmost of targetWindow is false then error "Neovim Terminal window did not become frontmost"
+      return "Terminal selected exact Neovim TTY " & targetTTY & "; window id " & (id of targetWindow)
+    end tell
+  else if actionName is "finder" then
+    tell application "Finder"
+      activate
+      delay 0.2
+      if frontmost is false then error "Finder did not become frontmost"
+      return "Finder is frontmost"
+    end tell
+  else
+    error "Unknown activation action: " & actionName
+  end if
+end run
+"""
+
 try:
     result = subprocess.run(
-        ["swift", sys.argv[1], sys.argv[2], sys.argv[3]],
+        ["osascript", "-", target_tty, action],
+        input=script,
+        text=True,
         check=False,
-        timeout=30,
+        timeout=15,
+        capture_output=True,
     )
 except subprocess.TimeoutExpired:
-    print(f"AppKit activation helper for {sys.argv[3]} exceeded its 30-second deadline", file=sys.stderr)
+    print(f"Terminal AppleScript {action!r} exceeded its 15-second deadline", file=sys.stderr)
     raise SystemExit(124)
 
-raise SystemExit(result.returncode)
+if result.stdout:
+    print(result.stdout, end="")
+if result.returncode != 0:
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="")
+    raise SystemExit(result.returncode)
 PY
 }
 wait_for_counter_increase() {
@@ -324,7 +349,7 @@ if ! wait_for_launcher; then
   }
 fi
 wait_for_ready
-request_appkit_activation "com.apple.Terminal" "Terminal.app"
+run_terminal_applescript "terminal"
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
@@ -336,7 +361,7 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
 
 printf '[macos-focus] Activating Finder to force Terminal.app to lose key-window focus.\n'
 open -a Finder
-request_appkit_activation "com.apple.finder" "Finder"
+run_terminal_applescript "finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
@@ -345,8 +370,8 @@ printf '[macos-focus] Reactivating Terminal.app through Launch Services.\n'
 open -a Terminal
 if ! wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 25 \
   'Terminal.app reactivation generated a real Neovim FocusGained event' true; then
-  printf '[macos-focus] Launch Services did not restore the Neovim TTY; using AppKit activation fallback.\n'
-  request_appkit_activation "com.apple.Terminal" "Terminal.app"
+  printf '[macos-focus] Launch Services did not restore the Neovim TTY; using exact Terminal TTY activation fallback.\n'
+  run_terminal_applescript "terminal"
   wait_for_counter_increase dotfiles_macos_focus_gained "$gained_after" 100 \
     'AppKit activation generated a real Neovim FocusGained event'
 fi
