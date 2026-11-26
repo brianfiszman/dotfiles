@@ -5,9 +5,10 @@ const test = require("node:test");
 
 const root = path.resolve(__dirname, "../..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
+const normalize = (source) => source.replace(/\\s+/g, " ").trim();
 
 test("AGENTS.md defines a mandatory preflight before repository mutations", () => {
-  const agents = read("AGENTS.md");
+  const agents = normalize(read("AGENTS.md"));
   assert.match(agents, /## Mandatory agent preflight gate/);
   assert.match(agents, /Before the first repository mutation/);
   assert.match(agents, /Read this file/);
@@ -28,7 +29,7 @@ test("the specialist skills retain the required diagnostic and verification safe
 
   for (const [relativePath, pattern] of required) {
     assert.ok(fs.existsSync(path.join(root, relativePath)), `missing skill: ${relativePath}`);
-    assert.match(read(relativePath), pattern, `required process rule missing from ${relativePath}`);
+    assert.match(normalize(read(relativePath)), pattern, `required process rule missing from ${relativePath}`);
   }
 });
 
@@ -42,7 +43,7 @@ test("canonical agent state and worklog pointer remain bounded and discoverable"
 });
 
 test("CI runs this contract and triggers fast checks when the agent policy changes", () => {
-  const workflow = read(".github/workflows/neovim-headless.yml");
+  const workflow = normalize(read(".github/workflows/neovim-headless.yml"));
   assert.match(workflow, /AGENTS\.md/);
   assert.match(workflow, /AGENT_STATE\.md/);
   assert.match(workflow, /AGENT_WORKLOG\.md/);
