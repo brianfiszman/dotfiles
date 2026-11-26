@@ -13,16 +13,16 @@ Canonical checkpoint: `master`; functional branches must not edit it. Keep <=40 
   Run #675: fast cache-contract checks and macOS focus integration failed;
   Linux was still running at last observation.
 - **Process:** Draft [PR #125](https://github.com/brianfiszman/dotfiles/pull/125),
-  branch `docs/mandatory-agent-process-2026-11`; source head before this checkpoint
-  update `d95578dda3d2b24af3028bb3a9c89fc6c4d73671`.
+  branch `docs/mandatory-agent-process-2026-11`; checkpoint source head
+  `3debd3ffee8e5a8dc2515e24f6d6a176fc628f1b`.
 
 ## Verified
 
 - PR #121 merged as `84a26a2`; issue #33 closed completed.
-- PR #125 run #676 passed all fast checks (5/5 process tests) and Linux
-  fresh-install/headless startup; macOS was queued when this head was superseded.
-- Run #677 correctly rejected the synchronize-event payload because the PR body
-  preflight section was added after that event. The current PR body now includes it.
+- PR #125 run #678: preflight validator passed; process contract was 7/8.
+  One negative test expected the path error, but input `none` correctly hit the
+  earlier placeholder rule. The fixture is being corrected, not the validator.
+- Run #676 passed fast checks and Linux startup; macOS was queued on its head.
 - Standing merge authority applies only after acceptance, exact-head CI, final
   review, mergeability, and required QA gates pass. Manual gates still apply.
 
@@ -30,10 +30,10 @@ Canonical checkpoint: `master`; functional branches must not edit it. Keep <=40 
 
 - PR #124: do not resume until PR #125 is integrated. Run #675 has known fast
   cache-contract and macOS focus failures; Linux completion was not observed.
-- PR #125: verify the current body through a new synchronize event, then pass
-  the validator, process tests, and all integration jobs before review/merge.
+- PR #125: rerun the separated negative cases, then require the validator, all
+  process tests, and full Linux/macOS integration on one exact head.
 - Issue #91 remains open; no cache performance improvement is claimed yet.
 
 ## Next action
 
-- Validate PR #125's new exact head; then resume #124 from its live head.
+- Validate PR #125's corrected exact head; then resume #124 from its live head.

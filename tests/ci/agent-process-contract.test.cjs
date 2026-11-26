@@ -87,9 +87,15 @@ test("preflight validator rejects a missing section and unreviewed regression co
   );
   assert.ok(validateAgentPreflight(withoutSection).some((error) => /missing section/.test(error)));
 
-  const unsupportedTests = completePreflight.replace(
+  const placeholderTests = completePreflight.replace(
     "- Existing regression tests reviewed: tests/ci/agent-process-contract.test.cjs and tests/ci/neovim-cache-contract.test.cjs.",
     "- Existing regression tests reviewed: none"
+  );
+  assert.ok(validateAgentPreflight(placeholderTests).some((error) => /placeholder/.test(error)));
+
+  const unsupportedTests = completePreflight.replace(
+    "- Existing regression tests reviewed: tests/ci/agent-process-contract.test.cjs and tests/ci/neovim-cache-contract.test.cjs.",
+    "- Existing regression tests reviewed: reviewed but no paths supplied"
   );
   assert.ok(validateAgentPreflight(unsupportedTests).some((error) => /existing regression tests must name reviewed test paths/.test(error)));
 });
