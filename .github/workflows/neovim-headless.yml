@@ -15,6 +15,10 @@ on:
       - "scripts/test-python-provider-macos.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
+      - "AGENTS.md"
+      - "AGENT_STATE.md"
+      - "AGENT_WORKLOG.md"
+      - "docs/agent-log/**"
       - "scripts/ci/**"
       - "tests/ci/**"
   # Always create PR checks. The integration job below decides from the
@@ -62,6 +66,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Test mandatory agent development-process contracts
+        run: node --test tests/ci/agent-process-contract.test.cjs
 
       - name: Install pinned Neovim for the real bootstrap tests
         shell: bash
