@@ -38,16 +38,16 @@ command_file="$test_root/start-neovim.command"
 terminal_window_focus_script="$test_root/terminal-window-focus.swift"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
-socket_path="/tmp/nvim-terminal-focus-$(id -u)-$$.sock"
-
-socket_length="$(printf '%s' "$socket_path" | wc -c | tr -d ' ')"
-if ((socket_length >= 100)); then
-  printf 'The temporary Neovim RPC socket path is too long for macOS: %s\n' "$socket_path" >&2
-  exit 1
-fi
+probe_script="$REPO_ROOT/scripts/run_macos_terminal_focus_probe.py"
 ready_file="$test_root/neovim.ready"
 focus_lost_file="$test_root/focus-lost.count"
 focus_gained_file="$test_root/focus-gained.count"
+probe_ready_file="$test_root/probe.ready"
+probe_release_file="$test_root/probe.release"
+probe_done_file="$test_root/probe.done"
+probe_focus_lost_file="$test_root/probe-focus-lost.count"
+probe_focus_gained_file="$test_root/probe-focus-gained.count"
+probe_log="$test_root/probe.log"
 launcher_log="$test_root/launcher.log"
 startup_verbose_log="$test_root/neovim-verbose.log"
 startup_timing_log="$test_root/neovim-startuptime.log"
@@ -59,7 +59,6 @@ cleanup() {
       kill "$child_pid" 2>/dev/null || true
     fi
   fi
-  rm -f "$socket_path"
   rm -rf "$test_root"
 }
 trap cleanup EXIT
@@ -72,11 +71,17 @@ printf -v q_cache '%q' "$NVIM_TEST_DIR/cache"
 printf -v q_nvim '%q' "$NVIM_BIN"
 printf -v q_pid '%q' "$pid_file"
 printf -v q_tty '%q' "$tty_file"
-printf -v q_socket '%q' "$socket_path"
+printf -v q_probe_script '%q' "$probe_script"
 printf -v q_init '%q' "$NVIM_TEST_DIR/config/nvim/init.lua"
 printf -v q_ready_file '%q' "$ready_file"
 printf -v q_focus_lost_file '%q' "$focus_lost_file"
 printf -v q_focus_gained_file '%q' "$focus_gained_file"
+printf -v q_probe_ready_file '%q' "$probe_ready_file"
+printf -v q_probe_release_file '%q' "$probe_release_file"
+printf -v q_probe_done_file '%q' "$probe_done_file"
+printf -v q_probe_focus_lost_file '%q' "$probe_focus_lost_file"
+printf -v q_probe_focus_gained_file '%q' "$probe_focus_gained_file"
+printf -v q_probe_log '%q' "$probe_log"
 printf -v q_launcher_log '%q' "$launcher_log"
 printf -v q_verbose_log '%q' "$startup_verbose_log"
 printf -v q_timing_log '%q' "$startup_timing_log"
@@ -109,9 +114,13 @@ echo \$\$ > $q_pid
   printf '[launcher] config: %s\n' $q_init
 } >> $q_launcher_log
 tty > $q_tty 2>> $q_launcher_log
-exec $q_nvim --listen $q_socket --cmd 'set nomore shortmess+=I' \
+python3 $q_probe_script \
+  $q_probe_ready_file $q_probe_release_file $q_probe_done_file \
+  $q_probe_focus_lost_file $q_probe_focus_gained_file $q_probe_log \
+  >> $q_launcher_log 2>&1
+exec $q_nvim --cmd 'set nomore shortmess+=I' \
   --startuptime $q_timing_log -V12$q_verbose_log -u $q_init \
-  -c 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.g.dotfiles_macos_focus_ready = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() vim.g.dotfiles_macos_focus_ready = 1; assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
+  -c 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() local n = (vim.g.dotfiles_macos_focus_lost or 0) + 1; vim.g.dotfiles_macos_focus_lost = n; assert(vim.fn.writefile({tostring(n)}, vim.env.DOTFILES_FOCUS_LOST_FILE) == 0) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() local n = (vim.g.dotfiles_macos_focus_gained or 0) + 1; vim.g.dotfiles_macos_focus_gained = n; assert(vim.fn.writefile({tostring(n)}, vim.env.DOTFILES_FOCUS_GAINED_FILE) == 0) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
 
@@ -335,36 +344,6 @@ fputs("Terminal.app window \(target.id) did not become the frontmost Terminal wi
 exit(1)
 SWIFT
 
-remote_expr() {
-  python3 - "$NVIM_BIN" "$socket_path" "$1" <<'PY'
-import subprocess
-import sys
-
-try:
-    result = subprocess.run(
-        [sys.argv[1], "--server", sys.argv[2], "--remote-expr", sys.argv[3]],
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=2,
-    )
-except subprocess.TimeoutExpired:
-    print("[macos-focus] ERROR: Neovim RPC remote-expr exceeded its 2-second deadline.", file=sys.stderr)
-    raise SystemExit(124)
-
-if result.returncode != 0:
-    if result.stderr:
-        print(result.stderr, file=sys.stderr, end="")
-    raise SystemExit(result.returncode)
-
-sys.stdout.write(result.stdout.rstrip("\r\n"))
-PY
-}
-
-read_counter() {
-  remote_expr "get(g:, '$1', 0)"
-}
-
 read_file_counter() {
   local file=""
   case "$1" in
@@ -378,6 +357,7 @@ read_file_counter() {
     printf '0'
   fi
 }
+
 wait_for_launcher() {
   local deadline=$((SECONDS + 5))
   local child_pid=""
@@ -458,21 +438,88 @@ print_startup_diagnostics() {
   fi
 }
 
-wait_for_ready() {
-  local deadline=$((SECONDS + 30))
-  local rpc_ready=""
+wait_for_probe_ready() {
+  local deadline=$((SECONDS + 15))
   while ((SECONDS < deadline)); do
-    if [[ -S "$socket_path" ]] && [[ -s "$ready_file" ]] && [[ "$(tr -d '\r\n' < "$ready_file")" == "1" ]]; then
-      printf '[macos-focus] Neovim reached UIEnter; waiting for its RPC server to answer.\n'
-      rpc_ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" || true)"
-      if [[ "$rpc_ready" == "1" ]]; then
-        printf '[macos-focus] Neovim attached its real TTY UI and its RPC server is responsive.\n'
+    if [[ -s "$probe_ready_file" ]] && [[ "$(tr -d '\r\n' < "$probe_ready_file")" == "1" ]]; then
+      printf '[macos-focus] Native TTY probe enabled DECSET 1004 on %s.\n' "$(tr -d '\r\n' < "$tty_file")"
+      return 0
+    fi
+    if [[ -s "$pid_file" ]]; then
+      local child_pid
+      child_pid="$(cat "$pid_file")"
+      if [[ "$child_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$child_pid" 2>/dev/null; then
+        break
+      fi
+    fi
+    sleep 0.1
+  done
+  printf 'Terminal.app did not start the raw TTY focus probe within 15 seconds.\n' >&2
+  [[ -s "$probe_log" ]] && cat "$probe_log" >&2
+  return 1
+}
+
+read_probe_counter() {
+  local file="$1"
+  if [[ -s "$file" ]]; then
+    tr -d '\r\n' < "$file"
+  else
+    printf '0'
+  fi
+}
+
+wait_for_probe_counter_gt() {
+  local file="$1"
+  local previous="$2"
+  local description="$3"
+  local current=""
+  local deadline=$((SECONDS + 10))
+  while ((SECONDS < deadline)); do
+    current="$(read_probe_counter "$file")"
+    if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
+      printf 'PASS: %s (%s -> %s)\n' "$description" "$previous" "$current"
+      return 0
+    fi
+    sleep 0.1
+  done
+  printf 'FAIL: %s; expected native TTY counter to increase beyond %s, got %s\n' \
+    "$description" "$previous" "${current-unavailable}" >&2
+  printf '[macos-focus] Raw TTY probe log follows:\n' >&2
+  [[ -s "$probe_log" ]] && cat "$probe_log" >&2
+  return 1
+}
+
+wait_for_probe_done() {
+  local deadline=$((SECONDS + 5))
+  while ((SECONDS < deadline)); do
+    if [[ -s "$probe_done_file" ]]; then
+      local result
+      result="$(tr -d '\r\n' < "$probe_done_file")"
+      if [[ "$result" == "ok" ]]; then
+        printf '[macos-focus] Raw TTY probe restored terminal mode before Neovim startup.\n'
         return 0
       fi
+      printf 'Raw TTY focus probe did not restore terminal mode cleanly.\n' >&2
+      [[ -s "$probe_log" ]] && cat "$probe_log" >&2
+      return 1
+    fi
+    sleep 0.1
+  done
+  printf 'Raw TTY focus probe did not exit within 5 seconds after release.\n' >&2
+  [[ -s "$probe_log" ]] && cat "$probe_log" >&2
+  return 1
+}
+
+wait_for_ready() {
+  local deadline=$((SECONDS + 30))
+  while ((SECONDS < deadline)); do
+    if [[ -s "$ready_file" ]] && [[ "$(tr -d '\r\n' < "$ready_file")" == "1" ]]; then
+      printf '[macos-focus] Neovim attached its real TTY UI and published the UIEnter ready marker.\n'
+      return 0
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not complete a responsive Neovim startup within 30 seconds.\n' >&2
+  printf 'Terminal.app did not complete Neovim startup within 30 seconds.\n' >&2
   print_startup_diagnostics >&2
   return 1
 }
@@ -481,23 +528,17 @@ wait_for_counter_gt() {
   local previous="$2"
   local description="$3"
   local current=""
-  local file_current=""
   local deadline=$((SECONDS + 10))
-
   while ((SECONDS < deadline)); do
-    current="$(read_counter "$name" || true)"
-    file_current="$(read_file_counter "$name" || true)"
+    current="$(read_file_counter "$name")"
     if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
-      printf 'PASS: %s (RPC %s -> %s; file counter=%s)\n' "$description" "$previous" "$current" "${file_current-unavailable}"
+      printf 'PASS: %s (%s -> %s)\n' "$description" "$previous" "$current"
       return 0
-    fi
-    if [[ "$file_current" =~ ^[0-9]+$ ]] && ((file_current > previous)); then
-      printf 'FAIL: %s; callback file advanced to %s but independent RPC counter remained %s\n' "$description" "$file_current" "${current-unavailable}" >&2
-      return 2
     fi
     sleep 0.1
   done
-  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\n' "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
+  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got %s\n' \
+    "$description" "$name" "$previous" "${current-unavailable}" >&2
   return 1
 }
 
@@ -610,9 +651,35 @@ on run argv
 end run
 APPLESCRIPT
 }
+run_terminal_window_helper() {
+  python3 - "$terminal_window_focus_script" "$@" <<'PY'
+import subprocess
+import sys
+
+try:
+    result = subprocess.run(
+        ["swift", sys.argv[1], *sys.argv[2:]],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+except subprocess.TimeoutExpired:
+    print("[macos-focus] Terminal window helper exceeded its 20-second deadline.", file=sys.stderr)
+    raise SystemExit(124)
+
+if result.stdout:
+    print(result.stdout, end="")
+if result.returncode != 0:
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="")
+    raise SystemExit(result.returncode)
+PY
+}
+
 assert_finder_frontmost() {
   local frontmost
-  frontmost="$(swift "$terminal_window_focus_script" frontmost)"
+  frontmost="$(run_terminal_window_helper frontmost)"
   [[ "$frontmost" == "com.apple.finder" ]] || {
     printf '[macos-focus] Expected Finder to remain frontmost after closing test windows; got %s\n' "$frontmost" >&2
     return 1
@@ -621,39 +688,12 @@ assert_finder_frontmost() {
 }
 activate_neovim_terminal_window() {
   local previous_window_ids="$1"
-  swift "$terminal_window_focus_script" activate "$previous_window_ids"
+  run_terminal_window_helper activate "$previous_window_ids"
 }
 
-wait_for_counter_increase() {
-  local name="$1"
-  local previous="$2"
-  local attempts="$3"
-  local description="$4"
-  local quiet="${5:-false}"
-  local current=""
-  local deadline=$((SECONDS + (attempts + 9) / 10))
-
-  while ((SECONDS < deadline)); do
-    current="$(read_counter "$name" || true)"
-    if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
-      if [[ "$quiet" != "true" ]]; then
-        printf 'PASS: %s (%s -> %s)\n' "$description" "$previous" "$current"
-      fi
-      return 0
-    fi
-    sleep 0.1
-  done
-
-  if [[ "$quiet" != "true" ]]; then
-    printf 'FAIL: %s; expected %s to increase beyond %s, got %s\n' \
-      "$description" "$name" "$previous" "${current-unavailable}" >&2
-  fi
-  return 1
-}
-
-terminal_windows_before="$(swift "$terminal_window_focus_script" snapshot)"
+terminal_windows_before="$(run_terminal_window_helper snapshot)"
 printf '[macos-focus] Terminal.app window IDs before test launch: %s\n' "${terminal_windows_before:-none}"
-printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
+printf '[macos-focus] Starting native raw-TTY focus probe in Terminal.app.\n'
 open -a Terminal "$command_file"
 if ! wait_for_launcher; then
   launch_through_terminal_scripting
@@ -663,28 +703,44 @@ if ! wait_for_launcher; then
     exit 1
   }
 fi
+wait_for_terminal_tty
+wait_for_probe_ready
+
+# First isolate Terminal.app -> TTY. This receiver runs on the actual Terminal
+# PTY and counts only bytes returned by the terminal emulator; it never injects
+# CSI I/O. A successful raw pass proves the native terminal boundary.
+printf '[macos-focus] Selecting the exact Terminal.app window for the raw TTY probe.\n'
+activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
+activate_neovim_terminal_window "$terminal_windows_before"
+probe_lost_before="$(read_probe_counter "$probe_focus_lost_file")"
+finder_windows_before="$(run_terminal_window_helper finder-snapshot)"
+printf '[macos-focus] Raw probe: activating Finder through Launch Services.\n'
+open -a Finder
+wait_for_probe_counter_gt "$probe_focus_lost_file" "$probe_lost_before" \
+  'Terminal.app delivered native FocusLost bytes to its real TTY'
+close_new_finder_windows "$finder_windows_before"
+assert_finder_frontmost
+
+probe_gained_before="$(read_probe_counter "$probe_focus_gained_file")"
+printf '[macos-focus] Raw probe: clicking the exact Terminal.app TTY window.\n'
+activate_neovim_terminal_window "$terminal_windows_before"
+wait_for_probe_counter_gt "$probe_focus_gained_file" "$probe_gained_before" \
+  'Terminal.app delivered native FocusGained bytes to its real TTY'
+: > "$probe_release_file"
+wait_for_probe_done
+printf '[macos-focus] Raw TTY evidence: FocusLost=%s FocusGained=%s\n' \
+  "$(read_probe_counter "$probe_focus_lost_file")" \
+  "$(read_probe_counter "$probe_focus_gained_file")"
+
+# The probe restored the saved termios state and disabled DECSET 1004 before
+# this same shell execs Neovim on the same Terminal.app PTY.
 wait_for_ready
 wait_for_terminal_tty
 
-# Launch Services opened this .command in Terminal.app, but the hosted runner's
-# initially active application is not guaranteed. Drive a complete activation
-# cycle first so the test proves the Neovim TUI is attached to the window that
-# actually receives keyboard focus, rather than assuming it was selected.
-gained_before="$(read_counter dotfiles_macos_focus_gained)"
-[[ "$gained_before" =~ ^[0-9]+$ ]] || {
-  printf 'Neovim FocusGained counter was not initialized: %s\n' "$gained_before" >&2
-  exit 1
-}
-
-printf '[macos-focus] Establishing the exact Neovim Terminal.app window as the focused starting point.\n'
-activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
-activate_neovim_terminal_window "$terminal_windows_before"
-printf '[macos-focus] Terminal.app is frontmost and the Neovim TTY window is selected before switching to Finder.\n'
-
-lost_initial_before="$(read_counter dotfiles_macos_focus_lost)"
-finder_windows_before="$(swift "$terminal_window_focus_script" finder-snapshot)"
-printf '[macos-focus] Existing Finder window IDs before activation: %s\n' "${finder_windows_before:-none}"
-printf '[macos-focus] Activating Finder using the previously validated direct Launch Services path.\n'
+lost_initial_before="$(read_file_counter dotfiles_macos_focus_lost)"
+gained_before="$(read_file_counter dotfiles_macos_focus_gained)"
+finder_windows_before="$(run_terminal_window_helper finder-snapshot)"
+printf '[macos-focus] Starting Neovim-native transition test; activating Finder.\n'
 open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_initial_before" \
   'Finder activation generated a real Neovim FocusLost event'
@@ -696,23 +752,22 @@ activate_neovim_terminal_window "$terminal_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
   'Terminal.app activation generated a real Neovim FocusGained event'
 
-lost_before="$(read_counter dotfiles_macos_focus_lost)"
-finder_windows_before="$(swift "$terminal_window_focus_script" finder-snapshot)"
-printf '[macos-focus] Existing Finder window IDs before second activation: %s\n' "${finder_windows_before:-none}"
-printf '[macos-focus] Activating Finder using the previously validated direct Launch Services path.\n'
+lost_before="$(read_file_counter dotfiles_macos_focus_lost)"
+finder_windows_before="$(run_terminal_window_helper finder-snapshot)"
+printf '[macos-focus] Neovim-native second transition: activating Finder.\n'
 open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Neovim FocusLost event on the second transition'
 close_new_finder_windows "$finder_windows_before"
 assert_finder_frontmost
 
-gained_after="$(read_counter dotfiles_macos_focus_gained)"
+gained_after="$(read_file_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Clicking the same Neovim Terminal.app window again and requiring another native FocusGained event.\n'
 activate_neovim_terminal_window "$terminal_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
   'Terminal.app reactivation generated a real Neovim FocusGained event'
-lost_final="$(read_counter dotfiles_macos_focus_lost)"
-gained_final="$(read_counter dotfiles_macos_focus_gained)"
+lost_final="$(read_file_counter dotfiles_macos_focus_lost)"
+gained_final="$(read_file_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Final native event counts: FocusLost=%s FocusGained=%s\n' \
   "$lost_final" "$gained_final"
 printf 'PASS: macOS Terminal.app -> Finder -> Terminal.app focus transition reached Neovim through the real TUI PTY.\n'

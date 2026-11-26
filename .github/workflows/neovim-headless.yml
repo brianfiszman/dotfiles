@@ -12,6 +12,8 @@ on:
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
       - "scripts/test-macos-terminal-focus.sh"
+      - "scripts/run_macos_terminal_focus_probe.py"
+      - "tests/ci/test_macos_terminal_focus_probe.py"
       - "scripts/test-python-provider-macos.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
@@ -84,6 +86,7 @@ jobs:
           bash -n scripts/test-nvim-headless.sh
           bash -n scripts/test-python-provider-macos.sh
           bash -n scripts/test-macos-terminal-focus.sh
+          python3 tests/ci/test_macos_terminal_focus_probe.py
 
       - name: Validate lazy.nvim lockfile JSON
         run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
