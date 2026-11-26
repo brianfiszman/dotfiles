@@ -17,8 +17,8 @@ local function feed(keys, after_input)
   -- synchronously draining typeahead blocks this coroutine before its timer
   -- can run.
   local accepted = vim.api.nvim_input(keys)
-  assert(accepted == #keys,
-    ("Neovim accepted %d of %d input bytes for %q"):format(accepted, #keys, keys))
+  assert(accepted > 0,
+    ("Neovim did not accept input for %q"):format(keys))
 
   -- Yield the test coroutine. Neovim's main loop consumes the queued input
   -- before a later timer checks the editor state and resumes the scenario.

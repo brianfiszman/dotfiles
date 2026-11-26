@@ -134,11 +134,15 @@ func terminalWindows() -> [(id: CGWindowID, bounds: CGRect, name: String)] {
       (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == terminal.processIdentifier,
       (entry[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
       let number = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
-      let boundsDictionary = entry[kCGWindowBounds as String] as? CFDictionary
+      let boundsObject = entry[kCGWindowBounds as String] as? NSDictionary
     else {
       return nil
     }
 
+    // Window-list values bridge through NSDictionary in Swift. Convert only
+    // after the Objective-C dictionary cast; the conditional CFDictionary
+    // cast is diagnosed as always successful by the current Swift compiler.
+    let boundsDictionary = boundsObject as CFDictionary
     var bounds = CGRect.zero
     guard CGRectMakeWithDictionaryRepresentation(boundsDictionary, &bounds) else {
       return nil

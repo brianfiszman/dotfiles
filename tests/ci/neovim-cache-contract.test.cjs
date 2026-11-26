@@ -185,6 +185,12 @@ test("the fresh DAP adapter installation regression remains wired into the cold 
   assert.match(restoreScript, /dap-neotest-trigger\.lua/);
 });
 
+test("Treesitter indentation regression waits for deferred FileType configuration", () => {
+  const indentationFixture = readFileSync(resolve(__dirname, "../nvim/indented-substitute.lua"), "utf8");
+  assert.match(indentationFixture, /vim\.wait\(2000, function\(\)[\s\S]*?indentexpr == expected_indentexpr/,
+    "the real FileType fixture must allow the scheduled Treesitter callback to execute before assertions");
+});
+
 test("headless LuaSnip fixture queues real typed input without blocking Insert mode", () => {
   assert.ok(luasnipIdleLifetime.includes("vim.api.nvim_input(keys)"),
     "use non-blocking user input so the event loop can run deferred Insert-mode assertions");
@@ -224,7 +230,9 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
     "construct a real window-specific mouse event");
   assert.ok(macosFocusScript.includes("mouseDown.post(tap: .cghidEventTap)"),
     "post the click through the native WindowServer event stream");
-  assert.equal((macosFocusScript.match(/^\\s*open -a Terminal(?:\\s|$)/gm) || []).length, 1,
+  const terminalLaunchLines = macosFocusScript.split("\n")
+    .filter((line) => line.trim() === 'open -a Terminal "$command_file"');
+  assert.equal(terminalLaunchLines.length, 1,
     "open Terminal only for the initial TTY launch, not as an app-wide focus substitute");
   assert.equal((macosFocusScript.match(/activate_neovim_terminal_window "\\$terminal_windows_before"/g) || []).length, 2,
     "both focus-gain assertions must target the same exact Neovim Terminal.app window");
