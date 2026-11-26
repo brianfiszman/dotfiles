@@ -109,16 +109,35 @@ test("Linux parser cache fingerprint is computed after supplemental APT dependen
   }
 });
 
-test("compiled parser cache is keyed by platform, architecture, toolchain, Neovim, CLI and parser inputs", () => {
+test("Tree-sitter runtime cache preserves parser binaries, query links, and revision metadata", () => {
   const block = cacheStepBlocks().find((entry) => entry.includes("Restore compiled Tree-sitter parsers"));
   assert.ok(block, "compiled parser cache must exist");
-  assert.match(block, /data\/nvim\/site\/parser/);
-  assert.match(block, /nvim-treesitter-parsers-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}/);
+  for (const path of ["data/nvim/site/parser", "data/nvim/site/queries", "data/nvim/site/parser-info"]) {
+    assert.ok(block.includes(path), "Tree-sitter cache omits required install_dir state: " + path);
+  }
+  assert.match(block, /nvim-treesitter-runtime-v2-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}/);
   assert.match(block, /env\.NEOVIM_VERSION/);
   assert.match(block, /cli-v0\.27\.2/);
   assert.match(block, /steps\.toolchain\.outputs\.fingerprint/);
   assert.match(block, /lua\/treesitter\.lua/);
   assert.match(block, /treesitter-current-api\.lua/);
+});
+
+test("Linux headless runner selects and reports GNU timeout on Ubuntu", () => {
+  const gnuTimeout = restoreScript.indexOf("command -v gnutimeout");
+  const genericTimeout = restoreScript.indexOf("command -v timeout");
+  assert.ok(gnuTimeout >= 0 && genericTimeout > gnuTimeout,
+    "prefer gnutimeout and retain generic timeout only as a fallback");
+  assert.ok(restoreScript.includes("Timeout supervisor: %s (%s)"),
+    "record the resolved supervisor and version in CI logs");
+  assert.ok(restoreScript.includes('"$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit"'),
+    "run bounded Neovim phases through the selected supervisor");
+  assert.doesNotMatch(restoreScript, /^\\s*timeout --signal=/m,
+    "do not invoke the ambiguous generic timeout directly");
+  assert.ok(workflow.includes("sha256sum gnutimeout find grep tee tar unzip"),
+    "Ubuntu runner preflight must require GNU timeout");
+  assert.ok(workflow.includes('timeout_version="$(gnutimeout --version 2>&1)"'),
+    "Ubuntu runner preflight must log the GNU timeout version");
 });
 
 test("plugin restore runs configured build hooks on cold and cached paths, serially, and fails on task errors", () => {

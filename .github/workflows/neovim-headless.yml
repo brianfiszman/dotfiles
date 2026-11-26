@@ -402,8 +402,12 @@ jobs:
         if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
-          path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser
-          key: nvim-treesitter-parsers-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua') }}
+          # The parser install is a coherent set: compiled binaries, query links, and revision metadata.
+          path: |
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/queries
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser-info
+          key: nvim-treesitter-runtime-v2-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua') }}
 
       - name: Restore locked plugins and run configured build hooks
         run: bash ./scripts/test-nvim-headless.sh restore
