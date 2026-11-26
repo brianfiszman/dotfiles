@@ -145,6 +145,9 @@ local function open_fixture(fixture)
   local highlights_query_ok, highlights_query = pcall(vim.treesitter.query.get, fixture.language, "highlights")
   local has_highlights_query = highlights_query_ok and highlights_query ~= nil
   if has_highlights_query then
+    assert(vim.wait(2000, function()
+      return vim.b.ts_highlight == true
+    end, 10), fixture.filetype .. " did not activate its Treesitter highlighter after FileType setup")
     assert_equal(true, vim.b.ts_highlight,
       fixture.filetype .. " activates Neovim's Treesitter highlighter when highlights.scm exists")
   else
