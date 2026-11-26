@@ -507,6 +507,23 @@ if result.returncode != 0:
     raise SystemExit(result.returncode)
 PY
 }
+close_test_owned_finder_window() {
+  local fixture_window_name="${test_root##*/}"
+  printf '[macos-focus] Closing only the Finder window created for this test: %s\n' "$fixture_window_name"
+  osascript - "$fixture_window_name" <<'APPLESCRIPT'
+on run argv
+  set fixtureWindowName to item 1 of argv
+  tell application "Finder"
+    set fixtureWindows to every window whose name is fixtureWindowName
+    if (count of fixtureWindows) is 0 then
+      error "Expected the test-owned Finder window " & fixtureWindowName & " to exist"
+    end if
+    close item 1 of fixtureWindows
+  end tell
+end run
+APPLESCRIPT
+}
+
 activate_neovim_terminal_window() {
   local previous_window_ids="$1"
   swift "$terminal_window_focus_script" activate "$previous_window_ids"
@@ -565,7 +582,9 @@ gained_before="$(read_counter dotfiles_macos_focus_gained)"
 }
 
 printf '[macos-focus] Selecting Finder before explicitly foregrounding the Neovim Terminal.app window.\n'
-open -a Finder
+open -a Finder "$test_root"
+activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 
 printf '[macos-focus] Clicking the exact Neovim Terminal.app window and requiring a native FocusGained event.\n'
@@ -575,7 +594,9 @@ wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 printf '[macos-focus] Activating Finder to force the selected Terminal.app window to lose key-window focus.\n'
-open -a Finder
+open -a Finder "$test_root"
+activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Terminal.app FocusLost event'
