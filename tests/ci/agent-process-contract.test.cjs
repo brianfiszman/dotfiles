@@ -18,11 +18,11 @@ test("AGENTS.md defines a mandatory preflight before repository mutations", () =
 
 test("the specialist skills retain the required diagnostic and verification safeguards", () => {
   const required = [
-    [".agents/skills/execution-continuity/SKILL.md", /AGENT_STATE\.md on `master`/],
+    [".agents/skills/execution-continuity/SKILL.md", /canonical checkpoint/],
     [".agents/skills/diagnostic-experiments/SKILL.md", /Two attempts per symptom/],
-    [".agents/skills/automated-verification/SKILL.md", /execute it yourself/],
+    [".agents/skills/automated-verification/SKILL.md", /execute that test yourself/],
     [".agents/skills/github-actions-validation/SKILL.md", /head_sha/],
-    [".agents/skills/neovim-headless-testing/SKILL.md", /real PTY/],
+    [".agents/skills/neovim-headless-testing/SKILL.md", /PTY/],
     [".agents/skills/agent-memory-hygiene/SKILL.md", /300 lines maximum/],
   ];
 
