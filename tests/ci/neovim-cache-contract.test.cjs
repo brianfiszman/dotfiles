@@ -192,6 +192,10 @@ test("macOS Terminal focus launch has a bounded Launch Services and scripting fa
     "focus counters and readiness must be installed before user startup plugins run");
   assert.match(macosFocusScript, /NVIM_RPC_TIMEOUT_SECONDS=10 python3/,
     "startup and focus RPC reads must tolerate slow UI startup while retaining the five-minute step cap");
-  assert.match(restoreScript, /config\.options\.concurrency = 1/,
-    "cache-hit build hooks must be serialized to avoid concurrent native toolchain/cache races");
+  const concurrencyIndex = restoreScript.indexOf("config.options.concurrency = 1");
+  const restoreIndex = restoreScript.indexOf('"+Lazy! restore"');
+  assert.ok(concurrencyIndex >= 0 && restoreIndex > concurrencyIndex,
+    "plugin build hooks must be serialized before Lazy's forced restore starts");
+  assert.doesNotMatch(restoreScript, /\\+Lazy! build all/,
+    "do not execute build hooks twice in the same Neovim process after Lazy! restore already ran them");
 });
