@@ -635,7 +635,7 @@ printf '[macos-focus] Terminal.app is frontmost and the Neovim TTY window is sel
 
 lost_initial_before="$(read_counter dotfiles_macos_focus_lost)"
 finder_windows_before="$(swift "$terminal_window_focus_script" finder-snapshot)"
-printf '[macos-focus] Existing Finder window IDs before activation: %s\n' "\${finder_windows_before:-none}"
+printf '[macos-focus] Existing Finder window IDs before activation: %s\n' "${finder_windows_before:-none}"
 printf '[macos-focus] Activating Finder using the previously validated direct Launch Services path.\n'
 open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_initial_before" \
@@ -650,7 +650,7 @@ wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 finder_windows_before="$(swift "$terminal_window_focus_script" finder-snapshot)"
-printf '[macos-focus] Existing Finder window IDs before second activation: %s\n' "\${finder_windows_before:-none}"
+printf '[macos-focus] Existing Finder window IDs before second activation: %s\n' "${finder_windows_before:-none}"
 printf '[macos-focus] Activating Finder using the previously validated direct Launch Services path.\n'
 open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
