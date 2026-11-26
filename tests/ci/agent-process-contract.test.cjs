@@ -22,7 +22,7 @@ test("the specialist skills retain the required diagnostic and verification safe
     [".agents/skills/diagnostic-experiments/SKILL.md", /Two attempts per symptom/],
     [".agents/skills/automated-verification/SKILL.md", /execute that test yourself/],
     [".agents/skills/github-actions-validation/SKILL.md", /head_sha/],
-    [".agents/skills/neovim-headless-testing/SKILL.md", /PTY/],
+    [".agents/skills/neovim-headless-testing/SKILL.md", /real headless process/],
     [".agents/skills/agent-memory-hygiene/SKILL.md", /300 lines maximum/],
   ];
 
