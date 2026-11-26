@@ -80,6 +80,20 @@ test("preflight CI rejects omitted learning, vague searches, placeholders, and u
   assert.ok(validateAgentPreflight(unsupportedFailure).some((error) => /must link an issue\/PR\/run and state their disposition/.test(error)));
 });
 
+test("preflight validator rejects a missing section and unreviewed regression coverage", () => {
+  const withoutSection = completePreflight.replace(
+    "## Agent preflight (required; CI-enforced)",
+    "## Validation"
+  );
+  assert.ok(validateAgentPreflight(withoutSection).some((error) => /missing section/.test(error)));
+
+  const unsupportedTests = completePreflight.replace(
+    "- Existing regression tests reviewed: tests/ci/agent-process-contract.test.cjs and tests/ci/neovim-cache-contract.test.cjs.",
+    "- Existing regression tests reviewed: none"
+  );
+  assert.ok(validateAgentPreflight(unsupportedTests).some((error) => /existing regression tests must name reviewed test paths/.test(error)));
+});
+
 test("PR template exposes the fields enforced by the preflight validator", () => {
   const template = normalize(read(".github/pull_request_template.md"));
   for (const field of [
