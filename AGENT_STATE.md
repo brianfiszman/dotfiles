@@ -2,28 +2,29 @@
 
 _Last updated: 2026-11-26 (America/Argentina/Buenos_Aires)_
 
-Canonical checkpoint lives on `master`; this docs PR proposes the updated handoff. Keep <=40 lines.
+Canonical checkpoint on `master`; keep <=40 lines. Detailed history is in the monthly log and live PRs.
 
 ## Current focus
 
-- **Repository:** latest master merge is PR #121, [`84a26a2`](https://github.com/brianfiszman/dotfiles/commit/84a26a2082fb7a927276e61358fa10435b2ff6d3).
-- **Issue #91:** open; Draft [PR #124](https://github.com/brianfiszman/dotfiles/pull/124), head `045ae7cf049563d86da3eef672c465a85db6d344`. Keep paused and do not modify.
-- **Process:** Draft [PR #125](https://github.com/brianfiszman/dotfiles/pull/125), branch `docs/mandatory-agent-process-2026-11`. Verified source/work checkpoint: `6dd838b0311e47bfde2ecb0a0dbd48d187e80f00`.
+- **Repository master:** `e1cc50434f15e2a8b0e388928a6f94a3e54e043b`; PRs #125, #127, and #126 are merged.
+- **Issue #91:** open. Functional PR [#124](https://github.com/brianfiszman/dotfiles/pull/124) is open, Draft, branch `perf/neovim-ci-cache-91`, HEAD `ff84ba7a9af554e71be7524876263de284d00c8d`.
+- **Priority authorized by Brian:** finish the macOS Terminal.app focus failure in #124. The prerequisite that #125 merge first has been satisfied; do not treat its old pause note as current authorization.
+- **Secondary Linux issue:** cache-hit forced-build SIGSEGV. Its two diagnostic attempts are exhausted; do not launch another speculative cache-hit CI run.
 
 ## Verified
 
-- PR #121 merged as `84a26a2`; issue #33 closed.
-- Neovim [run #697](https://github.com/brianfiszman/dotfiles/actions/runs/45856318022) reproduced the previously known macOS Terminal focus timeout. The GUI script is byte-identical to master; run #679 and its one same-SHA retry already exhausted the two-attempt rule.
-- Neovim [run #699](https://github.com/brianfiszman/dotfiles/actions/runs/45861812257) passed on exact head `6dd838b`: fast checks and integration decision passed; Linux and macOS runtime jobs were skipped by the process-only classifier.
-- Agent [run #21](https://github.com/brianfiszman/dotfiles/actions/runs/45861812355) passed on exact head `6dd838b`: preflight validator, process contracts, gate contracts, and exact-head `Neovim integration gate` all passed against run #699 and the current base SHA.
-- Agent push [run #20](https://github.com/brianfiszman/dotfiles/actions/runs/45861174948) exposed the root-level YAML indentation mistake; commit `6dd838b` fixed it and added a raw-YAML regression, which passed in run #21.
-- Active ruleset [Protect master — Mandatory CI](https://github.com/brianfiszman/dotfiles/rules/28175818) is active, strict, and requires the five expected contexts. The macOS context is skipped only for this verified process-only diff.
-- PR #124 remains paused and untouched.
+- PR #125 merged as `c9c217b9af732eda4317d0d35ecdd4e5dbf01765`.
+- PR #127 merged as `d38071fd1b0d06ba59c15d93aa48067946b88021`; `AGENTS.md` now requires proactive context compaction and `tests/ci/agent-process-contract.test.cjs` protects it.
+- PR #126 merged as `e1cc50434f15e2a8b0e388928a6f94a3e54e043b`; monthly log records the #124 macOS focus evidence and Linux task-count observation.
+- Neovim run [#712](https://github.com/brianfiszman/dotfiles/actions/runs/45877998509), exact PR #124 HEAD `ff84ba7...`: macOS locked plugin restore and Avante native-library checks passed; Neovim reached real Terminal.app TTY `/dev/ttys000` and `UIEnter`; Finder remained frontmost after the native click, so FocusGained and downstream Python-provider checks did not pass/run.
+- Linux #711 cold restore completed 9 build tasks; #712 cache-hit restore completed 3, then forced `+Lazy! build all` completed 93 tasks before Neovim SIGSEGV. The count difference is evidence, not a proven crash cause.
 
 ## Pending
 
-- Revalidate this state/worklog-only checkpoint on its exact new head, then inspect the final PR checks and full diff before changing PR status.
+- The macOS occlusion hypothesis is unconfirmed: `open -a Finder "$test_root"` may raise a Finder folder window over the Terminal click point. Existing logs do not contain full WindowServer z-order/bounds.
+- Local environment is Debian without macOS WindowServer; do not claim native macOS reproduction locally.
 
 ## Next action
 
-- Do not resume PR #124 until PR #125 has passed final-head verification, review, and integration.
+- Instrument one targeted macOS diagnostic to capture the full on-screen window list immediately before the click: front-to-back order, owner/PID, ID, layer, name, bounds, and any overlap of windows above the target Terminal point.
+- Keep the real Neovim TTY FocusGained/FocusLost assertions. Do not change click coordinates/event source or rerun Linux cache-hit CI before this evidence.
