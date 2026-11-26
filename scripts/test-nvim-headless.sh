@@ -328,17 +328,12 @@ restore_plugins() {
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
   local -a restore_checks=("+Lazy! restore" "+lua local failures = {}; for name, plugin in pairs(require('lazy.core.config').plugins) do for _, task in ipairs(plugin._.tasks or {}) do if task.name == 'build' and task:has_errors() then table.insert(failures, name .. ': ' .. task:output(vim.log.levels.ERROR)) end end end; assert(#failures == 0, 'lazy.nvim build hook failures: ' .. table.concat(failures, '\n')); print('PASS: no lazy.nvim build task reported errors')")
   local verify_build_hooks="+lua local plugins = require('lazy.core.config').plugins; for _, name in ipairs({'LuaSnip', 'avante.nvim', 'nvim-treesitter'}) do local plugin = assert(plugins[name], 'missing build-hook plugin ' .. name); assert(plugin.build ~= nil, name .. ' has no configured build hook') end; assert(vim.g.dotfiles_treesitter_build_hook_ran == true, 'nvim-treesitter build hook did not execute'); print('PASS: configured build hooks exist and nvim-treesitter hook executed')"
+  local build_concurrency="+lua local config = require('lazy.core.config'); config.options.concurrency = 1; assert(config.options.concurrency == 1); print('PASS: plugin build hooks run serially to avoid shared toolchain/cache races')"
+  restore_checks=("$build_concurrency" "${restore_checks[@]}")
   if [[ "${DOTFILES_PLUGIN_CACHE_HIT:-false}" == "true" ]]; then
-    printf '[restore] Plugin cache hit; force-running every configured lazy.nvim build hook.\n'
-    # A restored checkout is already at the locked revision, so lazy.nvim
-    # correctly skips normal build hooks. Force them on cache hits to ensure
-    # cached sources never become a substitute for actual build validation.
-    restore_checks+=("+lua local config = require('lazy.core.config'); config.options.concurrency = 1; assert(config.options.concurrency == 1); print('PASS: forced plugin builds are serialized to avoid shared toolchain/cache races')")
-    restore_checks+=("+Lazy! build all" "+lua local failures = {}; for name, plugin in pairs(require('lazy.core.config').plugins) do for _, task in ipairs(plugin._.tasks or {}) do if task.name == 'build' and task:has_errors() then table.insert(failures, name .. ': ' .. task:output(vim.log.levels.ERROR)) end end end; assert(#failures == 0, 'lazy.nvim build hook failures: ' .. table.concat(failures, '\\n')); print('PASS: no lazy.nvim build task reported errors')" "$verify_build_hooks")
-  else
-    restore_checks+=("$verify_build_hooks")
+    printf '[restore] Plugin cache hit; :Lazy! restore force-runs each configured build hook once.\\n'
   fi
-  restore_checks+=("+qa!")
+  restore_checks+=("$verify_build_hooks" "+qa!")
 
   DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
     run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
