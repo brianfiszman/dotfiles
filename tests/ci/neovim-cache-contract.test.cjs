@@ -186,7 +186,7 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   for (const marker of ["DOTFILES_FOCUS_READY_FILE", "DOTFILES_FOCUS_LOST_FILE", "DOTFILES_FOCUS_GAINED_FILE"]) {
     assert.ok(macosFocusScript.includes(marker), "missing file-based focus marker " + marker);
   }
-  for (const event of ["FocusLost", "FocusGained", "VimEnter"]) {
+  for (const event of ["FocusLost", "FocusGained", "UIEnter"]) {
     assert.ok(macosFocusScript.includes('vim.api.nvim_create_autocmd("' + event + '"'),
       "missing file-based Neovim autocmd for " + event);
   }
