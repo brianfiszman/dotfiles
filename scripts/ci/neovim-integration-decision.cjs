@@ -14,7 +14,7 @@ const AGENT_PROCESS_ONLY_FILES = new Set([
   "AGENT_STATE.md",
   "AGENT_WORKLOG.md",
   "scripts/ci/neovim-integration-decision.cjs",
-  "scripts/ci/neovim-integration-decision.test.cjs",
+  "tests/ci/neovim-integration-decision.test.cjs",
   "scripts/ci/validate-agent-preflight.cjs",
   "tests/ci/agent-process-contract.test.cjs",
 ]);
@@ -33,6 +33,7 @@ function isIntegrationPath(path) {
     path.startsWith("scripts/ci/") ||
     path === "install.sh" ||
     path === "scripts/test-nvim-headless.sh" ||
+    path === "scripts/test-macos-terminal-focus.sh" ||
     path === "scripts/test-python-provider-macos.sh" ||
     path === ".github/workflows/neovim-headless.yml" ||
     path === "README.md";

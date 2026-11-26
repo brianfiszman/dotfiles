@@ -142,7 +142,7 @@ test("no baseline skips runtime integration only for an entirely allowlisted age
     "AGENT_WORKLOG.md",
     "docs/agent-log/2026-11.md",
     "scripts/ci/neovim-integration-decision.cjs",
-    "scripts/ci/neovim-integration-decision.test.cjs",
+    "tests/ci/neovim-integration-decision.test.cjs",
     "scripts/ci/validate-agent-preflight.cjs",
     "tests/ci/agent-process-contract.test.cjs",
   ];
@@ -196,7 +196,7 @@ test("an incomplete base-to-head comparison never activates the process-only exc
   }
 });
 
-test("different PRs and missing PR associations cannot provide a baseline", async () => {
+test("different PRs and missing PR associations cannot provide a reusable baseline", async () => {
   for (const run of [
     baseline({ pull_requests: [{ number: 90 }] }),
     baseline({ pull_requests: [] }),
@@ -208,7 +208,9 @@ test("different PRs and missing PR associations cannot provide a baseline", asyn
     });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);
-    assert.equal(github.calls.comparisons.length, 0);
+    assert.equal(github.calls.jobs.length, 0);
+    assert.equal(github.calls.comparisons.length, 1,
+      "without a reusable baseline the complete base-to-head diff must be examined");
   }
 });
 
@@ -220,7 +222,8 @@ test("skipped, failed and cancelled integration runs cannot provide a baseline",
     });
     const result = await determineIntegrationRequirement({ context: makeContext(), github });
     assert.equal(result.required, true);
-    assert.equal(github.calls.comparisons.length, 0);
+    assert.equal(github.calls.comparisons.length, 1,
+      "a non-successful integration job is not a baseline; compare the complete PR delta");
   }
 });
 
@@ -234,11 +237,15 @@ test("documentation-only delta skips integration after a successful baseline on 
 });
 
 test("a master/base SHA change invalidates the previous successful integration baseline", async () => {
-  const github = fakeGithub({ baselineBaseSha: "e".repeat(40) });
+  const github = fakeGithub({
+    baselineBaseSha: "e".repeat(40),
+    comparison: { status: "ahead", total_commits: 1, files: [{ filename: ".config/nvim/init.lua" }] },
+  });
   const result = await determineIntegrationRequirement({ context: makeContext(), github });
   assert.equal(result.required, true);
   assert.match(result.reason, /current PR base SHA/);
-  assert.equal(github.calls.comparisons.length, 0);
+  assert.match(result.reason, /process-only exception does not apply/);
+  assert.equal(github.calls.comparisons.length, 1);
 });
 
 test("baseline metadata must match the historical PR head", async () => {
