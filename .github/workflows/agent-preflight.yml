@@ -49,7 +49,7 @@ jobs:
 
       - name: Test exact-head Neovim integration gate contracts
         run: node --test tests/ci/neovim-integration-gate.test.cjs
-integration-gate:
+  integration-gate:
     name: Neovim integration gate
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-26.04
@@ -89,7 +89,6 @@ integration-gate:
                 workflow_id: NEOVIM_WORKFLOW_ID,
                 event: "pull_request",
                 branch: pullRequest.head.ref,
-                head: identity.headSha,
                 per_page: 100,
               });
               const runs = response.data && response.data.workflow_runs;

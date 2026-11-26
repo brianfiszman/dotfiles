@@ -153,6 +153,9 @@ test("the stable check context is supplied by the dedicated agent-preflight work
     path.resolve(__dirname, "../../.github/workflows/agent-preflight.yml"), "utf8"
   );
   assert.match(workflow, /name: Neovim integration gate/);
+  assert.match(workflow, /^jobs:$/m);
+  assert.match(workflow, /^  integration-gate:$/m);
+  assert.doesNotMatch(workflow, /^integration-gate:$/m);
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /workflow_id: NEOVIM_WORKFLOW_ID/);
   assert.match(workflow, /evaluateNeovimRun/);
