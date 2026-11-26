@@ -29,7 +29,7 @@ test("AGENTS.md makes prior project learning a hard gate before every mutation",
   assert.match(agents, /## Mandatory agent preflight gate/);
   assert.match(agents, /At the start of every repository work session or new conversation/);
   assert.match(agents, /regardless of task size or prior chat context/);
-  assert.match(agents, /canonical `master` `AGENT_STATE\\.md`/);
+  assert.ok(agents.includes("canonical `master` `AGENT_STATE.md`"), "session recovery must name the canonical master checkpoint");
   assert.match(agents, /regardless of model size, capability, confidence/);
   assert.match(agents, /Search for prior learning about the same symptom/);
   assert.match(agents, /confirmed root causes, reproductions, fixes, rejected hypotheses, failed approaches/);
