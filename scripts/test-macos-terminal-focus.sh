@@ -117,6 +117,26 @@ import Foundation
 let terminalBundleID = "com.apple.Terminal"
 let mode = CommandLine.arguments.dropFirst().first ?? ""
 
+func finderWindowIDs() -> [CGWindowID] {
+  guard let finder = NSRunningApplication.runningApplications(
+    withBundleIdentifier: "com.apple.finder"
+  ).first,
+  let entries = CGWindowListCopyWindowInfo(
+    .optionAll, kCGNullWindowID
+  ) as? [[String: Any]] else {
+    return []
+  }
+  return entries.compactMap { entry in
+    guard
+      (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == finder.processIdentifier,
+      let number = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value
+    else {
+      return nil
+    }
+    return number
+  }
+}
+
 func terminalWindows() -> [(id: CGWindowID, bounds: CGRect, name: String)] {
   guard let terminal = NSRunningApplication.runningApplications(
     withBundleIdentifier: terminalBundleID
@@ -221,9 +241,17 @@ if mode == "snapshot" {
   print(terminalWindows().map { String($0.id) }.joined(separator: ","))
   exit(0)
 }
+if mode == "finder-snapshot" {
+  print(finderWindowIDs().map { String($0) }.joined(separator: ","))
+  exit(0)
+}
+if mode == "frontmost" {
+  print(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown")
+  exit(0)
+}
 
 guard mode == "activate", CommandLine.arguments.count == 3 else {
-  fputs("Usage: terminal-window-focus.swift snapshot | activate <previous-window-ids>\n", stderr)
+  fputs("Usage: terminal-window-focus.swift snapshot | finder-snapshot | frontmost | activate <previous-window-ids>\n", stderr)
   exit(2)
 }
 
@@ -507,23 +535,42 @@ if result.returncode != 0:
     raise SystemExit(result.returncode)
 PY
 }
-close_test_owned_finder_window() {
-  local fixture_window_name="${test_root##*/}"
-  printf '[macos-focus] Closing only the Finder window created for this test: %s\n' "$fixture_window_name"
-  osascript - "$fixture_window_name" <<'APPLESCRIPT'
+close_new_finder_windows() {
+  local previous_window_ids="$1"
+  printf '[macos-focus] Closing only Finder windows created after the pre-activation snapshot: %s\n' "\${previous_window_ids:-none}"
+  osascript - "$previous_window_ids" <<'APPLESCRIPT'
 on run argv
-  set fixtureWindowName to item 1 of argv
+  set previousText to item 1 of argv
+  set AppleScript's text item delimiters to ","
+  if previousText is "" then
+    set previousIDs to {}
+  else
+    set previousIDs to text items of previousText
+  end if
   tell application "Finder"
-    set fixtureWindows to every window whose name is fixtureWindowName
-    if (count of fixtureWindows) is 0 then
-      error "Expected the test-owned Finder window " & fixtureWindowName & " to exist"
-    end if
-    close item 1 of fixtureWindows
+    set windowsToClose to {}
+    repeat with candidateWindow in every window
+      set candidateID to (id of candidateWindow) as string
+      if previousIDs does not contain candidateID then
+        set end of windowsToClose to candidateWindow
+      end if
+    end repeat
+    repeat with candidateWindow in windowsToClose
+      close candidateWindow
+    end repeat
   end tell
 end run
 APPLESCRIPT
 }
-
+assert_finder_frontmost() {
+  local frontmost
+  frontmost="$(swift "$terminal_window_focus_script" frontmost)"
+  [[ "$frontmost" == "com.apple.finder" ]] || {
+    printf '[macos-focus] Expected Finder to remain frontmost after closing test windows; got %s\n' "$frontmost" >&2
+    return 1
+  }
+  printf '[macos-focus] Finder remains frontmost with test-created windows closed.\n'
+}
 activate_neovim_terminal_window() {
   local previous_window_ids="$1"
   swift "$terminal_window_focus_script" activate "$previous_window_ids"
@@ -587,13 +634,14 @@ activate_neovim_terminal_window "$terminal_windows_before"
 printf '[macos-focus] Terminal.app is frontmost and the Neovim TTY window is selected before switching to Finder.\n'
 
 lost_initial_before="$(read_counter dotfiles_macos_focus_lost)"
-printf '[macos-focus] Selecting Finder before explicitly foregrounding the Neovim Terminal.app window.\n'
-open -a Finder "$test_root"
-activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+finder_windows_before="$(swift "$terminal_window_focus_script" finder-snapshot)"
+printf '[macos-focus] Existing Finder window IDs before activation: %s\n' "\${finder_windows_before:-none}"
+printf '[macos-focus] Activating Finder using the previously validated direct Launch Services path.\n'
+open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_initial_before" \
-  'Finder activation generated a real Neovim FocusLost event before closing its test window'
-close_test_owned_finder_window
-activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+  'Finder activation generated a real Neovim FocusLost event'
+close_new_finder_windows "$finder_windows_before"
+assert_finder_frontmost
 
 printf '[macos-focus] Clicking the exact Neovim Terminal.app window and requiring a native FocusGained event.\n'
 activate_neovim_terminal_window "$terminal_windows_before"
@@ -601,13 +649,14 @@ wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
   'Terminal.app activation generated a real Neovim FocusGained event'
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
-printf '[macos-focus] Activating Finder to force the selected Terminal.app window to lose key-window focus.\n'
-open -a Finder "$test_root"
-activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+finder_windows_before="$(swift "$terminal_window_focus_script" finder-snapshot)"
+printf '[macos-focus] Existing Finder window IDs before second activation: %s\n' "\${finder_windows_before:-none}"
+printf '[macos-focus] Activating Finder using the previously validated direct Launch Services path.\n'
+open -a Finder
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
-  'Finder activation generated a real Neovim FocusLost event before closing its test window'
-close_test_owned_finder_window
-activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
+  'Finder activation generated a real Neovim FocusLost event on the second transition'
+close_new_finder_windows "$finder_windows_before"
+assert_finder_frontmost
 
 gained_after="$(read_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Clicking the same Neovim Terminal.app window again and requiring another native FocusGained event.\n'
