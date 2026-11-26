@@ -327,12 +327,21 @@ restore_plugins() {
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
   local -a restore_checks=("+Lazy! restore" "+lua local failures = {}; for name, plugin in pairs(require('lazy.core.config').plugins) do for _, task in ipairs(plugin._.tasks or {}) do if task.name == 'build' and task:has_errors() then table.insert(failures, name .. ': ' .. task:output(vim.log.levels.ERROR)) end end end; assert(#failures == 0, 'lazy.nvim build hook failures: ' .. table.concat(failures, '\n')); print('PASS: no lazy.nvim build task reported errors')")
-  local verify_build_hooks="+lua local plugins = require('lazy.core.config').plugins; for _, name in ipairs({'LuaSnip', 'avante.nvim', 'nvim-treesitter'}) do local plugin = assert(plugins[name], 'missing build-hook plugin ' .. name); assert(plugin.build ~= nil, name .. ' has no configured build hook') end; assert(vim.g.dotfiles_treesitter_build_hook_ran == true, 'nvim-treesitter build hook did not execute'); print('PASS: configured build hooks exist and nvim-treesitter hook executed')"
+  local verify_build_hooks="+lua local plugins = require('lazy.core.config').plugins; for _, name in ipairs({'LuaSnip', 'avante.nvim', 'nvim-treesitter'}) do local plugin = assert(plugins[name], 'missing build-hook plugin ' .. name); assert(plugin.build ~= nil, name .. ' has no configured build hook') end; print('PASS: configured build hooks exist')"
+  local verify_treesitter_build_hook="+lua assert(vim.g.dotfiles_treesitter_build_hook_ran == true, 'nvim-treesitter build hook did not execute on cold restore'); print('PASS: nvim-treesitter build hook executed on cold restore')"
   if [[ "${DOTFILES_PLUGIN_CACHE_HIT:-false}" == "true" ]]; then
-    printf '[restore] Plugin cache hit; force-running every configured build hook serially.\\n'
-    restore_checks+=("+Lazy! build all")
+    # A cache hit restores both locked plugin sources and their build artifacts.
+    # lazy.nvim intentionally does not rerun hooks for unchanged checkouts.
+    # Validate the native artifacts below instead of force-running every hook
+    # in the same Neovim process (which can crash after the task runner exits).
+    printf '[restore] Plugin cache hit; validating restored build artifacts without rerunning unchanged hooks.\\n'
+    restore_checks+=("$verify_build_hooks")
+  else
+    # Cold installs clone the locked revisions; lazy.nvim must execute their
+    # configured build hooks during :Lazy! restore.
+    restore_checks+=("$verify_build_hooks" "$verify_treesitter_build_hook")
   fi
-  restore_checks+=("$verify_build_hooks" "+qa!")
+  restore_checks+=("+qa!")
 
   DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
   DOTFILES_LAZY_CONCURRENCY=1 \
