@@ -154,6 +154,10 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.match(treesitterProvisioning, /treesitter\.get_installed\("parsers"\)/);
   assert.doesNotMatch(treesitterProvisioning, /treesitter\.get_installed = mocked_get_installed/);
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
+  assert.match(treesitter, /vim\\.schedule\\(function\\(\\)[\\s\\S]*configure_buffer\\(bufnr\\)/,
+    "Treesitter indentation must be applied after native ftplugin scripts finish");
+  assert.match(treesitterCurrentApi, /vim\\.wait\\(2000/);
+
 });
 
 test("focus PTY skips only Mason LSP package installation while retaining native server activation", () => {
@@ -186,7 +190,8 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(focusStep, /timeout-minutes: 5/);
   assert.ok(macosFocusScript.includes('open -a Terminal "$command_file"'));
   assert.ok(macosFocusScript.includes('open -a Terminal'));
-  assert.ok(macosFocusScript.includes('open -a Finder'));
+  assert.ok(macosFocusScript.includes('open -a Finder "$test_root"'),
+    "Finder focus must use a visible window opened on the isolated test directory");
   assert.match(macosFocusScript, /wait_for_launcher/);
   assert.match(macosFocusScript, /wait_for_ready/);
   assert.match(macosFocusScript, /wait_for_terminal_tty/);
