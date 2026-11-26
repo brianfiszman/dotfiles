@@ -37,6 +37,8 @@ test("AGENTS.md makes prior project learning a hard gate before every mutation",
   assert.match(agents, /falsifiable root-cause hypothesis/);
   assert.match(agents, /two-attempt stop rule/);
   assert.match(agents, /exact-SHA evidence/);
+  assert.ok(agents.includes("it cannot prove that an agent genuinely read a source"));
+  assert.ok(agents.includes("a workflow that runs without a required-status rule is advisory"));
 });
 
 test("specialist skills retain the project's diagnostic and verification safeguards", () => {
