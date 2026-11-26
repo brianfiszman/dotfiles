@@ -100,7 +100,7 @@ echo \$\$ > $q_pid
 } >> $q_launcher_log
 tty > $q_tty 2>> $q_launcher_log
 exec $q_nvim --cmd 'set nomore shortmess+=I' \
-  --cmd 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0) end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' \
+  --cmd 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' \
   --startuptime $q_timing_log -V12$q_verbose_log -u $q_init 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
@@ -251,13 +251,22 @@ guard let application = NSRunningApplication.runningApplications(
   exit(1)
 }
 
-let activated = application.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+let activated = application.activate(options: [.activateAllWindows])
 guard activated else {
   fputs("AppKit refused to activate \(appName).\n", stderr)
   exit(1)
 }
 
-print("AppKit activated \(appName); isActive=\(application.isActive)")
+let deadline = Date().addingTimeInterval(5)
+while NSWorkspace.shared.frontmostApplication?.bundleIdentifier != bundleID && Date() < deadline {
+  RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+}
+let frontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
+print("AppKit activation: requested=\(bundleID), frontmost=\(frontmostBundleID), isActive=\(application.isActive)")
+guard frontmostBundleID == bundleID else {
+  fputs("AppKit did not make \(appName) the frontmost application.\n", stderr)
+  exit(1)
+}
 SWIFT
 
   python3 - "$swift_script" "$bundle_id" "$app_name" <<'PY'
@@ -315,6 +324,7 @@ if ! wait_for_launcher; then
   }
 fi
 wait_for_ready
+request_appkit_activation "com.apple.Terminal" "Terminal.app"
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_counter dotfiles_macos_focus_gained)"
