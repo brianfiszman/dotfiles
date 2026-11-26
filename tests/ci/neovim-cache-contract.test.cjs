@@ -9,6 +9,7 @@ const workflowPath = resolve(__dirname, "../../.github/workflows/neovim-headless
 const restoreScriptPath = resolve(__dirname, "../../scripts/test-nvim-headless.sh");
 const treesitterPath = resolve(__dirname, "../../.config/nvim/lua/treesitter.lua");
 const treesitterProvisioningPath = resolve(__dirname, "../nvim/treesitter-provisioning.lua");
+const treesitterCurrentApiPath = resolve(__dirname, "../nvim/treesitter-current-api.lua");
 const lspConfigPath = resolve(__dirname, "../../.config/nvim/lua/lsp/config.lua");
 const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
@@ -19,6 +20,7 @@ const workflow = readFileSync(workflowPath, "utf8");
 const restoreScript = readFileSync(restoreScriptPath, "utf8");
 const treesitter = readFileSync(treesitterPath, "utf8");
 const treesitterProvisioning = readFileSync(treesitterProvisioningPath, "utf8");
+const treesitterCurrentApi = readFileSync(treesitterCurrentApiPath, "utf8");
 const lspConfig = readFileSync(lspConfigPath, "utf8");
 const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
@@ -206,5 +208,9 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   assert.match(macosFocusScript, /request_appkit_activation "com\.apple\.finder" "Finder"/,
     "Finder must be explicitly activated through AppKit before asserting FocusLost");
   assert.match(macosFocusScript, /request_appkit_activation "com\.apple\.Terminal" "Terminal\.app"/,
+  assert.match(macosFocusScript, /frontmostApplication\\?\\.bundleIdentifier/,
+    "AppKit must verify the requested app became frontmost");
+  assert.match(macosFocusScript, /Neovim received/);
+  assert.match(treesitterCurrentApi, /syntax ~= ""/);
     "Terminal.app reactivation fallback must use the same native AppKit path");
 });
