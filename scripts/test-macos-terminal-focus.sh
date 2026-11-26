@@ -15,7 +15,7 @@ if [[ -z "$NVIM_TEST_DIR" ]]; then
 fi
 
 NVIM_BIN="$(command -v "$NVIM_BIN")"
-for required_command in open swift tty; do
+for required_command in open osascript python3 swift tty ps; do
   command -v "$required_command" >/dev/null 2>&1 || {
     printf 'Required macOS GUI test command is missing: %s\n' "$required_command" >&2
     exit 1
@@ -38,6 +38,9 @@ socket_path="/tmp/nvim-terminal-focus-$(id -u)-$$.sock"
 command_file="$test_root/start-neovim.command"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
+launcher_log="$test_root/launcher.log"
+startup_verbose_log="$test_root/neovim-verbose.log"
+startup_timing_log="$test_root/neovim-startuptime.log"
 
 cleanup() {
   if [[ -S "$socket_path" ]]; then
@@ -71,6 +74,9 @@ printf -v q_socket '%q' "$socket_path"
 printf -v q_pid '%q' "$pid_file"
 printf -v q_tty '%q' "$tty_file"
 printf -v q_init '%q' "$NVIM_TEST_DIR/config/nvim/init.lua"
+printf -v q_launcher_log '%q' "$launcher_log"
+printf -v q_verbose_log '%q' "$startup_verbose_log"
+printf -v q_timing_log '%q' "$startup_timing_log"
 
 # Opening a .command file in Terminal.app starts Neovim on the app's actual
 # terminal PTY. The return transition selects the exact session window through
@@ -84,11 +90,16 @@ export XDG_CONFIG_HOME=$q_config
 export XDG_DATA_HOME=$q_data
 export XDG_STATE_HOME=$q_state
 export XDG_CACHE_HOME=$q_cache
-export TERM=xterm-256color
-echo \$\$ > $q_pid
-tty > $q_tty
-exec $q_nvim --listen $q_socket --cmd 'set nomore' -u $q_init \\
-  -c 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1'
+eecho \$\$ > $q_pid
+{
+  printf '[launcher] shell started; pid=%s\n' "\$\$"
+  printf '[launcher] Neovim executable: %s\n' $q_nvim
+  printf '[launcher] config: %s\n' $q_init
+} >> $q_launcher_log
+tty > $q_tty 2>> $q_launcher_log
+exec $q_nvim --listen $q_socket --cmd 'set nomore' \
+  --startuptime $q_timing_log -V12$q_verbose_log -u $q_init \
+  -c 'lua vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() vim.g.dotfiles_macos_focus_lost = vim.g.dotfiles_macos_focus_lost + 1 end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() vim.g.dotfiles_macos_focus_gained = vim.g.dotfiles_macos_focus_gained + 1 end }); vim.g.dotfiles_macos_focus_ready = 1' 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
 
@@ -99,6 +110,80 @@ remote_expr() {
 
 read_counter() {
   remote_expr "get(g:, '$1', 0)"
+}
+
+wait_for_launcher() {
+  local deadline=$((SECONDS + 5))
+  while ((SECONDS < deadline)); do
+    [[ -s "$pid_file" ]] && return 0
+    sleep 0.1
+  done
+  return 1
+}
+
+launch_through_terminal_scripting() {
+  printf '[macos-focus] Launch Services opened Terminal.app but did not execute the .command; trying Terminal scripting.\n'
+  python3 - "$command_file" <<'PY'
+import subprocess
+import sys
+
+script = """on run argv
+  set commandPath to item 1 of argv
+  tell application "Terminal"
+    activate
+    do script "bash " & quoted form of commandPath
+  end tell
+end run
+"""
+
+try:
+    result = subprocess.run(
+        ["osascript", "-", sys.argv[1]],
+        input=script,
+        text=True,
+        check=False,
+        timeout=15,
+        capture_output=True,
+    )
+except subprocess.TimeoutExpired:
+    print("[macos-focus] Terminal AppleScript fallback exceeded its 15-second deadline", file=sys.stderr)
+    raise SystemExit(124)
+
+if result.stdout:
+    print(result.stdout, end="")
+if result.returncode != 0:
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="")
+    raise SystemExit(result.returncode)
+PY
+}
+
+print_startup_diagnostics() {
+  printf '[macos-focus] Launcher diagnostics follow.\n'
+  if [[ -s "$launcher_log" ]]; then
+    cat "$launcher_log"
+  else
+    printf '[macos-focus] The generated .command never reached its launcher marker.\n'
+  fi
+  if [[ -s "$pid_file" ]]; then
+    local child_pid
+    child_pid="$(cat "$pid_file")"
+    printf '[macos-focus] Neovim pid file: %s\n' "$child_pid"
+    if [[ "$child_pid" =~ ^[0-9]+$ ]]; then
+      ps -o pid=,ppid=,stat=,command= -p "$child_pid" || true
+    fi
+  fi
+  if [[ -s "$tty_file" ]]; then
+    printf '[macos-focus] Neovim TTY: %s\n' "$(tr -d '\r\n' < "$tty_file")"
+  fi
+  if [[ -s "$startup_verbose_log" ]]; then
+    printf '[macos-focus] Neovim verbose startup tail:\n'
+    tail -n 40 "$startup_verbose_log"
+  fi
+  if [[ -s "$startup_timing_log" ]]; then
+    printf '[macos-focus] Neovim startup timing tail:\n'
+    tail -n 20 "$startup_timing_log"
+  fi
 }
 
 wait_for_ready() {
@@ -114,11 +199,10 @@ wait_for_ready() {
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds. Inspect %s\n' \
-    "$command_file" >&2
+  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds.\n' >&2
+  print_startup_diagnostics >&2
   return 1
 }
-
 wait_for_counter_gt() {
   local name="$1"
   local previous="$2"
@@ -232,6 +316,14 @@ wait_for_counter_increase() {
 
 printf '[macos-focus] Starting Neovim inside the real Terminal.app window.\n'
 open -a Terminal "$command_file"
+if ! wait_for_launcher; then
+  launch_through_terminal_scripting
+  wait_for_launcher || {
+    printf '[macos-focus] Terminal.app did not execute the generated launcher after either launch path.\n' >&2
+    print_startup_diagnostics >&2
+    exit 1
+  }
+fi
 wait_for_ready
 
 lost_before="$(read_counter dotfiles_macos_focus_lost)"
