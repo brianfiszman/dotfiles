@@ -122,13 +122,13 @@ test("compiled parser cache is keyed by platform, architecture, toolchain, Neovi
 });
 
 test("plugin restore runs configured build hooks on cold and cached paths, serially, and fails on task errors", () => {
-  assert.match(workflow, /DOTFILES_PLUGIN_CACHE_HIT: \\${\\{ steps\\.lazy-plugin-cache\\.outputs\\.cache-hit \\}\\}/);
-  assert.match(restoreScript, /DOTFILES_PLUGIN_CACHE_HIT:-false/);
-  assert.match(restoreScript, /task:has_errors\\(\\)/);
-  assert.match(restoreScript, /luasnip-jsregexp\\.so/);
-  assert.match(restoreScript, /avante_\\*\\.so/);
-  assert.match(restoreScript, /dotfiles_treesitter_build_hook_ran/);
-  assert.match(restoreScript, /plugin\\.build ~= nil/);
+  assert.ok(workflow.includes("DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}"));
+  assert.ok(restoreScript.includes("DOTFILES_PLUGIN_CACHE_HIT:-false"));
+  assert.ok(restoreScript.includes("task:has_errors()"));
+  assert.ok(restoreScript.includes("luasnip-jsregexp.so"));
+  assert.ok(restoreScript.includes("avante_*.so"));
+  assert.ok(restoreScript.includes("dotfiles_treesitter_build_hook_ran"));
+  assert.ok(restoreScript.includes("plugin.build ~= nil"));
   assert.ok(restoreScript.includes('Plugin cache hit; locked restore is followed by a separate serialized forced build pass.'));
   assert.ok(restoreScript.includes('restore_checks+=("$verify_build_hooks")'));
   assert.ok(restoreScript.includes('restore_checks+=("$verify_build_hooks" "$verify_treesitter_build_hook")'));
@@ -137,10 +137,10 @@ test("plugin restore runs configured build hooks on cold and cached paths, seria
   assert.ok(restoreScript.includes('run_nvim "plugin-restore"'));
   assert.ok(restoreScript.includes('run_nvim "plugin-cache-build"'));
   assert.ok(restoreScript.includes('"+Lazy! build all" "$verify_build_tasks" "$verify_build_hooks" "$verify_treesitter_build_hook" "+qa!"'));
-  assert.ok(restoreScript.includes('DOTFILES_LAZY_CONCURRENCY=1'));
+  assert.ok(restoreScript.includes("DOTFILES_LAZY_CONCURRENCY=1"));
   assert.ok(restoreScript.indexOf('run_nvim "plugin-restore"') < restoreScript.indexOf('run_nvim "plugin-cache-build"'),
     "cached build hooks must run in a fresh process after locked restore");
-  assert.equal((restoreScript.match(/\\+Lazy! build all/g) || []).length, 1,
+  assert.equal(restoreScript.split("+Lazy! build all").length - 1, 1,
     "force-run all configured build hooks exactly once on cache hits");
   assert.ok(!restoreScript.includes("without rerunning unchanged hooks"));
   for (const plugin of ["LuaSnip", "avante.nvim", "nvim-treesitter"]) {
@@ -166,7 +166,9 @@ test("Tree-sitter provisioning installs only missing parsers and updates only af
   assert.equal(lockfile["nvim-treesitter"]?.branch, "main");
   assert.ok(treesitter.includes("vim.schedule(function()") && treesitter.includes("configure_buffer(bufnr)"),
     "Treesitter indentation must be applied after native ftplugin scripts finish");
-  assert.match(treesitterCurrentApi, /vim\\.wait\\(2000, function\\(\\)[\\s\\S]*vim\\.b\\.current_syntax ~= nil/);
+  assert.ok(treesitterCurrentApi.includes("vim.wait(2000, function()"));
+  assert.ok(treesitterCurrentApi.includes("vim.b.current_syntax ~= nil"),
+    "current API integration must wait for deferred legacy Vim syntax setup");
   assert.ok(treesitterCurrentApi.includes("vim.wait(2000"),
     "current API integration must wait for deferred Treesitter indentation");
 
@@ -243,7 +245,7 @@ test("macOS Terminal focus launch uses bounded native Launch Services transition
     "focus must be delivered by clicking the Terminal TTY content area");
   assert.ok(macosFocusScript.includes("as? NSDictionary"));
   assert.ok(macosFocusScript.includes("boundsObject as CFDictionary"));
-  assert.doesNotMatch(macosFocusScript, /as\\? CFDictionary/,
+  assert.ok(!macosFocusScript.includes("as? CFDictionary"),
     "avoid Swift's always-successful conditional CFDictionary downcast");
   assert.ok(macosFocusScript.includes("mouseDown.post(tap: .cghidEventTap)"),
     "post the click through the native WindowServer event stream");
