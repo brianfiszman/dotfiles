@@ -414,7 +414,7 @@ test("path classifier keeps runtime paths mandatory and isolates only explicit a
     "AGENT_WORKLOG.md",
     "docs/agent-log/2026-11.md",
     "scripts/ci/neovim-integration-decision.cjs",
-    "scripts/ci/neovim-integration-decision.test.cjs",
+    "tests/ci/neovim-integration-decision.test.cjs",
     "scripts/ci/validate-agent-preflight.cjs",
     "tests/ci/agent-process-contract.test.cjs",
   ]) {
@@ -423,5 +423,7 @@ test("path classifier keeps runtime paths mandatory and isolates only explicit a
   }
 
   assert.equal(isAgentProcessOnlyPath("tests/ci/neovim-cache-contract.test.cjs"), false);
+  assert.equal(isAgentProcessOnlyPath("scripts/ci/neovim-integration-decision.test.cjs"), false);
+  assert.equal(isIntegrationPath("scripts/ci/neovim-integration-decision.test.cjs"), true);
   assert.equal(isIntegrationPath("docs/neovim-modernization-backlog.md"), false);
 });
