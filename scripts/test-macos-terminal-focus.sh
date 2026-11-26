@@ -171,7 +171,7 @@ guard candidates.count == 1, let target = candidates.first else {
   fputs("Expected exactly one new Terminal.app window for the Neovim TTY; found \(candidates.count). Windows: \(details)\n", stderr)
   exit(1)
 }
-guard target.bounds.width > 100, target.bounds.height > 40 else {
+guard target.bounds.width > 100, target.bounds.height > 80 else {
   fputs("Terminal.app target window has unusable bounds: \(target.bounds)\n", stderr)
   exit(1)
 }
@@ -184,21 +184,21 @@ guard let source = CGEventSource(stateID: .hidSystemState) else {
   exit(1)
 }
 
-// Click the title bar of the one window created for this test. This is a real
-// WindowServer mouse event; it does not synthesize Neovim focus bytes, invoke
-// Terminal AppleEvents, or activate unrelated Terminal windows.
-let titleBarPoint = CGPoint(x: target.bounds.midX, y: target.bounds.minY + 10)
+// Click inside the content area of the one window created for this test. A
+// title-bar click can select the window without focusing the Terminal TTY view.
+// This is a real WindowServer event, not a synthetic Neovim focus notification.
+let contentPoint = CGPoint(x: target.bounds.midX, y: target.bounds.midY)
 guard
   let mouseDown = CGEvent(
     mouseEventSource: source,
     mouseType: .leftMouseDown,
-    mouseCursorPosition: titleBarPoint,
+    mouseCursorPosition: contentPoint,
     mouseButton: .left
   ),
   let mouseUp = CGEvent(
     mouseEventSource: source,
     mouseType: .leftMouseUp,
-    mouseCursorPosition: titleBarPoint,
+    mouseCursorPosition: contentPoint,
     mouseButton: .left
   )
 else {
@@ -214,7 +214,7 @@ let deadline = Date().addingTimeInterval(5)
 while Date() < deadline {
   let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
   if frontmost == terminalBundleID, terminalWindows().first?.id == target.id {
-    print("[macos-focus] Clicked and selected the exact Neovim Terminal.app window id=\(target.id) at \(titleBarPoint)")
+    print("[macos-focus] Clicked and selected the exact Neovim Terminal.app window id=\(target.id) at \(contentPoint), bounds=\(target.bounds)")
     exit(0)
   }
   Thread.sleep(forTimeInterval: 0.1)

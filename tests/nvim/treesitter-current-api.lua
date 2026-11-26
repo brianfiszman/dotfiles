@@ -155,6 +155,9 @@ local function open_fixture(fixture)
       fixture.filetype .. " must not mark Treesitter highlighting active without a highlights.scm query")
     print("PASS: " .. fixture.filetype .. " has no highlights.scm query; parser remains available without a highlighter")
   end
+  assert(vim.wait(2000, function()
+    return vim.bo.syntax ~= "" and vim.bo.syntax ~= "OFF" and vim.b.current_syntax ~= nil
+  end, 10), fixture.filetype .. " did not finish loading its Vim regex syntax definitions after FileType setup")
   assert(vim.bo.syntax ~= "" and vim.bo.syntax ~= "OFF",
     fixture.filetype .. " lost the legacy Vim regex highlighting layer (syntax=" .. vim.bo.syntax .. ")")
   assert(vim.b.current_syntax ~= nil,
