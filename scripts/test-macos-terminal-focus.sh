@@ -165,7 +165,7 @@ func logOnScreenWindowStack(click: CGPoint, targetID: CGWindowID) {
     (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value == targetID
   }
 
-  print("[macos-focus] WindowServer on-screen z-order (front-to-back), target=\(targetID), targetIndex=\(targetIndex.map(String.init) ?? "not-found"), click=\(click)")
+  print("[macos-focus] WindowServer on-screen z-order (front-to-back), target=\(targetID), targetIndex=\(targetIndex.map { String($0) } ?? "not-found"), click=\(click)")
   var intersectingWindowsAboveTarget = 0
 
   for (index, entry) in entries.enumerated() {
@@ -208,7 +208,7 @@ func logOnScreenWindowStack(click: CGPoint, targetID: CGWindowID) {
     let alphaText = alpha.map { String($0) } ?? "<unavailable>"
     let clickText = coversClick ? "yes" : "no"
     let occluderText = intersectsAboveTarget ? "yes" : "no"
-    print("[macos-focus] z[\(index)] role=\(role) id=\(windowID.map(String.init) ?? "unknown") owner=\(owner) pid=\(ownerPID) layer=\(layer) alpha=\(alphaText) bounds=\(boundsText) name=\(name) coversClick=\(clickText) intersectsAboveTarget=\(occluderText)")
+    print("[macos-focus] z[\(index)] role=\(role) id=\(windowID.map { String($0) } ?? "unknown") owner=\(owner) pid=\(ownerPID) layer=\(layer) alpha=\(alphaText) bounds=\(boundsText) name=\(name) coversClick=\(clickText) intersectsAboveTarget=\(occluderText)")
   }
 
   if targetIndex == nil {
