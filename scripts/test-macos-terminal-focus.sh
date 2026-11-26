@@ -100,8 +100,8 @@ echo \$\$ > $q_pid
 } >> $q_launcher_log
 tty > $q_tty 2>> $q_launcher_log
 exec $q_nvim --cmd 'set nomore shortmess+=I' \
-  --cmd 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' \
-  --startuptime $q_timing_log -V12$q_verbose_log -u $q_init 2>> $q_launcher_log
+  --startuptime $q_timing_log -V12$q_verbose_log -u $q_init \
+  -c 'lua local function write_count(key, path) local count = (vim.g[key] or 0) + 1; vim.g[key] = count; assert(vim.fn.writefile({tostring(count)}, path) == 0); print("[macos-focus] Neovim received " .. key .. " (" .. count .. ")") end; vim.g.dotfiles_macos_focus_lost = 0; vim.g.dotfiles_macos_focus_gained = 0; vim.api.nvim_create_autocmd("FocusLost", { callback = function() write_count("dotfiles_macos_focus_lost", vim.env.DOTFILES_FOCUS_LOST_FILE) end }); vim.api.nvim_create_autocmd("FocusGained", { callback = function() write_count("dotfiles_macos_focus_gained", vim.env.DOTFILES_FOCUS_GAINED_FILE) end }); vim.api.nvim_create_autocmd("UIEnter", { once = true, callback = function() assert(vim.fn.writefile({"1"}, vim.env.DOTFILES_FOCUS_READY_FILE) == 0) end })' 2>> $q_launcher_log
 EOF
 chmod 700 "$command_file"
 
