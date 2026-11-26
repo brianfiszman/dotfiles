@@ -7,7 +7,25 @@ function required(reason) {
   return { required: true, reason };
 }
 
+const AGENT_PROCESS_ONLY_FILES = new Set([
+  "AGENTS.md",
+  ".github/pull_request_template.md",
+  ".github/workflows/agent-preflight.yml",
+  "AGENT_STATE.md",
+  "AGENT_WORKLOG.md",
+  "scripts/ci/neovim-integration-decision.cjs",
+  "scripts/ci/neovim-integration-decision.test.cjs",
+  "scripts/ci/validate-agent-preflight.cjs",
+  "tests/ci/agent-process-contract.test.cjs",
+]);
+
+function isAgentProcessOnlyPath(path) {
+  return typeof path === "string" &&
+    (AGENT_PROCESS_ONLY_FILES.has(path) || path.startsWith("docs/agent-log/"));
+}
+
 function isIntegrationPath(path) {
+  if (isAgentProcessOnlyPath(path)) return false;
   return path.startsWith(".config/nvim/") ||
     path.startsWith("tests/nvim/") ||
     path.startsWith("tests/ci/") ||
@@ -101,7 +119,36 @@ async function determineIntegrationRequirement({ context, github }) {
       }
     }
     if (!baseline) {
-      return required("no previous successful full integration exists for the current PR base SHA");
+      // For an unbaselined PR, only a complete base-to-head diff containing
+      // exclusively agent-process files may skip Neovim runtime integration.
+      // Any unknown/runtime path or incomplete comparison fails open.
+      const comparisonResponse = await github.request(
+        "GET /repos/{owner}/{repo}/compare/{base}...{head}",
+        { owner, repo: repoName, base: pr.base.sha, head: pr.head.sha, per_page: 100 }
+      );
+      const comparison = comparisonResponse.data;
+      if (!comparison || comparison.status !== "ahead" ||
+          !Array.isArray(comparison.files) || comparison.files.length === 0 ||
+          comparison.files.length >= 300 || !Number.isInteger(comparison.total_commits) ||
+          comparison.total_commits <= 0 || comparison.total_commits >= 250 ||
+          !comparison.files.every((file) => file && typeof file.filename === "string")) {
+        return required("no previous successful full integration exists for the current PR base SHA and the base-to-head comparison may be incomplete");
+      }
+
+      const changedPaths = comparison.files.flatMap((file) =>
+        [file.filename, file.previous_filename].filter((path) => typeof path === "string")
+      );
+      const nonProcessPaths = changedPaths.filter((path) => !isAgentProcessOnlyPath(path));
+      if (nonProcessPaths.length === 0) {
+        return {
+          required: false,
+          reason: "only explicitly allowlisted agent-process policy, workflow, template, state, log, validator, and contract-test paths changed; the dedicated agent-preflight workflow validates them",
+        };
+      }
+      return required(
+        "no previous successful full integration exists for the current PR base SHA; process-only exception does not apply to: " +
+        nonProcessPaths.join(", ")
+      );
     }
 
     const compareResponse = await github.request(
@@ -134,4 +181,4 @@ async function determineIntegrationRequirement({ context, github }) {
   }
 }
 
-module.exports = { determineIntegrationRequirement, isIntegrationPath, parseIntegrationBaseline };
+module.exports = { determineIntegrationRequirement, isAgentProcessOnlyPath, isIntegrationPath, parseIntegrationBaseline };

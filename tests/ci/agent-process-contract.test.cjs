@@ -124,17 +124,22 @@ test("canonical agent state stays bounded and the worklog pointer remains discov
   assert.match(worklog, /docs\/agent-log\/\d{4}-\d{2}\.md/);
 });
 
-test("CI validates PR preflight before running the process-contract test", () => {
-  const workflow = normalize(read(".github/workflows/neovim-headless.yml"));
+test("dedicated agent workflow validates PR preflight and keeps GUI integration out of process-only CI", () => {
+  const workflow = normalize(read(".github/workflows/agent-preflight.yml"));
+  assert.match(workflow, /pull_request:/);
   assert.match(workflow, /AGENTS\.md/);
   assert.match(workflow, /\.github\/pull_request_template\.md/);
   assert.match(workflow, /name: Enforce mandatory agent preflight evidence in pull requests/);
-  assert.match(workflow, /PR_BODY: \$\{\{ github\.event\.pull_request\.body \|\| '' \}\}/);
+  assert.match(workflow, /PR_BODY:.*pull_request\.body/);
   assert.match(workflow, /node scripts\/ci\/validate-agent-preflight\.cjs/);
   assert.match(workflow, /node --test tests\/ci\/agent-process-contract\.test\.cjs/);
   assert.ok(
-    workflow.indexOf("name: Enforce mandatory agent preflight evidence in pull requests")
+    workflow.indexOf("node scripts/ci/validate-agent-preflight.cjs")
       < workflow.indexOf("node --test tests/ci/agent-process-contract.test.cjs"),
     "CI must reject an incomplete preflight before running process-contract tests"
   );
+
+  const neovimWorkflow = normalize(read(".github/workflows/neovim-headless.yml"));
+  assert.doesNotMatch(neovimWorkflow, /node scripts\/ci\/validate-agent-preflight\.cjs/);
+  assert.doesNotMatch(neovimWorkflow, /node --test tests\/ci\/agent-process-contract\.test\.cjs/);
 });
