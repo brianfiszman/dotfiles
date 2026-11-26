@@ -362,9 +362,16 @@ local M = {
     vim.api.nvim_create_autocmd("FileType", {
       group = "DotfilesTreesitter",
       callback = function(args)
-        configure_buffer(args.buf)
+        local bufnr = args.buf
+        -- Native ftplugins run in the same FileType event and may overwrite
+        -- indentexpr. Apply parser-backed indentation after those handlers.
+        vim.schedule(function()
+          if vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr) then
+            configure_buffer(bufnr)
+          end
+        end)
       end,
-      desc = "Enable current Neovim Treesitter highlighting and indentation",
+      desc = "Enable current Neovim Treesitter highlighting and indentation after ftplugins",
     })
 
     -- mason-tool-installer installs tree-sitter-cli after VimEnter on a clean
