@@ -15,6 +15,8 @@ on:
       - "scripts/test-python-provider-macos.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
+      - "AGENTS.md"
+      - ".github/pull_request_template.md"
       - "scripts/ci/**"
       - "tests/ci/**"
   # Always create PR checks. The integration job below decides from the
@@ -62,6 +64,15 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+
+      - name: Enforce mandatory agent preflight evidence in pull requests
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: node scripts/ci/validate-agent-preflight.cjs
+
+      - name: Test mandatory agent process contracts
+        run: node --test tests/ci/agent-process-contract.test.cjs
 
       - name: Install pinned Neovim for the real bootstrap tests
         shell: bash
