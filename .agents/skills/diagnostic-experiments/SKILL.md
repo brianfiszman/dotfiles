@@ -18,8 +18,8 @@ Before stating the observation:
 
 - Confirm the issue/PR is open and record the active branch and head SHA.
 - If it is closed or superseded, follow its disposition/replacement link. Its
-  runs describe the old artifact, not current behavior.
-- Match the run's `head_sha` to the active head. An archive branch, alias
+  runs describe the old artifact, not the current state.
+- Match the run's \`head_sha\` to the active head. An archive branch, alias
   branch, or older run is historical evidence.
 - If GitHub cannot be reached, label the state **Unavailable** and stop. Do not
   substitute memory or a stale checkpoint.
@@ -64,9 +64,39 @@ Go down this list before building anything:
 6. Add one temporary assertion that prints the disputed value.
 7. Only then build a larger harness.
 
+## macOS GUI focus and window stacking
+
+For a test that drives a real Neovim TTY inside Terminal.app, treat these as
+separate observations: Terminal launch, Neovim \`UIEnter\`, the frontmost macOS
+application, the target window's z-order/visibility, and Neovim's actual
+\`FocusGained\`/\`FocusLost\` autocmds. Success at one stage does not prove the
+next stage.
+
+Before posting a native mouse event:
+
+- Capture the complete \`CGWindowListCopyWindowInfo(.optionOnScreenOnly, ...)\`
+  list immediately before the click. Apple documents that this list is ordered
+  from front to back.
+- Record each window's owner/PID, ID, layer, name, and bounds. Find the target
+  Terminal window's index and inspect every window above it whose bounds
+  intersect the click point. A point inside the target's own bounds is not proof
+  that the target is unobscured or receives the click.
+- When the test foregrounds another application, inspect whether its activation
+  also opens or raises a document/folder window that covers the target. Separate
+  "make this application frontmost" from "open this fixture path" unless both
+  behaviors are required by the scenario.
+- Keep the final assertion on a real Neovim focus autocmd reached through the
+  TTY. Never synthesize focus bytes or directly fire a Neovim focus event.
+
+After the two bounded attempts for the same focus symptom, do not keep changing
+event sources, click coordinates, or activation APIs. Move down one layer and
+collect native window-stack/event-permission evidence first. The repository
+fingerprint and current PR handoff are in
+\`docs/incidents/ci-failure-fingerprints.md\`.
+
 ## Anti-patterns
 
-- Adding lifecycle machinery (`InsertEnter`, `startinsert!`, custom state) before
+- Adding lifecycle machinery (\`InsertEnter\`, \`startinsert!\`, custom state) before
   proving native behavior is insufficient.
 - Committing a probe notebook, a child-Neovim probe, or debug prints.
 - Changing the test expectation to match unexplained behavior.
@@ -106,7 +136,7 @@ the only execution environment, and every run is slow and expensive.
 - After two failed CI runs on the same symptom, stop. Record the diagnosis,
   ruled-out layers, and the next question in the issue/PR, then hand off. Ask for
   a local reproduction or a targeted maintainer check.
-- Never claim local verification. Report “not run locally” and cite the exact
+- Never claim local verification. Report "not run locally" and cite the exact
   run and SHA.
 - Prefer a test that fails with a precise message over one that fails on a line
   number.
@@ -114,15 +144,15 @@ the only execution environment, and every run is slow and expensive.
 ## Worked example — #89/#90
 
 The test failed at a line position. Two attempts added lifecycle machinery.
-The experiment that resolved it was smaller: print `foldclosed(2)`, then run
-native `o` with `foldenable=false` and with folds enabled. The fixture inherited
-`foldmethod=syntax`; the source line was in a closed fold, so native `o`
+The experiment that resolved it was smaller: print \`foldclosed(2)\`, then run
+native \`o\` with \`foldenable=false\` and with folds enabled. The fixture inherited
+\`foldmethod=syntax\`; the source line was in a closed fold, so Neovim
 correctly opened at row 4. The production mapping was not broken.
 
 Lesson: prove the fixture's starting state before changing the implementation.
-See `docs/incidents/2026-11-14-pr90-fold-test-failure.md`.
+See \`docs/incidents/2026-11-14-pr90-fold-test-failure.md\`.
 
 After #90 was closed and replaced by #93, a follow-up diagnosis cited #90's
-failing run on `85f1ec7` as proof that current CI was broken. #93's active head
-`77b0dad` had its own green run. The cited failure was historical evidence for a
-closed PR. Resolve the active artifact before interpreting any run.
+failing run on \`85f1ec7\` as proof that current CI was broken. #93's active head
+\`77b0dad\` had its own green run. The cited failure was historical evidence for
+a closed PR. Resolve the active artifact before interpreting any run.
