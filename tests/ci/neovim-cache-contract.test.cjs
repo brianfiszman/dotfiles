@@ -127,6 +127,11 @@ test("plugin restore runs configured build hooks once, serially, and fails on ta
   assert.match(restoreScript, /avante_\*\.so/);
   assert.match(restoreScript, /dotfiles_treesitter_build_hook_ran/);
   assert.match(restoreScript, /plugin\.build ~= nil/);
+  assert.ok(restoreScript.includes('Plugin cache hit; validating restored build artifacts without rerunning unchanged hooks.'));
+  assert.ok(restoreScript.includes('restore_checks+=("$verify_build_hooks")'));
+  assert.ok(restoreScript.includes('restore_checks+=("$verify_build_hooks" "$verify_treesitter_build_hook")'));
+  assert.doesNotMatch(restoreScript, /\\+Lazy! build all/,
+    "cache hits must validate restored build artifacts without forcing a redundant rebuild");
   for (const plugin of ["LuaSnip", "avante.nvim", "nvim-treesitter"]) {
     assert.ok(restoreScript.includes("'" + plugin + "'"), "missing explicit build-hook assertion for " + plugin);
   }
