@@ -432,7 +432,7 @@ print_startup_diagnostics() {
 wait_for_ready() {
   local deadline=$((SECONDS + 30))
   while ((SECONDS < deadline)); do
-    if [[ -s "$ready_file" ]] && [[ "$(tr -d '\\r\\n' < "$ready_file")" == "1" ]]; then
+    if [[ -S "$socket_path" ]] && [[ -s "$ready_file" ]] && [[ "$(tr -d '\\r\\n' < "$ready_file")" == "1" ]]; then
       printf '[macos-focus] Neovim attached its real TTY UI and published the UIEnter ready marker.\\n'
       return 0
     fi
@@ -451,14 +451,16 @@ wait_for_counter_gt() {
 
   while ((SECONDS < deadline)); do
     current="$(read_counter "$name" || true)"
+    file_current="$(read_file_counter "$name" || true)"
     if [[ "$current" =~ ^[0-9]+$ ]] && ((current > previous)); then
-      printf 'PASS: %s (%s -> %s)\n' "$description" "$previous" "$current"
+      printf 'PASS: %s (RPC %s -> %s; file counter=%s)\n' "$description" "$previous" "$current" "${file_current-unavailable}"
       return 0
     fi
     sleep 0.1
   done
-  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got %s\n' \
-    "$description" "$name" "$previous" "${current-unavailable}" >&2
+  file_current="$(read_file_counter "$name" || true)"
+  printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\n' \
+    "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
   return 1
 }
 
