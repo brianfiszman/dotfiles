@@ -1,5 +1,5 @@
 "use strict";
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -418,6 +418,11 @@ test("path classifier keeps runtime paths mandatory and isolates only explicit a
     "scripts/ci/validate-agent-preflight.cjs",
     "tests/ci/agent-process-contract.test.cjs",
   ]) {
+    assert.equal(
+      existsSync(resolve(__dirname, "../..", path)),
+      true,
+      "agent-process allowlist fixture must reference an existing repository path: " + path
+    );
     assert.equal(isAgentProcessOnlyPath(path), true, path);
     assert.equal(isIntegrationPath(path), false, path);
   }

@@ -27,6 +27,9 @@ test("semantic text normalization collapses Markdown wrapping and repeated white
 test("AGENTS.md makes prior project learning a hard gate before every mutation", () => {
   const agents = normalize(read("AGENTS.md"));
   assert.match(agents, /## Mandatory agent preflight gate/);
+  assert.match(agents, /At the start of every repository work session or new conversation/);
+  assert.match(agents, /regardless of task size or prior chat context/);
+  assert.match(agents, /canonical `master` `AGENT_STATE\\.md`/);
   assert.match(agents, /regardless of model size, capability, confidence/);
   assert.match(agents, /Search for prior learning about the same symptom/);
   assert.match(agents, /confirmed root causes, reproductions, fixes, rejected hypotheses, failed approaches/);
