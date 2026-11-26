@@ -493,16 +493,13 @@ wait_for_counter_gt() {
     fi
     if [[ "$file_current" =~ ^[0-9]+$ ]] && ((file_current > previous)); then
       printf 'FAIL: %s; callback file advanced to %s but independent RPC counter remained %s\n' "$description" "$file_current" "${current-unavailable}" >&2
-        "$description" "$file_current" "${current-unavailable}" >&2
       return 2
     fi
     sleep 0.1
   done
   printf 'FAIL: %s; expected %s to increase beyond %s within 10 seconds, got RPC=%s file=%s\n' "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
-    "$description" "$name" "$previous" "${current-unavailable}" "${file_current-unavailable}" >&2
   return 1
 }
-
 
 wait_for_terminal_tty() {
   local deadline=$((SECONDS + 10))
