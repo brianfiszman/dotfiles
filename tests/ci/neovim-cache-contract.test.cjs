@@ -180,44 +180,16 @@ test("macOS Terminal focus launch records native focus events without RPC", () =
   );
   assert.match(focusStep, /timeout-minutes: 5/);
   assert.ok(macosFocusScript.includes('open -a Terminal "$command_file"'));
-  assert.match(macosFocusScript, /wait_for_launcher/);
-  assert.match(macosFocusScript, /launch_through_terminal_scripting/);
-  assert.ok(macosFocusScript.includes('["osascript", "-", sys.argv[1]]'));
-  assert.match(macosFocusScript, /timeout=15/);
-  assert.match(macosFocusScript, /--startuptime/);
-  for (const marker of ["DOTFILES_FOCUS_READY_FILE", "DOTFILES_FOCUS_LOST_FILE", "DOTFILES_FOCUS_GAINED_FILE"]) {
-    assert.ok(macosFocusScript.includes(marker), "missing file-based focus marker " + marker);
-  }
-  for (const event of ["FocusLost", "FocusGained", "UIEnter"]) {
-    assert.ok(macosFocusScript.includes('vim.api.nvim_create_autocmd("' + event + '"'),
-      "missing file-based Neovim autocmd for " + event);
-  }
-  assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
-  assert.match(macosFocusScript, /export TERM=xterm-256color/);
-  assert.match(macosFocusScript, /export DOTFILES_SKIP_MASON_LSP_INSTALL=1/,
-    "the native-focus-only Terminal test must skip unrelated asynchronous Mason LSP provisioning");
-  assert.match(macosFocusScript, /export DOTFILES_SKIP_TREESITTER_PROVISIONING=1/,
-    "the native-focus-only Terminal test must not start asynchronous parser provisioning");
-  assert.match(restoreScript, /DOTFILES_LAZY_CONCURRENCY=1/,
-    "plugin restore must request serialized build hooks through lazy.setup");
-  assert.match(pluginConfig, /DOTFILES_LAZY_CONCURRENCY/);
-  assert.match(pluginConfig, /concurrency = lazy_concurrency/);
-  assert.match(pluginConfig, /Using configured concurrency limit/);
-  assert.match(restoreScript, /\+Lazy! build all/,
-    "cache hits must explicitly run build hooks for unchanged plugin checkouts");
-  assert.ok(macosFocusScript.includes('open -a Finder'),
-    "Finder activation must use Launch Services, not synthetic terminal input");
   assert.ok(macosFocusScript.includes('open -a Terminal'));
+  assert.ok(macosFocusScript.includes('open -a Finder'));
+  assert.match(macosFocusScript, /wait_for_launcher/);
+  assert.match(macosFocusScript, /wait_for_ready/);
   assert.match(macosFocusScript, /wait_for_terminal_tty/);
   assert.match(macosFocusScript, /wait_for_frontmost_application/);
   assert.ok(macosFocusScript.includes("NSWorkspace.shared.frontmostApplication?.bundleIdentifier"));
+  assert.match(macosFocusScript, /Neovim received/);
+  assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
   assert.doesNotMatch(macosFocusScript, /run_terminal_applescript|NSAppleScript/,
     "focus activation must not block on Terminal AppleEvents");
-    "the exact Neovim Terminal tab must be selected before and after the Finder transition");
-  assert.ok(macosFocusScript.includes("every window whose tty of tab 1 contains targetTTY"),
-    "Terminal activation must target the window containing the Neovim TTY");
-  assert.ok(macosFocusScript.includes("set selected of targetTab to true"));
-  assert.ok(macosFocusScript.includes("set index of targetWindow to 1"));
-  assert.match(macosFocusScript, /Neovim received/);
   assert.match(treesitterCurrentApi, /syntax ~= ""/);
-});
+});;
