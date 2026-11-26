@@ -187,16 +187,16 @@ print_startup_diagnostics() {
     printf '[macos-focus] The generated .command never reached its launcher marker.\n'
   fi
   if [[ -S "$socket_path" ]]; then
-    printf '[macos-focus] RPC socket exists: %s\\n' "$socket_path"
+    printf '[macos-focus] RPC socket exists: %s\n' "$socket_path"
     ls -l "$socket_path" || true
     if command -v lsof >/dev/null 2>&1; then
       lsof -nP -U 2>/dev/null | grep -F "$socket_path" || true
     fi
   else
-    printf '[macos-focus] RPC socket is missing: %s\\n' "$socket_path"
+    printf '[macos-focus] RPC socket is missing: %s\n' "$socket_path"
   fi
   if [[ -s "$test_root/rpc-stderr.log" ]]; then
-    printf '[macos-focus] Last RPC client error:\\n'
+    printf '[macos-focus] Last RPC client error:\n'
     cat "$test_root/rpc-stderr.log"
   fi
   if [[ -s "$pid_file" ]]; then
