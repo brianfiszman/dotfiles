@@ -44,7 +44,12 @@ startup_timing_log="$test_root/neovim-startuptime.log"
 
 cleanup() {
   if [[ -S "$socket_path" ]]; then
-    NVIM_RPC_TIMEOUT_SECONDS=2 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
+    env HOME="$NVIM_TEST_DIR/home" \
+      XDG_CONFIG_HOME="$NVIM_TEST_DIR/config" \
+      XDG_DATA_HOME="$NVIM_TEST_DIR/data" \
+      XDG_STATE_HOME="$NVIM_TEST_DIR/state" \
+      XDG_CACHE_HOME="$NVIM_TEST_DIR/cache" \
+      NVIM_RPC_TIMEOUT_SECONDS=2 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
       "$NVIM_BIN" --server "$socket_path" --remote-send ':qa!<CR>' >/dev/null 2>&1 || true
   fi
   if [[ -s "$pid_file" ]]; then
@@ -110,10 +115,14 @@ EOF
 chmod 700 "$command_file"
 
 remote_expr() {
-  NVIM_RPC_TIMEOUT_SECONDS=10 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
+  env HOME="$NVIM_TEST_DIR/home" \
+    XDG_CONFIG_HOME="$NVIM_TEST_DIR/config" \
+    XDG_DATA_HOME="$NVIM_TEST_DIR/data" \
+    XDG_STATE_HOME="$NVIM_TEST_DIR/state" \
+    XDG_CACHE_HOME="$NVIM_TEST_DIR/cache" \
+    NVIM_RPC_TIMEOUT_SECONDS=10 python3 "$REPO_ROOT/scripts/nvim-rpc.py" \
     "$NVIM_BIN" --server "$socket_path" --remote-expr "$1"
 }
-
 read_counter() {
   remote_expr "get(g:, '$1', 0)"
 }
@@ -177,6 +186,19 @@ print_startup_diagnostics() {
   else
     printf '[macos-focus] The generated .command never reached its launcher marker.\n'
   fi
+  if [[ -S "$socket_path" ]]; then
+    printf '[macos-focus] RPC socket exists: %s\\n' "$socket_path"
+    ls -l "$socket_path" || true
+    if command -v lsof >/dev/null 2>&1; then
+      lsof -nP -U 2>/dev/null | grep -F "$socket_path" || true
+    fi
+  else
+    printf '[macos-focus] RPC socket is missing: %s\\n' "$socket_path"
+  fi
+  if [[ -s "$test_root/rpc-stderr.log" ]]; then
+    printf '[macos-focus] Last RPC client error:\\n'
+    cat "$test_root/rpc-stderr.log"
+  fi
   if [[ -s "$pid_file" ]]; then
     local child_pid
     child_pid="$(cat "$pid_file")"
@@ -201,21 +223,21 @@ print_startup_diagnostics() {
 wait_for_ready() {
   local deadline=$((SECONDS + 30))
   local ready=""
+  local rpc_error="$test_root/rpc-stderr.log"
 
   while ((SECONDS < deadline)); do
     if [[ -S "$socket_path" ]]; then
-      ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" 2>/dev/null || true)"
+      ready="$(remote_expr "get(g:, 'dotfiles_macos_focus_ready', 0)" 2>"$rpc_error" || true)"
       if [[ "$ready" == "1" ]]; then
         return 0
       fi
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds.\n' >&2
+  printf 'Terminal.app did not start a responsive Neovim RPC server within 30 seconds.\\n' >&2
   print_startup_diagnostics >&2
   return 1
-}
-wait_for_counter_gt() {
+}wait_for_counter_gt() {
   local name="$1"
   local previous="$2"
   local description="$3"
