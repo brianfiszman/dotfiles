@@ -243,12 +243,16 @@ jobs:
           set -Eeuo pipefail
 
           for tool in git curl cmake gcc g++ make node npm python3 go \
-            sha256sum timeout find grep tee tar unzip; do
+            sha256sum gnutimeout find grep tee tar unzip; do
             command -v "$tool" >/dev/null || {
               printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
               exit 1
             }
           done
+
+          timeout_version="$(gnutimeout --version 2>&1)"
+          timeout_version="${timeout_version%%$'\n'*}"
+          printf 'Timeout supervisor: %s (%s)\n' "$(command -v gnutimeout)" "$timeout_version"
 
           printf 'Runner image: %s\n' "$ImageOS / $ImageVersion"
           printf 'Node: '; node --version

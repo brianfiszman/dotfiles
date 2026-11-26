@@ -3,6 +3,27 @@ set -Eeuo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN:-nvim}"
+
+# Prefer GNU timeout for process-group supervision. Ubuntu 26.04 uses the
+# rust-coreutils implementation under the generic name; its GNU counterpart
+# is installed as gnutimeout. Keep the generic fallback for other platforms.
+TIMEOUT_BIN="${TIMEOUT_BIN:-}"
+if [[ -z "$TIMEOUT_BIN" ]]; then
+  if command -v gnutimeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="$(command -v gnutimeout)"
+  elif command -v timeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="$(command -v timeout)"
+  fi
+fi
+if [[ -n "$TIMEOUT_BIN" ]]; then
+  if ! command -v "$TIMEOUT_BIN" >/dev/null 2>&1; then
+    printf 'Error: TIMEOUT_BIN cannot be resolved: %s\n' "$TIMEOUT_BIN" >&2
+    exit 1
+  fi
+  timeout_version="$("$TIMEOUT_BIN" --version 2>&1)"
+  timeout_version="${timeout_version%%$'\n'*}"
+  printf 'Timeout supervisor: %s (%s)\n' "$TIMEOUT_BIN" "$timeout_version"
+fi
 PHASE="${1:-all}"
 NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-40m}"
 NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-30m}"
@@ -135,25 +156,25 @@ run_nvim() {
   fi
 
   set +e
-  if command -v timeout >/dev/null 2>&1; then
+  if [[ -n "$TIMEOUT_BIN" ]]; then
     if ((use_focus_pty)); then
-      timeout --signal=TERM --kill-after=10s "$time_limit" \
+      "$TIMEOUT_BIN" --signal=TERM --kill-after=10s "$time_limit" \
         "${nvim_command[@]}" 2>&1 | tee "$log_file"
     elif ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
-        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+        TERM=xterm-256color "$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit" \
           script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
       else
-        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+        TERM=xterm-256color "$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit" \
           script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
       fi
     else
-      timeout --signal=TERM --kill-after=30s "$time_limit" \
+      "$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit" \
         "${nvim_command[@]}" 2>&1 | tee "$log_file"
     fi
     pipeline_status=("${PIPESTATUS[@]}")
   else
-    printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label" >&2
+    printf '[%s] No timeout supervisor is available; running without a per-phase deadline.\n' "$label" >&2
     if ((use_focus_pty)); then
       "${nvim_command[@]}" 2>&1 | tee "$log_file"
     elif ((use_pty)); then
@@ -171,7 +192,7 @@ run_nvim() {
 
   command_status="${pipeline_status[0]:-1}"
   tee_status="${pipeline_status[1]:-1}"
-  printf '[%s] Finished after %ss (Neovim/timeout exit: %s; log writer exit: %s).\n' \
+  printf '[%s] Finished after %ss (supervisor/command exit: %s; log writer exit: %s).\n' \
     "$label" "$((SECONDS - start_time))" "$command_status" "$tee_status"
 
   if ((command_status == 124 || command_status == 137)); then
@@ -188,7 +209,7 @@ run_nvim() {
   fi
 
   if ((command_status != 0)); then
-    printf 'Error: Neovim failed during %s (exit %s). Last 80 log lines follow:\n' \
+    printf 'Error: supervised command failed during %s (exit %s). Last 80 log lines follow:\n' \
       "$label" "$command_status" >&2
     tail -n 80 "$log_file" >&2 || true
     return "$command_status"
