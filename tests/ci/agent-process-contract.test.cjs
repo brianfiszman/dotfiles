@@ -97,6 +97,7 @@ test("Neovim maintenance exposes a bounded, read-only live RPC reference", () =>
   );
   assert.match(rpc, /Default to read-only inspection/);
   assert.match(rpc, /refusing to guess a Neovim instance/);
+  assert.match(rpc, /pcall\(a\.is_test_file, file\)/);
   assert.match(rpc, /Never expose an RPC listener on/);
   assert.match(normalize(rpc), /is not a reliable proof that the user's terminal generated the expected input/);
 });
