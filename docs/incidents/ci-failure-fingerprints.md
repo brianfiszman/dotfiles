@@ -110,6 +110,33 @@ loaded library's finalizer runs after Neovim exits. Keep this test wired into
 the fast CI cache-contract suite. Do not restore the upstream in-place copy or
 skip the configured LuaSnip build hook on cache hits.
 
+
+### Verification after the atomic-replacement fix (2026-11-27)
+
+The exact PR head `0bd805b42410e5609d010625c92aaec8a8f1fa8e` passed both cold
+and warm Linux integration on Neovim v0.12.6 in run
+[#767](https://github.com/brianfiszman/dotfiles/actions/runs/45941847788):
+
+- Cold pass: all three caches missed, then saved under their expected keys;
+  plugin restore and configured build hooks passed, normal startup passed,
+  native PTY focus passed, and Python provider provisioning passed.
+- Warm pass: all three exact primary keys restored (lazy.nvim, Mason registry
+  `2026-11-27-apt-meter`, and Tree-sitter runtime-v2). The forced
+  `:Lazy! build all` pass ran LuaSnip's build hook in 63 ms and completed
+  successfully in 6 seconds.
+- GDB reported `[Inferior 1 (process 5707) exited normally]`. The loader trace
+  records `calling fini` for the loaded
+  `LuaSnip/deps/luasnip-jsregexp.so`; there is no SIGSEGV. This verifies that
+  the original loaded image remains valid through shutdown after atomic
+  replacement.
+- The normal startup/behavior suite and isolated Python provider checks also
+  passed on the warm run. The exact-head integration gate and agent preflight
+  both completed successfully.
+
+This is the required cold + warm confirmation. Retain the real
+`package.loadlib()` finalizer regression; do not revert to the upstream
+in-place copy.
+
 ## Cross-references
 
 - Workflow/check interpretation:
