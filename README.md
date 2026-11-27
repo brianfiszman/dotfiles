@@ -10,7 +10,7 @@ dein.vim or run a manual plugin-manager command.
 
 ### Requirements
 
-- Neovim 0.12.0 or newer.
+- Neovim 0.12.6 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
 - `make` and a C build toolchain for other native plugin build hooks.
