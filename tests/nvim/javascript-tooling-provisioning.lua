@@ -103,11 +103,17 @@ for _, module in ipairs({ "dap", "dapui", "mason-nvim-dap", "nvim-dap-virtual-te
 end
 pass("JavaScript DAP adapter is installed without loading the lazy DAP stack")
 
--- The canonical formatting and diagnostic ownership model must remain intact.
+-- Confirm Conform can select the Mason-installed Prettier formatter on a
+-- representative TypeScript buffer, and keep ESLint diagnostics single-owned.
 local conform = require("conform")
+local ts_buf = vim.api.nvim_create_buf(false, true)
+vim.api.nvim_buf_set_name(ts_buf, vim.fn.tempname() .. ".tsx")
+vim.bo[ts_buf].filetype = "typescriptreact"
+local prettier = conform.get_formatter_info("prettier", ts_buf)
+assert(prettier.available, "Conform cannot resolve the Mason-installed Prettier formatter")
+pass("Conform can resolve Prettier for TSX buffers")
+
 for _, filetype in ipairs({ "javascript", "typescript", "javascriptreact", "typescriptreact" }) do
-  local formatters = conform.list_formatters_to_run(0)
-  assert(type(formatters) == "table", "Conform formatter selection did not return a list")
   local linters = require("lint").linters_by_ft[filetype] or {}
   assert(not vim.tbl_contains(linters, "eslint"), "nvim-lint duplicates ESLint LSP for " .. filetype)
   assert(not vim.tbl_contains(linters, "eslint_d"), "nvim-lint duplicates ESLint LSP for " .. filetype)
