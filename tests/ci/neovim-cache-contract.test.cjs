@@ -268,10 +268,12 @@ test("runtime integration stays Linux-only and retains native PTY focus and Pyth
   assert.doesNotMatch(restoreScript, /test-macos-terminal-focus|python-provider-macos/);
 });
 
-test("a cache-hit build is wrapped by GDB to capture the exhausted forced-build crash", () => {
-  assert.match(workflow, /Install GDB for a cache-hit build backtrace/);
-  assert.match(workflow, /steps\.lazy-plugin-cache\.outputs\.cache-hit == 'true'/);
-  assert.match(workflow, /gdb --batch --quiet --return-child-result/);
-  assert.match(workflow, /thread apply all bt full/);
-  assert.match(workflow, /\+Lazy! build all/);
+test("the confirmed LuaSnip finalization fix remains without temporary debugger probes", () => {
+  assert.ok(workflow.includes("DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}"));
+  assert.ok(restoreScript.includes("+Lazy! build all"),
+    "cache hits must continue to execute all configured build hooks");
+  assert.match(pluginConfig, /build = require\(["']snippets\.luasnip_build["']\)\.build/);
+  assert.match(luasnipBuild, /vim\.uv\.fs_rename/);
+  assert.doesNotMatch(workflow, /gdb|LD_DEBUG|libc6-dbg|Install GDB/i,
+    "temporary loader instrumentation must be removed after the root cause is confirmed");
 });
