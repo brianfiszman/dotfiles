@@ -21,6 +21,9 @@ end
 local neotest = require("neotest")
 local config = require("neotest.config")
 local lhs = (vim.g.mapleader or "\\") .. "tf"
+-- Neotest opens result UI after each run. Keep the original editor window and
+-- refocus it before dispatching the next framework's real file-test mapping.
+local test_window = vim.api.nvim_get_current_win()
 local original_notify = vim.notify
 local captured_notifications = {}
 
@@ -63,9 +66,15 @@ local ok, failure = xpcall(function()
     local project = root .. "/tests/fixtures/neotest-js/" .. case.project
     local file = project .. "/sample.test.js"
     assert(vim.fn.filereadable(file) == 1, "Missing fixture: " .. file)
+    assert(vim.api.nvim_win_is_valid(test_window),
+      "Original JavaScript test editor window was closed by the previous Neotest run")
+    vim.api.nvim_set_current_win(test_window)
     vim.cmd("cd " .. vim.fn.fnameescape(project))
     vim.cmd("edit " .. vim.fn.fnameescape(file))
     vim.bo.filetype = "javascript"
+    local current_file = vim.fs.normalize(vim.api.nvim_buf_get_name(0))
+    assert(current_file == vim.fs.normalize(file),
+      ("Expected active test buffer %s, got %s"):format(file, current_file))
 
     local adapter = assert(get_adapter(case.adapter),
       "Active Neotest config has no adapter instance named " .. case.adapter)
@@ -74,6 +83,9 @@ local ok, failure = xpcall(function()
     local diagnostics = {
       adapter = adapter.name,
       cwd_before_run = vim.fn.getcwd(),
+      active_buffer = current_file,
+      mapping = vim.fn.maparg(lhs, "n"),
+      editor_window = test_window,
     }
     captured_notifications = {}
     diagnostics.notifications = captured_notifications
