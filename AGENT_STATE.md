@@ -2,29 +2,26 @@
 
 _Last updated: 2026-11-26 (America/Argentina/Buenos_Aires)_
 
-Canonical checkpoint on `master`; keep <=40 lines. Detailed history is in the monthly log and live PRs.
+Canonical checkpoint on `master`; keep <=40 lines. Resolve live refs on recovery.
 
 ## Current focus
 
-- **Repository master:** `e1cc50434f15e2a8b0e388928a6f94a3e54e043b`; PRs #125, #127, and #126 are merged.
-- **Issue #91:** open. Functional PR [#124](https://github.com/brianfiszman/dotfiles/pull/124) is open, Draft, branch `perf/neovim-ci-cache-91`, HEAD `ff84ba7a9af554e71be7524876263de284d00c8d`.
-- **Priority authorized by Brian:** finish the macOS Terminal.app focus failure in #124. The prerequisite that #125 merge first has been satisfied; do not treat its old pause note as current authorization.
-- **Secondary Linux issue:** cache-hit forced-build SIGSEGV. Its two diagnostic attempts are exhausted; do not launch another speculative cache-hit CI run.
+- **Source master checkpoint:** `8b944176307bf3022a26f19cb46cea89eaac38f9`; PRs #125, #127, and #126 are merged.
+- **Active user-authorized task:** issue [#129](https://github.com/brianfiszman/dotfiles/issues/129), Draft PR [#130](https://github.com/brianfiszman/dotfiles/pull/130), branch `diagnose/macos-terminal-window-zorder-129`, HEAD `d2e3f7f29fc706d00943b61ba4efb7c2dece2164`. Brian confirmed his normal terminal is iTerm2.
+- **Older work:** issue #91 / Draft PR [#124](https://github.com/brianfiszman/dotfiles/pull/124) remains paused; do not resume while #130 is active. Linux cache-hit forced-build SIGSEGV attempts are exhausted.
 
 ## Verified
 
-- PR #125 merged as `c9c217b9af732eda4317d0d35ecdd4e5dbf01765`.
-- PR #127 merged as `d38071fd1b0d06ba59c15d93aa48067946b88021`; `AGENTS.md` now requires proactive context compaction and `tests/ci/agent-process-contract.test.cjs` protects it.
-- PR #126 merged as `e1cc50434f15e2a8b0e388928a6f94a3e54e043b`; monthly log records the #124 macOS focus evidence and Linux task-count observation.
-- Neovim run [#712](https://github.com/brianfiszman/dotfiles/actions/runs/45877998509), exact PR #124 HEAD `ff84ba7...`: macOS locked plugin restore and Avante native-library checks passed; Neovim reached real Terminal.app TTY `/dev/ttys000` and `UIEnter`; Finder remained frontmost after the native click, so FocusGained and downstream Python-provider checks did not pass/run.
-- Linux #711 cold restore completed 9 build tasks; #712 cache-hit restore completed 3, then forced `+Lazy! build all` completed 93 tasks before Neovim SIGSEGV. The count difference is evidence, not a proven crash cause.
+- PR #130 run [#739](https://github.com/brianfiszman/dotfiles/actions/runs/45919647474) on the exact head: fast checks and Linux v0.12.6 cold install/headless startup passed. macOS plugin restore and Avante native libraries passed; iTerm2 3.7.7 installed with bundle ID `com.googlecode.iterm2`.
+- #739 failed before creating the dedicated iTerm2 test window: initial `open -a /Applications/iTerm.app` exceeded 20 seconds and exited 124. Runner cleanup found the spawned iTerm2 process. No Neovim UIEnter/TTY, raw focus bytes, or native focus callbacks were observed; provider step skipped.
+- Previous run [#738](https://github.com/brianfiszman/dotfiles/actions/runs/45918882843) stalled silently in the same step for 6m49s; supersession cleanup found orphaned `iTerm2` and `open` processes.
+- Agent run [#93](https://github.com/brianfiszman/dotfiles/actions/runs/45919674468): process-contract checks passed; exact-head integration gate failed because #739 failed.
 
-## Pending
+## Stop / pending
 
-- The macOS occlusion hypothesis is unconfirmed: `open -a Finder "$test_root"` may raise a Finder folder window over the Terminal click point. Existing logs do not contain full WindowServer z-order/bounds.
-- Local environment is Debian without macOS WindowServer; do not claim native macOS reproduction locally.
+- #738 and #739 exhaust the two-attempt limit for the iTerm2 app-launch symptom. Why `open` remains blocked after spawning iTerm2 is unknown. This is not evidence of an iTerm2 focus-report failure or a Neovim focus regression.
+- PR #130 remains Draft and must not merge. Native focus acceptance criteria remain untested.
 
 ## Next action
 
-- Instrument one targeted macOS diagnostic to capture the full on-screen window list immediately before the click: front-to-back order, owner/PID, ID, layer, name, bounds, and any overlap of windows above the target Terminal point.
-- Keep the real Neovim TTY FocusGained/FocusLost assertions. Do not change click coordinates/event source or rerun Linux cache-hit CI before this evidence.
+- Isolate macOS LaunchServices / `open -a` startup independently, or obtain a targeted macOS reproduction, before resuming the end-to-end focus test. No third speculative helper patch or same-symptom CI rerun.
