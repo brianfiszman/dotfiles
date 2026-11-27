@@ -21,9 +21,12 @@ dein.vim or run a manual plugin-manager command.
 - A terminal with a Nerd Font is recommended for icons, but the font is not
   required to start Neovim.
 
-System packages and optional command-line tools used by individual plugins
-(such as ripgrep, formatters, language servers, and debuggers) are installed
-separately. The dotfiles installer does not use `sudo` or modify OS packages.
+Mason provisions the configured language servers, formatters, and debug
+adapters inside Neovim's data directory. Node.js 22.22.2 or newer plus npm must
+be available on PATH for the current TypeScript language server and npm-backed
+JavaScript tooling. Other optional system tools used by plugins remain
+separately managed. The dotfiles installer does not use `sudo` or modify OS
+packages.
 
 The Go plugin does not bulk-install its optional helper binaries during setup.
 Open a Go file and run `:GoInstallBinaries` when you want the full toolset.
@@ -67,10 +70,33 @@ nvim
 
 On its first launch, `init.lua` downloads lazy.nvim and lazy.nvim installs the
 plugins declared by the configuration. This requires Git and internet access.
-Use `:Lazy` inside Neovim to inspect plugin status.
+On ordinary startup, Mason also ensures configured tools are present: the
+TypeScript and ESLint language servers, Prettier, the JavaScript debug adapter,
+and the pinned Tree-sitter CLI. Missing packages are installed automatically;
+automatic package updates are disabled, so an ordinary restart does not update
+already-installed tools. Use `:Mason` to inspect package status and `:Lazy` to
+inspect plugin status.
 
 If lazy.nvim cannot be downloaded, Neovim displays an actionable error. Check
 that Git is installed and that the network can reach GitHub, then restart Neovim.
+
+### JavaScript and TypeScript tooling
+
+The normal-startup Mason setup provisions:
+
+- `ts_ls` (`typescript-language-server`) for TypeScript and JavaScript language features.
+- `eslint` (`eslint-lsp`) for ESLint diagnostics and save-time fixes.
+- `prettier` as the default JS/TS formatter when a project-local or Mason-provided
+  `prettierd` is not available.
+- `js-debug-adapter` for Node.js and browser debugging.
+
+Add `eslint` to each project's `devDependencies` and keep its configuration in
+that project. The ESLint language server resolves the workspace's ESLint package
+and rules; Mason installs the server, not a global replacement for the project's
+linter. This avoids mismatches between the editor and the project's own scripts.
+
+The JavaScript debug adapter is provisioned ahead of time, but the DAP plugins
+and UI remain unloaded until a debugging command or mapping is invoked.
 
 ### Editing
 
@@ -198,9 +224,11 @@ legacy `master` API. It requires:
 - Mason-managed `tree-sitter-cli` 0.27.2.
 - `tar`, `curl`, and a C compiler on PATH to build parser libraries.
 
-Mason installs the pinned `tree-sitter-cli` 0.27.2 automatically. On first
-startup, the Treesitter integration compiles only configured parsers that are
-missing; existing parser libraries are preserved. The configured parsers are
+Mason installs the pinned `tree-sitter-cli` 0.27.2, Prettier, and
+`js-debug-adapter` automatically on normal startup. The TypeScript and ESLint
+language servers are ensured by Mason-LSPConfig. On first startup, the
+Treesitter integration compiles only configured parsers that are missing;
+existing parser libraries are preserved. The configured parsers are
 updated when the locked `nvim-treesitter` plugin revision changes. No npm
 installation or system package-manager command is needed. The dotfiles
 installer itself never uses `sudo` or modifies OS packages.
