@@ -159,7 +159,12 @@ local function treesitter_fixture(filetype, lines, cursor)
   assert(vim.bo.filetype == filetype,
     "filename-based filetype expected " .. filetype .. ", got " .. vim.inspect(vim.bo.filetype)
       .. " (" .. buffer_state() .. ")")
-  assert(vim.bo.indentexpr == "v:lua.require'nvim-treesitter'.indentexpr()",
+  local expected_indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+  assert(vim.wait(2000, function()
+    return vim.bo.indentexpr == expected_indentexpr
+  end, 10), filetype .. " did not receive deferred Treesitter indentation after FileType setup ("
+    .. buffer_state() .. ")")
+  assert(vim.bo.indentexpr == expected_indentexpr,
     filetype .. " must use configured Treesitter indentexpr (" .. buffer_state() .. ")")
   local ok, parser = pcall(vim.treesitter.get_parser, 0)
   assert(ok and parser ~= nil,

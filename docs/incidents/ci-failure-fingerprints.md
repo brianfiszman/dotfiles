@@ -78,6 +78,65 @@ A successful run uploaded a 271 MB ZIP because the artifact path included the
 entire isolated workspace. Upload only root-level phase logs and relevant XDG
 state logs; exclude `data/`, `cache/`, plugin checkouts, and Mason packages.
 
+
+## LuaSnip native extension overwritten while loaded
+
+On a lazy.nvim cache hit, the forced `:Lazy! build all` pass starts a fresh
+Neovim process with the normal config. That config loads LuaSnip and its native
+`deps/luasnip-jsregexp.so` extension before the build task runs. At the pinned
+LuaSnip revision
+[`03c8e67`](https://github.com/L3MON4D3/LuaSnip/tree/03c8e67eb7293c404845b3982db895d59c0d1538),
+`make install_jsregexp` copies the freshly built extension directly over that
+same destination. `cp` truncates and rewrites the existing inode; it is unsafe
+when the process still has the shared object mapped.
+
+The exact cache-hit diagnostic in PR #124 run
+[#759](https://github.com/brianfiszman/dotfiles/actions/runs/45939844248)
+recorded Neovim loading `LuaSnip/deps/luasnip-jsregexp.so`, then the loader's
+first finalizer call at shutdown was for that same library. GDB stopped at
+`0x3c40` in `_dl_call_fini`, called by `_dl_fini` and libc `exit()`.
+A local Linux reproducer confirmed the filesystem mechanism: `dlopen(A)`,
+then `cp B A`, caused exit status 139; copying B to a sibling temporary file
+and renaming it over A preserved A's mapped image and its finalizer completed
+successfully.
+
+The safe build hook is `snippets.luasnip_build`: it still compiles LuaSnip's
+pinned jsregexp submodule and runs on cold and warm paths, but installs the
+native extension by copying to a same-directory temporary file and using
+`vim.uv.fs_rename` for atomic replacement. The regression
+`tests/nvim/luasnip-native-library-replacement.lua` loads a real test shared
+object, invokes the same replacement helper, and asserts that the original
+loaded library's finalizer runs after Neovim exits. Keep this test wired into
+the fast CI cache-contract suite. Do not restore the upstream in-place copy or
+skip the configured LuaSnip build hook on cache hits.
+
+
+### Verification after the atomic-replacement fix (2026-11-27)
+
+The exact PR head `0bd805b42410e5609d010625c92aaec8a8f1fa8e` passed both cold
+and warm Linux integration on Neovim v0.12.6 in run
+[#767](https://github.com/brianfiszman/dotfiles/actions/runs/45941847788):
+
+- Cold pass: all three caches missed, then saved under their expected keys;
+  plugin restore and configured build hooks passed, normal startup passed,
+  native PTY focus passed, and Python provider provisioning passed.
+- Warm pass: all three exact primary keys restored (lazy.nvim, Mason registry
+  `2026-11-27-apt-meter`, and Tree-sitter runtime-v2). The forced
+  `:Lazy! build all` pass ran LuaSnip's build hook in 63 ms and completed
+  successfully in 6 seconds.
+- GDB reported `[Inferior 1 (process 5707) exited normally]`. The loader trace
+  records `calling fini` for the loaded
+  `LuaSnip/deps/luasnip-jsregexp.so`; there is no SIGSEGV. This verifies that
+  the original loaded image remains valid through shutdown after atomic
+  replacement.
+- The normal startup/behavior suite and isolated Python provider checks also
+  passed on the warm run. The exact-head integration gate and agent preflight
+  both completed successfully.
+
+This is the required cold + warm confirmation. Retain the real
+`package.loadlib()` finalizer regression; do not revert to the upstream
+in-place copy.
+
 ## Cross-references
 
 - Workflow/check interpretation:

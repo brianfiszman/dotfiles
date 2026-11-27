@@ -45,10 +45,10 @@ local version = vim.system({ executable, "--version" }, { text = true }):wait()
 assert(version.code == 0, "tree-sitter --version failed: " .. tostring(version.stderr))
 local major, minor, patch = (version.stdout or ""):match("(%d+)%.(%d+)%.(%d+)")
 assert(major, "Could not parse tree-sitter-cli version: " .. tostring(version.stdout))
-local version_number = tonumber(major) * 1000000 + tonumber(minor) * 1000 + tonumber(patch)
-assert(version_number >= 26001,
-  "tree-sitter-cli 0.26.1 or newer is required: " .. vim.trim(version.stdout))
-print("PASS: Mason provides " .. vim.trim(version.stdout))
+local cli_version = table.concat({ major, minor, patch }, ".")
+assert(cli_version == "0.27.2",
+  "Mason must provide pinned tree-sitter-cli 0.27.2; found " .. vim.trim(version.stdout))
+print("PASS: Mason provides pinned " .. vim.trim(version.stdout))
 
 local fixtures = {
   {
@@ -91,7 +91,6 @@ local fixtures = {
     filetype = "json5",
     extension = ".json5",
     language = "json5",
-    expect_indent = false,
     expect_clean_parse = true,
     source = {
       "{",
@@ -119,9 +118,20 @@ local function open_fixture(fixture)
   vim.cmd("edit " .. vim.fn.fnameescape(filename))
 
   assert_equal(fixture.filetype, vim.bo.filetype, fixture.filetype .. " filetype detection")
-  if fixture.expect_indent ~= false then
-    assert_equal("v:lua.require'nvim-treesitter'.indentexpr()", vim.bo.indentexpr,
+  local indent_query_ok, indent_query = pcall(vim.treesitter.query.get, fixture.language, "indents")
+  local has_indent_query = indent_query_ok and indent_query ~= nil
+  if has_indent_query then
+    local expected_indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+    assert(vim.wait(2000, function()
+      return vim.bo.indentexpr == expected_indentexpr
+    end, 10), fixture.filetype .. " did not receive the current Treesitter indentexpr after ftplugin setup: "
+      .. vim.inspect(vim.bo.indentexpr))
+    assert_equal(expected_indentexpr, vim.bo.indentexpr,
       fixture.filetype .. " uses the current Treesitter indentexpr")
+  else
+    assert(vim.bo.indentexpr ~= "v:lua.require'nvim-treesitter'.indentexpr()",
+      fixture.filetype .. " must not enable Treesitter indentation without an indents.scm query")
+    print("PASS: " .. fixture.filetype .. " retains its native indentexpr because no indents.scm query exists")
   end
 
   local parser = vim.treesitter.get_parser(0)
@@ -132,13 +142,27 @@ local function open_fixture(fixture)
     assert_equal(false, trees[1]:root():has_error(),
       fixture.filetype .. " accepts JSON5-only syntax without parser errors")
   end
-  assert(vim.b.ts_highlight == true,
-    fixture.filetype .. " buffer did not activate Neovim's Treesitter highlighter")
-  assert(vim.bo.syntax == "ON",
-    fixture.filetype .. " lost the legacy Vim regex highlighting layer")
+  local highlights_query_ok, highlights_query = pcall(vim.treesitter.query.get, fixture.language, "highlights")
+  local has_highlights_query = highlights_query_ok and highlights_query ~= nil
+  if has_highlights_query then
+    assert(vim.wait(2000, function()
+      return vim.b.ts_highlight == true
+    end, 10), fixture.filetype .. " did not activate its Treesitter highlighter after FileType setup")
+    assert_equal(true, vim.b.ts_highlight,
+      fixture.filetype .. " activates Neovim's Treesitter highlighter when highlights.scm exists")
+  else
+    assert(vim.b.ts_highlight ~= true,
+      fixture.filetype .. " must not mark Treesitter highlighting active without a highlights.scm query")
+    print("PASS: " .. fixture.filetype .. " has no highlights.scm query; parser remains available without a highlighter")
+  end
+  assert(vim.wait(2000, function()
+    return vim.bo.syntax ~= "" and vim.bo.syntax ~= "OFF" and vim.b.current_syntax ~= nil
+  end, 10), fixture.filetype .. " did not finish loading its Vim regex syntax definitions after FileType setup")
+  assert(vim.bo.syntax ~= "" and vim.bo.syntax ~= "OFF",
+    fixture.filetype .. " lost the legacy Vim regex highlighting layer (syntax=" .. vim.bo.syntax .. ")")
   assert(vim.b.current_syntax ~= nil,
     fixture.filetype .. " did not load its Vim regex syntax definitions")
-  print("PASS: " .. fixture.filetype .. " parsed with Treesitter and Vim regex highlighting")
+  print("PASS: " .. fixture.filetype .. " parsed with the available Treesitter and Vim syntax layers")
   return filename
 end
 

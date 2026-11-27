@@ -59,8 +59,11 @@ local function run_case(index)
 
   assert(vim.bo.filetype == "javascript",
     "expected javascript filetype, got " .. vim.inspect(vim.bo.filetype))
-  assert(vim.bo.indentexpr == "v:lua.require'nvim-treesitter'.indentexpr()",
-    "expected the configured Treesitter indentexpr, got " .. vim.inspect(vim.bo.indentexpr))
+  local expected_indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+  assert(vim.wait(2000, function()
+    return vim.bo.indentexpr == expected_indentexpr
+  end, 10), "expected the configured Treesitter indentexpr after FileType/ftplugin setup, got "
+    .. vim.inspect(vim.bo.indentexpr))
 
   local parser = vim.treesitter.get_parser(0)
   parser:parse()

@@ -10,7 +10,7 @@ dein.vim or run a manual plugin-manager command.
 
 ### Requirements
 
-- Neovim 0.12.0 or newer.
+- Neovim 0.12.6 or newer.
 - Git (used by lazy.nvim to download plugins).
 - Internet access on the first launch.
 - `make` and a C build toolchain for other native plugin build hooks.
@@ -194,15 +194,16 @@ installing `pynvim` into a global Python environment just to silence the warning
 This configuration uses the current `nvim-treesitter/main` API, not the
 legacy `master` API. It requires:
 
-- Neovim 0.12.0 or newer.
-- `tree-sitter-cli` 0.26.1 or newer.
+- Neovim 0.12.6 or newer.
+- Mason-managed `tree-sitter-cli` 0.27.2.
 - `tar`, `curl`, and a C compiler on PATH to build parser libraries.
 
-Mason manages `tree-sitter-cli` automatically. On first startup it installs or
-updates the CLI, then the Treesitter integration installs and compiles the
-configured parser set. No npm installation or system package-manager command
-is needed. The dotfiles installer itself never uses `sudo` or modifies OS
-packages.
+Mason installs the pinned `tree-sitter-cli` 0.27.2 automatically. On first
+startup, the Treesitter integration compiles only configured parsers that are
+missing; existing parser libraries are preserved. The configured parsers are
+updated when the locked `nvim-treesitter` plugin revision changes. No npm
+installation or system package-manager command is needed. The dotfiles
+installer itself never uses `sudo` or modifies OS packages.
 
 Inspect Mason's status with `:Mason`, and check parser/CLI health with
 `:checkhealth nvim-treesitter`. From inside Neovim, `:TSInstall` installs a

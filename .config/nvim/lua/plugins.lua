@@ -1,5 +1,13 @@
 require("core.lazy-maintenance").setup()
 
+-- CI can serialize native build hooks before lazy.setup creates its task runner.
+local lazy_concurrency = tonumber(vim.env.DOTFILES_LAZY_CONCURRENCY)
+if lazy_concurrency then
+  assert(lazy_concurrency >= 1 and lazy_concurrency % 1 == 0,
+    "DOTFILES_LAZY_CONCURRENCY must be a positive integer")
+  print(("[lazy] Using configured concurrency limit: %d"):format(lazy_concurrency))
+end
+
 require("lazy").setup({
   {
     'ryanoasis/powerline-extra-symbols',
@@ -26,7 +34,7 @@ require("lazy").setup({
     "L3MON4D3/LuaSnip",
     version = "v2.*", -- Replace <CurrentMajor> by the latest released major (first number of latest release)
     -- install jsregexp (optional!).
-    build = "make install_jsregexp",
+    build = require("snippets.luasnip_build").build,
     config = function() require 'snippets.luasnip' end
   },
   {
@@ -186,4 +194,5 @@ require("lazy").setup({
   -- system luarocks is Lua 5.5; neorg's rocks need 5.1, so let lazy
   -- bootstrap its own toolchain
   rocks = { hererocks = true },
+  concurrency = lazy_concurrency,
 })

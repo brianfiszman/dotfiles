@@ -223,6 +223,7 @@ local function exercise_mouse_wheel(direction, description, next_step)
 end
 
 local function run()
+  check("scrolling PTY cannot block on the message pager", false, vim.o.more)
   check("native mouse-wheel test has an attached Neovim UI", true,
     #vim.api.nvim_list_uis() > 0)
 

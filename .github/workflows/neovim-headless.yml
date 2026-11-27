@@ -95,6 +95,15 @@ jobs:
       - name: Test PR integration decision and fail-open behavior
         run: node --test tests/ci/neovim-integration-decision.test.cjs
 
+      - name: Test dependency cache keys and cold-path safeguards
+        run: node --test tests/ci/neovim-cache-contract.test.cjs
+
+      - name: Test Neovim focus PTY startup-prompt handling
+        run: python3 tests/ci/test-nvim-focus-pty.py
+
+      - name: Test bounded Neovim RPC commands
+        run: python3 tests/ci/test-nvim-rpc-timeout.py
+
       - name: Test real lazy.nvim bootstrap failure and recovery paths
         run: node --test tests/ci/neovim-bootstrap.test.cjs
 
@@ -135,12 +144,14 @@ jobs:
           set -Eeuo pipefail
 
           for tool in git curl cmake gcc g++ make node npm python3 go \
-            sha256sum timeout find grep tee tar unzip; do
+            sha256sum gnutimeout find grep tee tar unzip; do
             command -v "$tool" >/dev/null || {
               printf 'Required hosted-runner command is missing: %s\n' "$tool" >&2
               exit 1
             }
           done
+
+          printf 'Timeout supervisor: %s (%s)\n' "$(command -v gnutimeout)" "$(gnutimeout --version 2>&1 | sed -n '1p')"
 
           printf 'Runner image: %s\n' "$ImageOS / $ImageVersion"
           printf 'Node: '; node --version
@@ -231,10 +242,85 @@ jobs:
       - name: Prepare isolated install and verify installer safety
         run: bash ./scripts/test-nvim-headless.sh prepare
 
+      - name: Resolve and pin Mason registry release
+        id: mason-registry
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          registry_version="$(
+            curl --fail --silent --show-error --retry 3 \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              https://api.github.com/repos/mason-org/mason-registry/releases/latest |
+            python3 -c 'import json, re, sys; version = json.load(sys.stdin).get("tag_name", ""); assert re.fullmatch(r"[A-Za-z0-9._-]+", version), "Invalid Mason registry release tag"; print(version)'
+          )"
+          echo "version=$registry_version" >> "$GITHUB_OUTPUT"
+          echo "DOTFILES_MASON_REGISTRY_VERSION=$registry_version" >> "$GITHUB_ENV"
+
+      - name: Fingerprint installed Linux plugin-build toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            printf 'runner=%s/%s\n' "$ImageOS" "$ImageVersion"
+            printf 'neovim=%s\n' "$NEOVIM_VERSION"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            printf 'go=%s\n' "$(go version)"
+            printf 'cmake=%s\n' "$(cmake --version | sed -n '1p')"
+            printf 'gcc=%s\n' "$(gcc --version | sed -n '1p')"
+            printf 'g++=%s\n' "$(g++ --version | sed -n '1p')"
+            printf 'python=%s\n' "$(python3 --version)"
+            printf 'gnutimeout=%s\n' "$(gnutimeout --version 2>&1 | sed -n '1p')"
+            printf 'rust=%s\n' "$(rustc --version 2>/dev/null || echo missing)"
+            printf 'cargo=%s\n' "$(cargo --version 2>/dev/null || echo missing)"
+            for package in fd-find openbox procps wmctrl x11-utils xauth xterm xfonts-base xdotool xvfb libreadline-dev liblua5.1-0-dev lua5.1 python3-venv ripgrep zsh; do
+              printf 'apt:%s=%s\n' "$package" "$(dpkg-query -W -f='${Version}' "$package")"
+            done
+          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
+          fingerprint="$(sha256sum "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+
+      # Caches are exact-key only, and only trusted same-repository PRs can read/write them.
+      # Schedule/manual dispatch intentionally stay cold to validate clean installation.
+      - name: Restore locked lazy.nvim plugin checkouts
+        id: lazy-plugin-cache
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/nvim-headless-smoke/data/nvim/lazy
+          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
+
+      - name: Restore Mason packages and pinned registry
+        id: mason-cache
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/mason
+            ${{ runner.temp }}/nvim-headless-smoke/cache/nvim/mason-registry-update
+          key: nvim-mason-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-registry-${{ steps.mason-registry.outputs.version }}-toolchain-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/**/*.lua') }}
+
+      - name: Restore compiled Tree-sitter parsers
+        id: treesitter-parser-cache
+        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/queries
+            ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser-info
+          key: nvim-treesitter-runtime-v2-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua', 'tests/nvim/treesitter-provisioning.lua') }}
+
       - name: Restore locked plugins and run configured build hooks
         run: bash ./scripts/test-nvim-headless.sh restore
         env:
           NVIM_RESTORE_TIMEOUT: 20m
+          DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}
 
       - name: Verify native Linux xterm focus reaches Neovim through a real PTY
         env:

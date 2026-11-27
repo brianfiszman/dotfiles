@@ -3,6 +3,27 @@ set -Eeuo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN:-nvim}"
+
+# Prefer GNU timeout for process-group supervision. Ubuntu 26.04 uses the
+# rust-coreutils implementation under the generic name; its GNU counterpart
+# is installed as gnutimeout. Keep the generic fallback for other platforms.
+TIMEOUT_BIN="${TIMEOUT_BIN:-}"
+if [[ -z "$TIMEOUT_BIN" ]]; then
+  if command -v gnutimeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="$(command -v gnutimeout)"
+  elif command -v timeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="$(command -v timeout)"
+  fi
+fi
+if [[ -n "$TIMEOUT_BIN" ]]; then
+  if ! command -v "$TIMEOUT_BIN" >/dev/null 2>&1; then
+    printf 'Error: TIMEOUT_BIN cannot be resolved: %s\n' "$TIMEOUT_BIN" >&2
+    exit 1
+  fi
+  timeout_version="$("$TIMEOUT_BIN" --version 2>&1)"
+  timeout_version="${timeout_version%%$'\n'*}"
+  printf 'Timeout supervisor: %s (%s)\n' "$TIMEOUT_BIN" "$timeout_version"
+fi
 PHASE="${1:-all}"
 NVIM_RESTORE_TIMEOUT="${NVIM_RESTORE_TIMEOUT:-40m}"
 NVIM_STARTUP_TIMEOUT="${NVIM_STARTUP_TIMEOUT:-30m}"
@@ -90,7 +111,10 @@ run_nvim() {
   if [[ "$label" == "scrolling" ]]; then
     # Native mouse input needs an attached UI; a PTY-backed TUI gives the
     # integration test a real screen grid without manual interaction.
-    nvim_args=()
+    # Mason and Tree-sitter can emit many startup notifications while their
+    # first-use tools/parsers are provisioned. Never let the TUI pause on the
+    # pager's -- More -- prompt while the synthetic input test is running.
+    nvim_args=(--cmd "set nomore")
     use_pty=1
   elif [[ "$label" == checktime-focus-* ]]; then
     # Drive focus reports through Neovim's TUI parser using a real PTY master.
@@ -120,7 +144,9 @@ run_nvim() {
   # Capture PIPESTATUS explicitly so timeout/Neovim and tee failures stay distinct.
   local -a nvim_command
   if ((use_focus_pty)); then
-    nvim_command=(python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" --cmd "set nomore" -u "$NVIM_CONFIG/init.lua" "$@")
+    # Focus scenarios isolate native checktime behavior from Mason's
+    # unrelated LSP package provisioning and its asynchronous UI notifications.
+    nvim_command=(env DOTFILES_SKIP_MASON_LSP_INSTALL=1 python3 "$REPO_ROOT/scripts/run-nvim-focus-pty.py" -- "$NVIM_BIN" --cmd "set nomore" -u "$NVIM_CONFIG/init.lua" "$@")
   else
     nvim_command=("$NVIM_BIN" "${nvim_args[@]}" -u "$NVIM_CONFIG/init.lua" "$@")
   fi
@@ -130,25 +156,25 @@ run_nvim() {
   fi
 
   set +e
-  if command -v timeout >/dev/null 2>&1; then
+  if [[ -n "$TIMEOUT_BIN" ]]; then
     if ((use_focus_pty)); then
-      timeout --signal=TERM --kill-after=10s "$time_limit" \
+      "$TIMEOUT_BIN" --signal=TERM --kill-after=10s "$time_limit" \
         "${nvim_command[@]}" 2>&1 | tee "$log_file"
     elif ((use_pty)); then
       if [[ "${OSTYPE:-}" == darwin* ]]; then
-        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+        TERM=xterm-256color "$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit" \
           script -qeF /dev/null "${nvim_command[@]}" 2>&1 | tee "$log_file"
       else
-        TERM=xterm-256color timeout --signal=TERM --kill-after=30s "$time_limit" \
+        TERM=xterm-256color "$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit" \
           script -qefc "$pty_command" /dev/null 2>&1 | tee "$log_file"
       fi
     else
-      timeout --signal=TERM --kill-after=30s "$time_limit" \
+      "$TIMEOUT_BIN" --signal=TERM --kill-after=30s "$time_limit" \
         "${nvim_command[@]}" 2>&1 | tee "$log_file"
     fi
     pipeline_status=("${PIPESTATUS[@]}")
   else
-    printf '[%s] GNU timeout is unavailable; running without a per-phase deadline. Install GNU coreutils for bounded local runs.\n' "$label" >&2
+    printf '[%s] No timeout supervisor is available; running without a per-phase deadline.\n' "$label" >&2
     if ((use_focus_pty)); then
       "${nvim_command[@]}" 2>&1 | tee "$log_file"
     elif ((use_pty)); then
@@ -166,7 +192,7 @@ run_nvim() {
 
   command_status="${pipeline_status[0]:-1}"
   tee_status="${pipeline_status[1]:-1}"
-  printf '[%s] Finished after %ss (Neovim/timeout exit: %s; log writer exit: %s).\n' \
+  printf '[%s] Finished after %ss (supervisor/command exit: %s; log writer exit: %s).\n' \
     "$label" "$((SECONDS - start_time))" "$command_status" "$tee_status"
 
   if ((command_status == 124 || command_status == 137)); then
@@ -183,7 +209,7 @@ run_nvim() {
   fi
 
   if ((command_status != 0)); then
-    printf 'Error: Neovim failed during %s (exit %s). Last 80 log lines follow:\n' \
+    printf 'Error: supervised command failed during %s (exit %s). Last 80 log lines follow:\n' \
       "$label" "$command_status" >&2
     tail -n 80 "$log_file" >&2 || true
     return "$command_status"
@@ -321,9 +347,41 @@ restore_plugins() {
 
   printf '[restore] Restoring the exact plugin revisions from lazy-lock.json.\n'
   printf '[restore] Configured plugin build hooks remain enabled; no CI-only plugin bypasses are used.\n'
-  local -a restore_checks=("+Lazy! restore" "+qa!")
+  local verify_build_tasks="+lua local failures = {}; for name, plugin in pairs(require('lazy.core.config').plugins) do for _, task in ipairs(plugin._.tasks or {}) do if task.name == 'build' and task:has_errors() then table.insert(failures, name .. ': ' .. task:output(vim.log.levels.ERROR)) end end end; assert(#failures == 0, 'lazy.nvim build hook failures: ' .. table.concat(failures, '\n')); print('PASS: no lazy.nvim build task reported errors')"
+  local -a restore_checks=("+Lazy! restore" "$verify_build_tasks")
+  local verify_build_hooks="+lua local plugins = require('lazy.core.config').plugins; for _, name in ipairs({'LuaSnip', 'avante.nvim', 'nvim-treesitter'}) do local plugin = assert(plugins[name], 'missing build-hook plugin ' .. name); assert(plugin.build ~= nil, name .. ' has no configured build hook') end; print('PASS: configured build hooks exist')"
+  local verify_treesitter_build_hook="+lua assert(vim.g.dotfiles_treesitter_build_hook_ran == true, 'nvim-treesitter build hook did not execute during plugin build'); print('PASS: nvim-treesitter build hook executed during plugin build')"
+  if [[ "${DOTFILES_PLUGIN_CACHE_HIT:-false}" == "true" ]]; then
+    # A cache restores locked sources and prior artifacts, but never replaces
+    # configured build hooks. Run them in a fresh Neovim process so the restore
+    # task runner lifecycle is isolated; bang forces unchanged checkouts too.
+    printf '[restore] Plugin cache hit; locked restore is followed by a separate serialized forced build pass.\n'
+    restore_checks+=("$verify_build_hooks")
+  else
+    # Cold installs clone locked revisions; lazy.nvim runs their configured
+    # build hooks during :Lazy! restore.
+    restore_checks+=("$verify_build_hooks" "$verify_treesitter_build_hook")
+  fi
+  restore_checks+=("+qa!")
+
   DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
+  DOTFILES_LAZY_CONCURRENCY=1 \
     run_nvim "plugin-restore" "$NVIM_RESTORE_TIMEOUT" "${restore_checks[@]}"
+
+  if [[ "${DOTFILES_PLUGIN_CACHE_HIT:-false}" == "true" ]]; then
+    printf '[restore] Running configured build hooks in a fresh serialized Neovim process.\n'
+    DOTFILES_SKIP_TREESITTER_PROVISIONING=1 \
+    DOTFILES_LAZY_CONCURRENCY=1 \
+      run_nvim "plugin-cache-build" "$NVIM_RESTORE_TIMEOUT" \
+        "+Lazy! build all" "$verify_build_tasks" "$verify_build_hooks" "$verify_treesitter_build_hook" "+qa!"
+  fi
+
+  local luasnip_native_library="$XDG_DATA_HOME/nvim/lazy/LuaSnip/deps/luasnip-jsregexp.so"
+  if [[ ! -s "$luasnip_native_library" ]]; then
+    printf 'Error: LuaSnip native build artifact is missing: %s\n' "$luasnip_native_library" >&2
+    return 1
+  fi
+  printf '[restore] LuaSnip native build artifact installed: %s\n' "$luasnip_native_library"
 
   # Avante's :AvanteBuild must leave release-matched native libraries in the
   # plugin Lua directory. This catches build-command failures that Neovim may
@@ -388,6 +446,11 @@ startup() {
   printf '\n[behavior] Installing current Treesitter parsers and verifying real editor integrations.\n'
   run_nvim "treesitter-current-api" "$NVIM_TREESITTER_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/treesitter-current-api.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Verifying Treesitter provisioning does not refresh cached parsers.\n'
+  run_nvim "treesitter-provisioning" "$NVIM_TREESITTER_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/treesitter-provisioning.lua" \
     "+qa!"
 
   printf '\n[behavior] Verifying current-API Go textobjects and function navigation.\n'
