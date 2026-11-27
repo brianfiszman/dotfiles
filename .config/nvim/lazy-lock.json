@@ -181,7 +181,7 @@
   },
   "neotest-mocha": {
     "branch": "main",
-    "commit": "8239023d299a692784176f202f6a4a5e0a698ad2"
+    "commit": "e28317a93e48ed7901d8ddb1bd252b64220b2e2c"
   },
   "neotest-plenary": {
     "branch": "master",
