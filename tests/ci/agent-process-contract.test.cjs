@@ -82,6 +82,7 @@ test("Neovim maintenance exposes a bounded, read-only live RPC reference", () =>
   const rpc = read(".agents/skills/neovim-maintenance/references/live-runtime-rpc.md");
 
   assert.match(maintenance, /references\/live-runtime-rpc\.md/);
+  assert.match(maintenance, /^description: .*configure.*debug.*plugins.*LSP.*DAP.*test adapters.*live-session RPC inspection\.$/m);
   assert.ok(
     maintenance.trimEnd().split("\n").length <= 300,
     "Neovim maintenance skill must stay within the documented 300-line budget"
