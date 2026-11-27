@@ -180,7 +180,7 @@ dotfiles configuration.
 | [paulburgess1357/nvim-mcp](https://github.com/paulburgess1357/nvim-mcp) | Broad session-aware MCP tools; supports several coding-agent clients. | Its current README lists Linux as a requirement; don't assume native macOS support without a verified update. |
 | [waldnzwrld/nvim-mcp](https://github.com/waldnzwrld/nvim-mcp) | Small Go server, advertises native macOS and compact read-oriented tools. | Setup can grant every tool, including arbitrary Lua/commands; auto-discovery may choose the newest socket. Review exact version and permissions before adopting. |
 | [bigcodegen/mcp-neovim-server](https://github.com/bigcodegen/mcp-neovim-server) | Structured status/buffer tools and shell execution disabled by default. | Also exposes command, edit, and window-management tools; keep any future integration least-privilege. |
-| [guysoft/vscodium.nvim debug-reach](https://github.com/guysoft/vscodium.nvim) | Useful DAP lifecycle sequence: launch, breakpoint, inspect stack/locals, continue, terminate. | Bound to its own tmux/VSCodium architecture; do not import its RPC implementation. |
+| [guysoft/vscodium.nvim debug-reach](https://github.com/guysoft/vscodium.nvim/blob/main/.opencode/skills/debug-reach/SKILL.md) | Useful DAP lifecycle sequence: launch, breakpoint, inspect stack/locals, continue, terminate. | Bound to its own tmux/VSCodium architecture; do not import its RPC implementation. |
 
 The default for this repository is therefore **native read-only RPC when
 available, otherwise the existing isolated test/PTY workflow**. Consider an MCP
