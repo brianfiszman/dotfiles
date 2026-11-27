@@ -229,9 +229,10 @@ Mason installs the pinned `tree-sitter-cli` 0.27.2, Prettier, and
 language servers are ensured by Mason-LSPConfig. On first startup, the
 Treesitter integration compiles only configured parsers that are missing;
 existing parser libraries are preserved. The configured parsers are
-updated when the locked `nvim-treesitter` plugin revision changes. No npm
-installation or system package-manager command is needed. The dotfiles
-installer itself never uses `sudo` or modifies OS packages.
+updated when the locked `nvim-treesitter` plugin revision changes. Mason handles
+npm-backed tool installation automatically; no manual global npm install or OS
+package-manager command is needed. The dotfiles installer itself never uses
+`sudo` or modifies OS packages.
 
 Inspect Mason's status with `:Mason`, and check parser/CLI health with
 `:checkhealth nvim-treesitter`. From inside Neovim, `:TSInstall` installs a
