@@ -1,6 +1,6 @@
 ---
 name: neovim-maintenance
-description: Maintain this Neovim configuration with evidence-based diagnosis, live-runtime inspection, behavior-focused tests, and safe, reproducible changes.
+description: Maintain, configure, and debug this Neovim setup: plugins, LSP, DAP, test adapters, startup, and live-session RPC inspection.
 ---
 
 # Neovim maintenance
