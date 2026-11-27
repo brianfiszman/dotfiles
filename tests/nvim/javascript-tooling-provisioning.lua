@@ -11,9 +11,10 @@ local function wait_for(description, timeout_ms, predicate)
   assert(ready, ("Timed out waiting for %s"):format(description))
 end
 
+-- TypeScript and ESLint servers are owned by Mason-LSPConfig and are
+-- asserted in its native-LSP setup test. This installer owns the formatter
+-- and DAP adapter; those packages must be present after normal startup.
 local expected = {
-  { package = "typescript-language-server", executable = "typescript-language-server" },
-  { package = "eslint-lsp", executable = "vscode-eslint-language-server" },
   { package = "prettier", executable = "prettier" },
   { package = "js-debug-adapter", executable = "js-debug-adapter" },
 }
@@ -39,7 +40,7 @@ for _, server in ipairs({ "ts_ls", "eslint" }) do
     ("Mason-LSPConfig does not ensure %s"):format(server)
   )
 end
-pass("Lazy and Mason-LSPConfig specs declare all four JS/TS packages")
+pass("Mason Tool Installer and Mason-LSPConfig declare their JS/TS packages")
 
 -- The normal-startup Mason installs may already be complete. Register terminal
 -- events first, then do one initial scan to seed packages installed beforehand.
@@ -79,7 +80,7 @@ local function all_finished()
   return true
 end
 
-wait_for("all four JavaScript/TypeScript Mason packages to finish installing", 240000, all_finished)
+wait_for("Prettier and the JavaScript DAP adapter to finish installing", 240000, all_finished)
 
 for _, package in ipairs(expected) do
   local result = results[package.package]
@@ -95,7 +96,7 @@ for _, package in ipairs(expected) do
   )
   print(("EXECUTABLE %s: %s"):format(package.executable, executable))
 end
-pass("TypeScript LSP, ESLint LSP, Prettier, and JavaScript DAP binaries are discoverable")
+pass("Prettier and JavaScript DAP binaries are discoverable after normal startup")
 
 -- Installing the adapter is intentionally separate from loading the debugger.
 for _, module in ipairs({ "dap", "dapui", "mason-nvim-dap", "nvim-dap-virtual-text" }) do
