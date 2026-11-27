@@ -201,7 +201,7 @@
   },
   "neotest-vitest": {
     "branch": "main",
-    "commit": "9f8f05bee6e5b980a4d1e84adab119a8f9756a77"
+    "commit": "b0c265743c877058068dbc40d104ea5d40e6b257"
   },
   "neotest-zig": {
     "branch": "main",
@@ -345,7 +345,7 @@
   },
   "trouble.nvim": {
     "branch": "main",
-    "commit": "85bedb7eb7fa331a2ccbecb9202d8abba64d37b3"
+    "commit": "20189f0e0cb87c543f1948d62e9d09169d1b2dcb"
   },
   "vim-test": {
     "branch": "master",
