@@ -101,6 +101,7 @@ assert(ts_config.settings.javascript.implementationsCodeLens.enabled == true,
 assert(lsp.mason_options.automatic_enable == false, "Mason-LSPConfig must not auto-enable servers")
 assert(not vim.tbl_contains(lsp.mason_options.ensure_installed, "svelte"), "Svelte Mason install policy changed")
 assert(vim.tbl_contains(lsp.mason_options.ensure_installed, "ts_ls"), "Native TypeScript server is not included in Mason installs")
+assert(vim.tbl_contains(lsp.mason_options.ensure_installed, "eslint"), "ESLint language server is not included in Mason installs")
 assert(#lsp.enabled_servers == #lsp.servers, "Not all configured servers were explicitly enabled")
 
 local diagnostic_config = vim.diagnostic.config()
