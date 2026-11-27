@@ -6,23 +6,21 @@ Canonical checkpoint on `master`; keep <=40 lines. Resolve live refs on recovery
 
 ## Current focus
 
-- **Source master checkpoint:** `30b92cd71aefeab613f7dae63a181d3075981eb4`; docs checkpoints #131/#132/#133 are merged.
-- **Active user-authorized task:** issue [#129](https://github.com/brianfiszman/dotfiles/issues/129), Draft PR [#130](https://github.com/brianfiszman/dotfiles/pull/130), branch `diagnose/macos-terminal-window-zorder-129`, HEAD `1d49ce823b758ae63956ffc04b2a53d14d46ec43`, base `30b92cd71aefeab613f7dae63a181d3075981eb4`. Scope is Linux-only per Brian; macOS/iTerm2 is deferred.
-- **Older work:** issue #91 / Draft PR [#124](https://github.com/brianfiszman/dotfiles/pull/124) remains paused; do not resume while #130 is active. Linux cache-hit forced-build SIGSEGV attempts are exhausted.
+- **Source master checkpoint:** `d60ee4aa82cdda18d0bde7d41951506558d03e7e`.
+- **Active implementation:** none. Brian asked to resume PR #124; it is complete and merged. Do not reopen it.
+- **Issue [#91](https://github.com/brianfiszman/dotfiles/issues/91):** remains open for controlled end-to-end timing analysis and any separately scoped behavior-suite parallelization after mutable-state isolation is proven. These broader tasks were not part of merged PR #124; do not claim an end-to-end speedup.
+- **PR [#124](https://github.com/brianfiszman/dotfiles/pull/124):** merged as [`d60ee4a`](https://github.com/brianfiszman/dotfiles/commit/d60ee4aa82cdda18d0bde7d41951506558d03e7e).
+- **PR [#130](https://github.com/brianfiszman/dotfiles/pull/130):** merged as [`86986ba`](https://github.com/brianfiszman/dotfiles/commit/86986ba893ea53cb49e5b09f3af5d14b516981b2). Its accepted scope is Linux-native xterm/PTY focus; macOS/iTerm2 behavior remains deferred and unvalidated.
 
 ## Verified
 
-- PR #130 adds Ubuntu/Xvfb/Openbox/two-xterm real-PTY focus integration, Neovim v0.12.6 TUI callbacks, normal startup, and Python-provider integration. No macOS runner or iTerm2 install remains.
-- Exact-head run [#753](https://github.com/brianfiszman/dotfiles/actions/runs/45928952289), PR HEAD `1d49ce8`, base `30b92cd`: decision and fast checks passed; isolated install, locked plugin restore/builds, native focus integration, normal startup, Python provider, and artifact upload all passed.
-- Focus evidence from #753: raw observer received two native `ESC[O` and two `ESC[I` reports on `/dev/pts/0`; after restoring termios, real Neovim on that PTY received two native `FocusLost` and two `FocusGained` callbacks across two real xterm-window cycles.
-- Agent preflight run [#121](https://github.com/brianfiszman/dotfiles/actions/runs/45929210229) passed process contracts and the exact-head aggregate `Neovim integration gate` in `full-integration` mode. The earlier #120 preflight read an out-of-date PR-body snapshot; the required preflight section was restored and #121 passed.
-
-## Stop / pending
-
-- macOS/iTerm2 coverage is explicitly deferred by Brian. Linux xterm evidence must not be presented as iTerm2 validation; do not resume the two exhausted macOS app-launch attempts (#738/#739).
-- Earlier Linux readiness failures (#744/#746) were harness issues: the generated launcher had invalid shell quoting, then the real Neovim TUI waited at a hit-enter prompt. Those were corrected and the full exact-head #753 run passed; do not repeat those diagnoses.
-- PR #130 remains Draft/unmerged because active ruleset `Protect master — Mandatory CI` still requires the obsolete context `macOS plugin restore and Python provider`. That context is absent from the current Linux-only PR head; the four remaining required contexts are present and pass. Available GitHub integration can read but not edit this ruleset.
+- PR #124 exact head `f5732aebd5b268d41bc5ce751b349e1675e27962` passed Neovim integration [#772](https://github.com/brianfiszman/dotfiles/actions/runs/45999208336) and agent preflight/integration gate [#151](https://github.com/brianfiszman/dotfiles/actions/runs/46000159902).
+- Lazy.nvim, Mason, and Tree-sitter exact-key caches were validated across cold and warm runs. Cache hits still run locked restore and serialized configured build hooks; scheduled/manual paths remain cold; fork PRs cannot read/write trusted caches.
+- Warm-cache SIGSEGV root cause: LuaSnip's upstream build overwrote `luasnip-jsregexp.so` in place while loaded. The production hook now uses same-directory temp copy + atomic rename; a real Neovim `package.loadlib()` finalizer regression passes. See [incident fingerprint](docs/incidents/ci-failure-fingerprints.md).
+- Earlier all-hit diagnostic [#767](https://github.com/brianfiszman/dotfiles/actions/runs/45941847788) ended normally under GDB with no SIGSEGV. Final exact-head run #772 passed the full Linux behavior/provider suite.
+- QA PASS and simulated Senior Reviewer APPROVE are recorded in PR #124. GitHub disallows formal self-approval by the connected PR author; this limitation is documented, not represented as an actual GitHub APPROVED state.
 
 ## Next action
 
-- Remove the obsolete macOS required-status context from the master ruleset in GitHub settings. Then re-fetch PR #130's exact head and required checks; mark Ready and squash-merge only once the live ruleset and all required checks are satisfied.
+- No implementation is currently authorized. Keep issue #91 open; refine the remaining timing/parallelization scope before starting another work slice.
+- On recovery, consult `AGENTS.md`, this checkpoint, the current monthly log, incident fingerprints, and live GitHub state before acting.
