@@ -194,7 +194,7 @@ installing `pynvim` into a global Python environment just to silence the warning
 This configuration uses the current `nvim-treesitter/main` API, not the
 legacy `master` API. It requires:
 
-- Neovim 0.12.0 or newer.
+- Neovim 0.12.6 or newer.
 - Mason-managed `tree-sitter-cli` 0.27.2.
 - `tar`, `curl`, and a C compiler on PATH to build parser libraries.
 
