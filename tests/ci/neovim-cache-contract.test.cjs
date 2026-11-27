@@ -1,7 +1,9 @@
 "use strict";
 
-const { readFileSync } = require("node:fs");
-const { resolve } = require("node:path");
+const { mkdtempSync, readFileSync, rmSync } = require("node:fs");
+const { spawnSync } = require("node:child_process");
+const { tmpdir } = require("node:os");
+const { join, resolve } = require("node:path");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -15,6 +17,8 @@ const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
 const luasnipIdleLifetimePath = resolve(__dirname, "../nvim/luasnip-idle-lifetime.lua");
 const pluginConfigPath = resolve(__dirname, "../../.config/nvim/lua/plugins.lua");
+const luasnipBuildPath = resolve(__dirname, "../../.config/nvim/lua/snippets/luasnip_build.lua");
+const luasnipNativeReplacementTestPath = resolve(__dirname, "../nvim/luasnip-native-library-replacement.lua");
 
 const workflow = readFileSync(workflowPath, "utf8");
 const restoreScript = readFileSync(restoreScriptPath, "utf8");
@@ -26,6 +30,7 @@ const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
 const luasnipIdleLifetime = readFileSync(luasnipIdleLifetimePath, "utf8");
 const pluginConfig = readFileSync(pluginConfigPath, "utf8");
+const luasnipBuild = readFileSync(luasnipBuildPath, "utf8");
 
 const trustedCacheCondition =
   "$" + "{{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}";
@@ -209,6 +214,42 @@ test("Treesitter indentation regression waits for deferred FileType configuratio
   const indentationFixture = readFileSync(resolve(__dirname, "../nvim/indented-substitute.lua"), "utf8");
   assert.match(indentationFixture, /vim\.wait\(2000, function\(\)[\s\S]*?indentexpr == expected_indentexpr/,
     "the real FileType fixture must allow the scheduled Treesitter callback to execute before assertions");
+});
+
+test("LuaSnip build hook atomically replaces native libraries instead of overwriting loaded files", () => {
+  assert.match(pluginConfig, /build = require\\(["']snippets\\.luasnip_build["']\\)\\.build/);
+  assert.match(luasnipBuild, /make", "jsregexp/);
+  assert.match(luasnipBuild, /vim\\.uv\\.fs_copyfile/);
+  assert.match(luasnipBuild, /vim\\.uv\\.fs_rename/);
+  assert.doesNotMatch(luasnipBuild, /install_jsregexp/);
+});
+
+test("LuaSnip native-library replacement preserves the loaded inode finalizer", () => {
+  const testRoot = mkdtempSync(join(tmpdir(), "dotfiles-luasnip-native-"));
+  const marker = join(testRoot, "finalizer.txt");
+  try {
+    const result = spawnSync(
+      process.env.NVIM_BIN || "nvim",
+      ["--headless", "-u", "NONE", "-l", luasnipNativeReplacementTestPath],
+      {
+        cwd: resolve(__dirname, "../.."),
+        env: {
+          ...process.env,
+          DOTFILES_LUASNIP_REPLACEMENT_TEST_DIR: testRoot,
+        },
+        encoding: "utf8",
+        timeout: 30000,
+      }
+    );
+    assert.equal(result.error, undefined, result.error && result.error.message);
+    assert.equal(result.status, 0,
+      "Neovim native-library replacement test failed\\nstdout:\\n" + result.stdout
+        + "\\nstderr:\\n" + result.stderr);
+    assert.equal(readFileSync(marker, "utf8"), "original",
+      "the already-loaded library's original finalizer must run after atomic replacement");
+  } finally {
+    rmSync(testRoot, { recursive: true, force: true });
+  }
 });
 
 test("headless LuaSnip fixture queues real typed input without blocking Insert mode", () => {
