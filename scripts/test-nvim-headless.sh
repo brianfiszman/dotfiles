@@ -117,7 +117,7 @@ run_nvim() {
     nvim_args=(--cmd "set nomore")
     use_pty=1
   elif [[ "$label" == "dap-neotest-javascript-e2e" ]]; then
-    # The Vitest adapter requests DAP's integratedTerminal strategy. Give
+    # The Jest adapter requests DAP's integratedTerminal strategy. Give
     # Neovim a real PTY/TUI so runInTerminal is exercised at the user boundary.
     nvim_args=(--cmd "set nomore")
     use_pty=1
@@ -489,12 +489,12 @@ startup() {
     "+qa!"
 
   printf '\n[behavior] Installing isolated JavaScript test fixture dependencies.\n'
-  for fixture in jest vitest mocha; do
+  for fixture in jest mocha; do
     npm install --prefix "$REPO_ROOT/tests/fixtures/neotest-js/$fixture" \
       --no-package-lock --no-save --no-audit --no-fund
   done
 
-  printf '\n[behavior] Running real Jest, Vitest, and Mocha suites through Neotest.\n'
+  printf '\n[behavior] Running real Jest and Mocha suites through Neotest.\n'
   run_nvim "neotest-javascript-e2e" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/neotest-javascript-e2e.lua" \
     "+qa!"
@@ -554,7 +554,7 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/dap-js-debugger-e2e.lua" \
     "+qa!"
 
-  printf '\n[behavior] Debugging a real Vitest test through the <leader>td mapping and DAP integrated terminal.\n'
+  printf '\n[behavior] Debugging a real Jest test through the <leader>td mapping and DAP integrated terminal.\n'
   run_nvim "dap-neotest-javascript-e2e" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-neotest-javascript-e2e.lua" \
     "+qa!"

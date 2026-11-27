@@ -31,7 +31,6 @@ local M = {
     },
     "nvim-neotest/neotest-vim-test",
     -- language specific tests
-    "marilari88/neotest-vitest",
     "nvim-neotest/neotest-python",
     "nvim-neotest/neotest-plenary",
     "nvim-neotest/neotest-jest",
@@ -104,7 +103,6 @@ function M.config()
       require "neotest-python" {
         dap = { justMyCode = false },
       },
-      require "neotest-vitest",
       require "neotest-plenary",
       require "neotest-zig",
       require "neotest-go",

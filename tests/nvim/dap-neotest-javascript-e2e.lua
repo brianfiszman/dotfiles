@@ -1,6 +1,6 @@
--- Exercise the real Debug Test mapping with the real Vitest adapter and
--- Mason-installed js-debug-adapter. This scenario runs Neovim in a PTY/TUI
--- because the locked neotest-vitest adapter requests an integrated terminal.
+-- Exercise the real Debug Test mapping with the real Jest adapter and
+-- Mason-installed js-debug-adapter. The Jest adapter requests an integrated
+-- terminal; scripts/test-nvim-headless.sh supplies a real PTY-backed TUI.
 
 local function wait_for(description, timeout_ms, predicate)
   print(("WAIT: %s"):format(description))
@@ -9,9 +9,9 @@ local function wait_for(description, timeout_ms, predicate)
 end
 
 local root = vim.fn.getcwd()
-local project = root .. "/tests/fixtures/neotest-js/vitest"
+local project = root .. "/tests/fixtures/neotest-js/jest"
 local file = project .. "/debug.test.js"
-assert(vim.fn.filereadable(file) == 1, "Missing Vitest debug fixture: " .. file)
+assert(vim.fn.filereadable(file) == 1, "Missing Jest debug fixture: " .. file)
 
 assert(package.loaded["dap"] == nil, "DAP was already loaded before this scenario")
 require("lazy").load({ plugins = { "mason-nvim-dap.nvim" } })
@@ -37,10 +37,9 @@ dap.set_breakpoint()
 require("lazy").load({ plugins = { "neotest" } })
 local neotest = require("neotest")
 
--- Neotest adapter IDs are project-scoped (name + root path).
-local function find_vitest_adapter_id()
+local function find_jest_adapter_id()
   for _, adapter_id in ipairs(neotest.state.adapter_ids()) do
-    if vim.startswith(adapter_id, "neotest-vitest:") then
+    if vim.startswith(adapter_id, "neotest-jest:") then
       return adapter_id
     end
   end
@@ -68,7 +67,7 @@ print("STEP: dispatching the actual <leader>td mapping")
 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(lhs, true, false, true), "xt", false)
 
 local ok, failure = xpcall(function()
-  wait_for("the test process to stop at the source breakpoint", 90000, function()
+  wait_for("the Jest process to stop at the source breakpoint", 90000, function()
     return stopped
   end)
   assert(stopped_body and stopped_body.reason == "breakpoint",
@@ -84,22 +83,22 @@ local ok, failure = xpcall(function()
   end)
   wait_for("evaluation of debugTestMarker", 15000, function() return evaluated end)
   assert(not eval_error, "Debug Test evaluation failed: " .. tostring(eval_error))
-  assert(response and response.result == "neotest-vitest-breakpoint-reached",
+  assert(response and response.result == "neotest-jest-breakpoint-reached",
     "Debug Test evaluated an unexpected value: " .. vim.inspect(response))
-  print("PASS: <leader>td reached a real Vitest source breakpoint and evaluated local state")
+  print("PASS: <leader>td reached a real Jest source breakpoint and evaluated local state")
 
   dap.continue()
-  local vitest_adapter_id
-  wait_for("Neotest to register the project-scoped Vitest adapter", 30000, function()
-    vitest_adapter_id = find_vitest_adapter_id()
-    return vitest_adapter_id ~= nil
+  local jest_adapter_id
+  wait_for("Neotest to register the project-scoped Jest adapter", 30000, function()
+    jest_adapter_id = find_jest_adapter_id()
+    return jest_adapter_id ~= nil
   end)
-  wait_for("Neotest to receive the completed Vitest result", 60000, function()
-    local counts = neotest.state.status_counts(vitest_adapter_id)
+  wait_for("Neotest to receive the completed Jest result", 60000, function()
+    local counts = neotest.state.status_counts(jest_adapter_id)
     return terminated and counts and counts.total == 1 and counts.running == 0
       and counts.passed == 1 and counts.failed == 0
   end)
-  print("PASS: resuming the debugged test produced a real passing Neotest result")
+  print("PASS: resuming the debugged Jest test produced a real passing Neotest result")
 end, debug.traceback)
 
 dap.listeners.after.event_stopped[listener] = nil

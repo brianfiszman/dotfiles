@@ -199,10 +199,6 @@
     "branch": "master",
     "commit": "75c4228882ae4883b11bfce9b8383e637eb44192"
   },
-  "neotest-vitest": {
-    "branch": "main",
-    "commit": "b0c265743c877058068dbc40d104ea5d40e6b257"
-  },
   "neotest-zig": {
     "branch": "main",
     "commit": "742f97f971a39d44b4832b432083608834a0e59c"

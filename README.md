@@ -98,10 +98,10 @@ linter. This avoids mismatches between the editor and the project's own scripts.
 The JavaScript debug adapter is provisioned ahead of time, but the DAP plugins
 and UI remain unloaded until a debugging command or mapping is invoked.
 
-Neotest supports project-local Jest, Vitest, and Mocha installations. Keep the
-runner in each project's `devDependencies`; its adapter discovers the runner
-and configuration from that workspace. Use `<leader>tt` for the nearest test,
-`<leader>tf` for the current file, and `<leader>td` to debug a test through
+Neotest supports project-local Jest and Mocha installations. Keep the runner
+in each project's `devDependencies`; each adapter discovers the runner and
+configuration from that workspace. Use `<leader>tt` for the nearest test,
+`<leader>tf` for the current file, and `<leader>td` to debug a Jest test through
 the JavaScript DAP adapter. Ordinary test runs do not load DAP.
 
 ### Editing
