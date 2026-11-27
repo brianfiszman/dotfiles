@@ -95,14 +95,13 @@ planned only after checking the implementation or source that disproves it.
 
 ## Safe installation rules
 
-- Never call `sudo` or OS package managers; Neovim is the default install target
+- Never call `sudo` or OS package managers; Neovim is the default install target,
   and Emacs is opt-in.
-- Move existing targets to unique timestamped backups before swapping; restore
-  the backup if the final move fails.
-- Exclude `.config/nvim/venv`; it is machine-specific.
-- Keep dry-run side-effect-free and document optional providers with
-  reproducible per-user setup commands.
-- Redirect HOME and all relevant XDG paths into temporary directories for tests.
+- Stage replacements before swapping; back up existing targets with unique
+  timestamps and restore the backup if the final move fails.
+- Exclude `.config/nvim/venv`; keep an available dry-run side-effect-free.
+- Document optional providers with reproducible per-user commands. Tests use
+  temporary HOME/XDG paths, never the maintainer's real home.
 
 ## Behavior-first testing
 
