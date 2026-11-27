@@ -331,6 +331,41 @@ read_file_counter() {
   fi
 }
 
+open_app_with_timeout() {
+  local app_name="$1"
+  shift
+  printf '[macos-focus] phase=open-app app=%s args=%s\n' "$app_name" "$*"
+  python3 - "$app_name" "$@" <<'PY'
+import subprocess
+import sys
+
+app_name, *arguments = sys.argv[1:]
+try:
+    result = subprocess.run(
+        ["open", "-a", app_name, *arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+except subprocess.TimeoutExpired:
+    print(
+        f"Opening {app_name} exceeded its 20-second deadline",
+        file=sys.stderr,
+    )
+    raise SystemExit(124)
+
+if result.stdout:
+    print(result.stdout, end="")
+if result.stderr:
+    print(result.stderr, file=sys.stderr, end="")
+if result.returncode != 0:
+    print(f"open -a {app_name} exited with {result.returncode}", file=sys.stderr)
+    raise SystemExit(result.returncode)
+print(f"[macos-focus] phase=open-app-complete app={app_name}")
+PY
+}
+
 wait_for_launcher() {
   local deadline=$((SECONDS + 5))
   local child_pid=""
@@ -682,7 +717,7 @@ activate_neovim_iterm_window() {
   run_iterm_window_helper activate "$previous_window_ids"
 }
 
-open -a "/Applications/iTerm.app"
+open_app_with_timeout "/Applications/iTerm.app"
 iterm_launch_deadline=$((SECONDS + 15))
 while ((SECONDS < iterm_launch_deadline)); do
   if [[ "$(run_iterm_window_helper frontmost)" == "com.googlecode.iterm2" ]]; then
@@ -694,18 +729,24 @@ done
   printf 'iTerm2 did not become the frontmost application within 15 seconds.\n' >&2
   exit 1
 }
+printf '[macos-focus] phase=initial-activation-start\n'
 activate_and_wait_for_frontmost_application "com.googlecode.iterm2" "iTerm2"
+printf '[macos-focus] phase=window-snapshot\n'
 iterm_windows_before="$(run_iterm_window_helper snapshot)"
 printf '[macos-focus] iTerm2 window IDs before test launch: %s\n' "${iterm_windows_before:-none}"
 printf '[macos-focus] Starting native raw-TTY focus probe in a dedicated iTerm2 window.\n'
+printf '[macos-focus] phase=create-iterm-window\n'
 launch_through_iterm2_scripting
+printf '[macos-focus] phase=launcher-command-returned\n'
 wait_for_launcher || {
   printf '[macos-focus] iTerm2 did not start the generated launcher within 5 seconds.\n' >&2
   print_startup_diagnostics >&2
   exit 1
 }
 wait_for_iterm_tty
+printf '[macos-focus] phase=real-tty-ready\n'
 wait_for_probe_ready
+printf '[macos-focus] phase=raw-probe-ready\n'
 
 # First isolate iTerm2 -> TTY. This receiver runs on the actual iTerm2
 # PTY and counts only bytes returned by the terminal emulator; it never injects
@@ -714,7 +755,7 @@ printf '[macos-focus] Selecting the exact iTerm2 window for the raw TTY probe.\n
 activate_neovim_iterm_window "$iterm_windows_before"
 probe_lost_before="$(read_probe_counter "$probe_focus_lost_file")"
 printf '[macos-focus] Raw probe: opening the unique Finder fixture folder.\n'
-open -a Finder "$test_root"
+open_app_with_timeout Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_probe_counter_gt "$probe_focus_lost_file" "$probe_lost_before" \
   'iTerm2 delivered native FocusLost bytes to its real TTY'
@@ -742,10 +783,11 @@ wait_for_iterm_tty
 lost_initial_before="$(read_file_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_file_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Starting Neovim-native transition test; opening the unique Finder fixture folder.\n'
-open -a Finder "$test_root"
+open_app_with_timeout Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_initial_before" \
   'Finder activation generated a real Neovim FocusLost event'
+printf '[macos-focus] phase=nvim-first-focus-lost\n'
 close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 assert_finder_frontmost
@@ -754,13 +796,15 @@ printf '[macos-focus] Clicking the exact Neovim iTerm2 window and requiring a na
 activate_neovim_iterm_window "$iterm_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
   'iTerm2 activation generated a real Neovim FocusGained event'
+printf '[macos-focus] phase=nvim-first-focus-gained\n'
 
 lost_before="$(read_file_counter dotfiles_macos_focus_lost)"
 printf '[macos-focus] Neovim-native second transition: opening the unique Finder fixture folder.\n'
-open -a Finder "$test_root"
+open_app_with_timeout Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_counter_gt dotfiles_macos_focus_lost "$lost_before" \
   'Finder activation generated a real Neovim FocusLost event on the second transition'
+printf '[macos-focus] phase=nvim-second-focus-lost\n'
 close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 assert_finder_frontmost
@@ -770,6 +814,7 @@ printf '[macos-focus] Clicking the same Neovim iTerm2 window again and requiring
 activate_neovim_iterm_window "$iterm_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
   'iTerm2 reactivation generated a real Neovim FocusGained event'
+printf '[macos-focus] phase=nvim-second-focus-gained\n'
 lost_final="$(read_file_counter dotfiles_macos_focus_lost)"
 gained_final="$(read_file_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Final native event counts: FocusLost=%s FocusGained=%s\n' \
