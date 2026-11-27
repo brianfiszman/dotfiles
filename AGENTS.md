@@ -164,7 +164,7 @@ default. Exact pins are for reproducibility, not for preserving obsolete APIs.
 - Update the README when setup or user-facing behavior changes.
 - Keep the functional backlog in `docs/neovim-modernization-backlog.md` as a thin
   index; the issues are canonical.
-- Follow `.agents/skills/neovim-maintenance/SKILL.md` for Neovim-specific work.
+- Follow `.agents/skills/neovim-maintenance/SKILL.md` for Neovim-specific work, and its `.agents/skills/neovim-maintenance/references/live-runtime-rpc.md` for read-only inspection of an already-running Neovim session.
 - Follow `.agents/skills/neovim-dependency-management/SKILL.md` when triaging `:checkhealth`, provisioning optional tools/providers, or comparing local and CI dependency state.
 - Follow `.agents/skills/github-project-management/SKILL.md` when creating,
   updating, comparing, or closing GitHub issues and pull requests.
