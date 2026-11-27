@@ -65,6 +65,13 @@ function evaluateNeovimRun(run, jobs, identity) {
   if (!decision) return fail("Expected exactly one integration-decision job.");
   if (!fastChecks) return fail("Expected exactly one fast-checks job.");
   if (linux.length === 0) return fail("No matrix-expanded Linux headless integration job was found.");
+  const linuxJobNames = new Set();
+  for (const job of linux) {
+    if (linuxJobNames.has(job.name)) {
+      return fail("Duplicate Linux integration job: " + job.name);
+    }
+    linuxJobNames.add(job.name);
+  }
   if (decision.conclusion !== "success") {
     return fail("Integration decision did not succeed: " + String(decision.conclusion));
   }
