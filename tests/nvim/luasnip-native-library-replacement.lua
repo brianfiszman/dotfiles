@@ -1,3 +1,5 @@
+package.path = vim.fn.getcwd() .. "/.config/nvim/lua/?.lua;" .. package.path
+
 local root = assert(vim.env.DOTFILES_LUASNIP_REPLACEMENT_TEST_DIR,
   "DOTFILES_LUASNIP_REPLACEMENT_TEST_DIR is required")
 local marker = root .. "/finalizer.txt"
