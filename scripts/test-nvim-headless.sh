@@ -468,6 +468,11 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/lsp-native-setup.lua" \
     "+qa!"
 
+  printf '\n[behavior] Verifying JavaScript/TypeScript Mason tooling is provisioned at startup.\n'
+  run_nvim "javascript-tooling-provisioning" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/javascript-tooling-provisioning.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying lazydev loads only for Lua buffers.\n'
   run_nvim "lazydev-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/lazydev-lazy-loading.lua" \
