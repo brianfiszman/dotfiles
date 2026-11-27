@@ -1,0 +1,7 @@
+{
+  "name": "dotfiles-neotest-jest-fixture",
+  "private": true,
+  "devDependencies": {
+    "jest": "30.5.2"
+  }
+}

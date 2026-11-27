@@ -1,0 +1,7 @@
+{
+  "name": "dotfiles-neotest-mocha-fixture",
+  "private": true,
+  "devDependencies": {
+    "mocha": "12.0.3"
+  }
+}

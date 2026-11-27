@@ -39,7 +39,7 @@ case "$PHASE" in
     ;;
 esac
 
-for required_command in "$NVIM_BIN" git find grep tee script make curl tar python3; do
+for required_command in "$NVIM_BIN" git find grep tee script make curl tar python3 npm; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
     exit 1
@@ -114,6 +114,11 @@ run_nvim() {
     # Mason and Tree-sitter can emit many startup notifications while their
     # first-use tools/parsers are provisioned. Never let the TUI pause on the
     # pager's -- More -- prompt while the synthetic input test is running.
+    nvim_args=(--cmd "set nomore")
+    use_pty=1
+  elif [[ "$label" == "dap-neotest-javascript-e2e" ]]; then
+    # The Jest adapter requests DAP's integratedTerminal strategy. Give
+    # Neovim a real PTY/TUI so runInTerminal is exercised at the user boundary.
     nvim_args=(--cmd "set nomore")
     use_pty=1
   elif [[ "$label" == checktime-focus-* ]]; then
@@ -483,6 +488,17 @@ startup() {
     "+luafile $REPO_ROOT/tests/nvim/lazydev-luals-completion.lua" \
     "+qa!"
 
+  printf '\n[behavior] Installing isolated JavaScript test fixture dependencies.\n'
+  for fixture in jest mocha; do
+    npm install --prefix "$REPO_ROOT/tests/fixtures/neotest-js/$fixture" \
+      --no-package-lock --no-save --no-audit --no-fund
+  done
+
+  printf '\n[behavior] Running real Jest and Mocha suites through Neotest.\n'
+  run_nvim "neotest-javascript-e2e" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/neotest-javascript-e2e.lua" \
+    "+qa!"
+
   printf '\n[behavior] Verifying Neotest and its adapters load only after a test action.\n'
   run_nvim "neotest-lazy-loading" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/neotest-lazy-loading.lua" \
@@ -531,6 +547,16 @@ startup() {
 
   run_nvim "dap-neotest-trigger" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-neotest-trigger.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Testing a real Node.js debug session with js-debug-adapter.\n'
+  run_nvim "dap-js-debugger-e2e" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-js-debugger-e2e.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Debugging a real Jest test through the <leader>td mapping and DAP integrated terminal.\n'
+  run_nvim "dap-neotest-javascript-e2e" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-neotest-javascript-e2e.lua" \
     "+qa!"
 
   printf '\n[behavior] Comparing syntax and manual folding around JavaScript O.\n'
