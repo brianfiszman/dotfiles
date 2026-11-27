@@ -2,25 +2,23 @@
 
 _Last updated: 2026-11-27 (America/Argentina/Buenos_Aires)_
 
-Canonical checkpoint on `master`; keep <=40 lines. Resolve live refs on recovery.
+Canonical checkpoint on master; resolve live PR refs again on recovery.
 
 ## Current focus
 
-- **Source master checkpoint:** `d60ee4aa82cdda18d0bde7d41951506558d03e7e`.
-- **Active implementation:** none. Brian asked to resume PR #124; it is complete and merged. Do not reopen it.
-- **Issue [#91](https://github.com/brianfiszman/dotfiles/issues/91):** remains open for controlled end-to-end timing analysis and any separately scoped behavior-suite parallelization after mutable-state isolation is proven. These broader tasks were not part of merged PR #124; do not claim an end-to-end speedup.
-- **PR [#124](https://github.com/brianfiszman/dotfiles/pull/124):** merged as [`d60ee4a`](https://github.com/brianfiszman/dotfiles/commit/d60ee4aa82cdda18d0bde7d41951506558d03e7e).
-- **PR [#130](https://github.com/brianfiszman/dotfiles/pull/130):** merged as [`86986ba`](https://github.com/brianfiszman/dotfiles/commit/86986ba893ea53cb49e5b09f3af5d14b516981b2). Its accepted scope is Linux-native xterm/PTY focus; macOS/iTerm2 behavior remains deferred and unvalidated.
+- **Source master checkpoint:** d20cbe2db8c8b0d1691c4926ad1e328544e71a0c.
+- **Active implementation:** Ready PR [#138](https://github.com/brianfiszman/dotfiles/pull/138), issue #136, branch feat/js-testing-debugging-e2e-136. Scope is real Jest/Mocha and Node/Jest DAP; Vitest is out.
+- **Neovim agent guidance:** Ready PR [#139](https://github.com/brianfiszman/dotfiles/pull/139) consolidates native live-RPC diagnosis in the existing maintenance skill. No editor runtime or MCP dependency was added.
 
 ## Verified
 
-- PR #124 exact head `f5732aebd5b268d41bc5ce751b349e1675e27962` passed Neovim integration [#772](https://github.com/brianfiszman/dotfiles/actions/runs/45999208336) and agent preflight/integration gate [#151](https://github.com/brianfiszman/dotfiles/actions/runs/46000159902).
-- Lazy.nvim, Mason, and Tree-sitter exact-key caches were validated across cold and warm runs. Cache hits still run locked restore and serialized configured build hooks; scheduled/manual paths remain cold; fork PRs cannot read/write trusted caches.
-- Warm-cache SIGSEGV root cause: LuaSnip's upstream build overwrote `luasnip-jsregexp.so` in place while loaded. The production hook now uses same-directory temp copy + atomic rename; a real Neovim `package.loadlib()` finalizer regression passes. See [incident fingerprint](docs/incidents/ci-failure-fingerprints.md).
-- Earlier all-hit diagnostic [#767](https://github.com/brianfiszman/dotfiles/actions/runs/45941847788) ended normally under GDB with no SIGSEGV. Final exact-head run #772 passed the full Linux behavior/provider suite.
-- QA PASS and simulated Senior Reviewer APPROVE are recorded in PR #124. GitHub disallows formal self-approval by the connected PR author; this limitation is documented, not represented as an actual GitHub APPROVED state.
+- PR #139 implementation head e59c0804679f42ce5431b090a820fe9d198566a8 passed full Neovim 0.12.6 integration [#46047710979](https://github.com/brianfiszman/dotfiles/actions/runs/46047710979).
+- Later checkpoint-only head 67a672a97e4b4bf0bf69f251a4c9c61a442e017f passed fast checks, preflight/process contracts, and integration gate, but full install was skipped. Squash merge was rejected because the master ruleset requires a successful Fresh install context on the exact PR head; skipped is not success.
+- The ruleset is unchanged. Do not spoof a status or report the prior e59 run as an exact-67a check.
+- PR #138 remains open at 152e9110f46c0d2a403b34356b5d4c05f66f415a. Jest reported one pass/one failure; two Mocha-dispatch attempts are exhausted. Mocha results and both DAP E2E paths remain unverified.
 
 ## Next action
 
-- No implementation is currently authorized. Keep issue #91 open; refine the remaining timing/parallelization scope before starting another work slice.
-- On recovery, consult `AGENTS.md`, this checkpoint, the current monthly log, incident fingerprints, and live GitHub state before acting.
+- Make the Neovim maintenance skill description more explicit for config/plugin, LSP, DAP, test-adapter, startup, and live-RPC tasks, and assert its trigger terms in the agent process-contract test.
+- Commit that skill change last, after this state/worklog/test update, so the exact final PR head requires a full install. Do not change the head again after exact-SHA integration passes.
+- Keep live RPC unclaimed: this GitHub-only session has no local shell or explicit NVIM socket. #138's next useful diagnosis remains read-only local inspection of adapter/tree/INFO state, not another same-symptom CI run.

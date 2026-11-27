@@ -1,6 +1,6 @@
 ---
 name: neovim-maintenance
-description: Maintain and improve this repository's Neovim configuration safely, with evidence-based diagnosis, behavior-preserving tests, incremental changes, and honest validation.
+description: Maintain, configure, and debug this Neovim setup: plugins, LSP, DAP, test adapters, startup, and live-session RPC inspection.
 ---
 
 # Neovim maintenance
@@ -14,27 +14,21 @@ on another machine.
 
 ## How to work with the maintainer
 
-- Communicate directly and explain the user-visible effect of each technical
-  change. Avoid unexplained plugin jargon.
-- Prefer a small number of clearly scoped fixes over a sweeping rewrite.
-- Explain trade-offs when removing, replacing, or delaying a plugin.
-- Be explicit about evidence: a static observation is not a measured performance
-  result, and a headless test is not a replacement for testing the Mac UI.
-- Never request or use a personal access token when the connected GitHub
-  integration is sufficient.
-- The maintainer authorizes changes to setup scripts, test scripts, CI, and
-  documentation when they are needed to make the setup safer or close a
-  validation gap. Do not treat those files as off-limits.
+- Communicate directly; explain user-visible effects and trade-offs without
+  unexplained plugin jargon. Prefer small, clearly scoped fixes over rewrites.
+- A static observation is not a measurement, and a headless test does not replace
+  checking the Mac UI.
+- Never request/use a personal access token when the connected GitHub integration
+  is sufficient.
+- Setup/test scripts, CI, and docs may be changed when needed for safety or
+  validation; do not treat them as off-limits.
 
 ## Version and compatibility policy
 
-Target the latest stable Neovim and current upstream-supported plugin APIs.
-Do not maintain older-version support, legacy branches, or compatibility
-fallbacks solely for backward compatibility; migrate forward instead. CI
-targets latest stable by default, with nightly optional and older versions only
-on explicit request. Exact pins are for reproducibility, not obsolete APIs.
-Temporary shims must be justified by the latest stable contract and have a
-clear removal condition.
+Target latest stable Neovim and current upstream plugin APIs. Do not preserve
+older versions or legacy shims unless Brian or an upstream contract requires
+them. CI targets stable; nightly is optional. Pins ensure reproducibility, not
+obsolete compatibility. Temporary shims need a removal condition.
 
 ## Start by recovering the real state
 
@@ -46,6 +40,7 @@ clear removal condition.
 5. Trace the startup, loading, or keybinding path far enough to understand who
    owns the behavior and when it runs.
 6. Check existing issues and PRs before opening new work.
+7. When diagnosis depends on the live editor, follow [live runtime and RPC inspection](references/live-runtime-rpc.md).
 
 Do not call something a bug because a pattern looks unusual. For example,
 lazy.nvim accepts both individual and valid list-style specs; a grouped spec is
@@ -100,17 +95,13 @@ planned only after checking the implementation or source that disproves it.
 
 ## Safe installation rules
 
-- The installer must never call `sudo`, `apt`, `pacman`, or another system
-  package manager.
-- The default install target is Neovim only. Emacs is opt-in.
-- Existing targets are moved to unique, timestamped backups before replacement.
-- Stage files before swapping; attempt to restore the backup if the final move
-  fails.
-- Exclude `.config/nvim/venv` from installation. A virtualenv is machine-specific.
-- Keep dry-run behavior available and side-effect free.
-- Document optional external providers with reproducible per-user setup commands.
-- Tests must redirect HOME and all relevant XDG directories into a temporary
-  directory. Never test installation against the maintainer's real home.
+- Never call `sudo` or OS package managers; Neovim is the default install target,
+  and Emacs is opt-in.
+- Stage replacements before swapping; back up existing targets with unique
+  timestamps and restore the backup if the final move fails.
+- Exclude `.config/nvim/venv`; keep an available dry-run side-effect-free.
+- Document optional providers with reproducible per-user commands. Tests use
+  temporary HOME/XDG paths, never the maintainer's real home.
 
 ## Behavior-first testing
 

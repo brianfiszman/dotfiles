@@ -77,6 +77,22 @@ test("specialist skills retain the project's diagnostic and verification safegua
   }
 });
 
+test("Neovim maintenance exposes a bounded, read-only live RPC reference", () => {
+  const maintenance = read(".agents/skills/neovim-maintenance/SKILL.md");
+  const rpc = read(".agents/skills/neovim-maintenance/references/live-runtime-rpc.md");
+
+  assert.match(maintenance, /references\/live-runtime-rpc\.md/);
+  assert.match(maintenance, /^description: .*configure.*debug.*plugins.*LSP.*DAP.*test adapters.*live-session RPC inspection\.$/m);
+  assert.ok(
+    maintenance.trimEnd().split("\n").length <= 300,
+    "Neovim maintenance skill must stay within the documented 300-line budget"
+  );
+  assert.match(rpc, /Default to read-only inspection/);
+  assert.match(rpc, /refusing to guess a Neovim instance/);
+  assert.match(rpc, /Never expose an RPC listener on/);
+  assert.match(normalize(rpc), /is not a reliable proof that the user's terminal generated the expected input/);
+});
+
 test("preflight CI rejects omitted learning, vague searches, placeholders, and unsupported failure claims", () => {
   assert.deepEqual(validateAgentPreflight(completePreflight), []);
 
