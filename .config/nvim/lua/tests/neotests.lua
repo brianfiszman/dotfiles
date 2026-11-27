@@ -1,3 +1,35 @@
+-- Resolve Jest configuration with libuv only. The pinned neotest-jest
+-- default calls vim.fn.glob() from an async fast-event context (E5560).
+-- Keep the adapter's nearest-ancestor lookup and TypeScript preference.
+local function find_jest_config(path)
+  local uv = vim.uv
+  local resolved_path = uv.fs_realpath(path) or path
+  local path_stat = uv.fs_stat(resolved_path)
+  local directory = path_stat and path_stat.type == "directory"
+      and resolved_path
+    or vim.fs.dirname(resolved_path)
+
+  while directory do
+    local ts_config = vim.fs.joinpath(directory, "jest.config.ts")
+    local js_config = vim.fs.joinpath(directory, "jest.config.js")
+    local ts_stat = uv.fs_stat(ts_config)
+    local js_stat = uv.fs_stat(js_config)
+
+    if ts_stat and ts_stat.type == "file" then
+      return ts_config
+    end
+    if js_stat and js_stat.type == "file" then
+      return js_config
+    end
+
+    local parent = vim.fs.dirname(directory)
+    if not parent or parent == directory then
+      break
+    end
+    directory = parent
+  end
+end
+
 local M = {
   "nvim-neotest/neotest",
   lazy = true,
@@ -110,7 +142,10 @@ function M.config()
       -- Neotest is used across unrelated projects; do not hard-code this repo's
       -- yarn scripts or a non-existent config file.
       require("neotest-mocha")({}),
-      require("neotest-jest")({}),
+      require("neotest-jest")({
+        -- The upstream default uses vim.fn.glob() in build_spec's fast event.
+        jestConfigFile = find_jest_config,
+      }),
     },
   }
 end

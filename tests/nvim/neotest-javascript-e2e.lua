@@ -152,6 +152,14 @@ local ok, failure = xpcall(function()
       ("%s was not dispatched by the actual file mapping: %s"):format(
         case.adapter, vim.inspect(diagnostics)
       ))
+    if case.adapter == "neotest-jest" then
+      local expected_config = "--config=" .. project .. "/jest.config.js"
+      assert(vim.tbl_contains(diagnostics.run_spec and diagnostics.run_spec.command or {},
+          expected_config),
+        "Jest did not use the project-local config " .. expected_config .. ": "
+          .. vim.inspect(diagnostics.run_spec))
+    end
+
     assert(completed and #captured_notifications == 0
       and counts and counts.total == 2 and counts.running == 0
       and counts.passed == 1 and counts.failed == 1,
