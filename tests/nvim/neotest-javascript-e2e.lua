@@ -40,10 +40,8 @@ for _, case in ipairs(cases) do
   vim.bo.filetype = "javascript"
   print(("STEP: running %s via %s and the real <leader>tf mapping"):format(case.project, case.adapter))
   vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(lhs, true, false, true), "xt", false)
-  local active_adapter_id
   wait_for(case.adapter .. " to report one pass and one failure", 120000, function()
     local counts, adapter_id = adapter_counts(case.adapter)
-    active_adapter_id = adapter_id or active_adapter_id
     return counts and counts.total == 2 and counts.running == 0
       and counts.passed == 1 and counts.failed == 1
   end)
