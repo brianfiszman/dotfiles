@@ -372,11 +372,6 @@ tty_path="$(tr -d '\r\n' < "$TTY_FILE")"
 printf '[linux-focus] Neovim will launch on the same PTY: %s\n' "$tty_path"
 wait_for_file_value "$NVIM_READY" "1" "Neovim TUI registered native focus callbacks and became ready"
 
-if [[ "${DOTFILES_TERMINAL_FOCUS_DIAGNOSTIC_ONLY:-0}" == "1" ]]; then
-  printf 'DIAGNOSTIC ONLY: Neovim reached TUI readiness; native FocusLost/FocusGained callback assertions were intentionally not run.\n' >&2
-  exit 86
-fi
-
 lost_before="$(read_counter "$NVIM_LOST")"
 activate_window "$AWAY_WINDOW"
 wait_for_counter_gt "$NVIM_LOST" "$lost_before" \
