@@ -118,6 +118,14 @@ Important adapter detail: inspect the active configured adapter in
 adapter configuration; patching or wrapping only the original
 `require("neotest-jest")` module may not observe the instance Neotest invokes.
 
+After `neotest.setup()`, the active adapter list can be inspected against the
+current buffer without dispatching a test run. Adapter matchers may read project
+package metadata, but this query does not launch a runner or alter editor state:
+
+```sh
+nvim_rpc 'luaeval("vim.json.encode((function() local file=vim.api.nvim_buf_get_name(0); return vim.tbl_map(function(a) local ok, matched = pcall(a.is_test_file, file); return { name = a.name, matched = ok and matched or false, error = not ok and tostring(matched) or nil } end, require(\"neotest.config\").adapters) end)())")'
+```
+
 Do not treat a stale `get_last_run()` value as proof that a keymap never fired.
 If Neotest cannot discover a test tree, it can report `No tests found` at INFO
 and leave the previous run unchanged. Capturing only warning/error notifications

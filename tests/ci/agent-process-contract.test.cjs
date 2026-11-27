@@ -77,6 +77,14 @@ test("specialist skills retain the project's diagnostic and verification safegua
   }
 });
 
+test("AGENTS routes live Neovim session inspection to the read-only RPC reference", () => {
+  const agents = normalize(read("AGENTS.md"));
+  assert.ok(
+    agents.includes(".agents/skills/neovim-maintenance/references/live-runtime-rpc.md"),
+    "AGENTS.md must route running-session diagnosis to the maintained RPC reference"
+  );
+});
+
 test("Neovim maintenance exposes a bounded, read-only live RPC reference", () => {
   const maintenance = read(".agents/skills/neovim-maintenance/SKILL.md");
   const rpc = read(".agents/skills/neovim-maintenance/references/live-runtime-rpc.md");
@@ -89,6 +97,7 @@ test("Neovim maintenance exposes a bounded, read-only live RPC reference", () =>
   );
   assert.match(rpc, /Default to read-only inspection/);
   assert.match(rpc, /refusing to guess a Neovim instance/);
+  assert.match(rpc, /pcall\(a\.is_test_file, file\)/);
   assert.match(rpc, /Never expose an RPC listener on/);
   assert.match(normalize(rpc), /is not a reliable proof that the user's terminal generated the expected input/);
 });

@@ -6,19 +6,17 @@ Canonical checkpoint on master; resolve live PR refs again on recovery.
 
 ## Current focus
 
-- **Source master checkpoint:** d20cbe2db8c8b0d1691c4926ad1e328544e71a0c.
-- **Active implementation:** Ready PR [#138](https://github.com/brianfiszman/dotfiles/pull/138), issue #136, branch feat/js-testing-debugging-e2e-136. Scope is real Jest/Mocha and Node/Jest DAP; Vitest is out.
-- **Neovim agent guidance:** Ready PR [#139](https://github.com/brianfiszman/dotfiles/pull/139) consolidates native live-RPC diagnosis in the existing maintenance skill. No editor runtime or MCP dependency was added.
+- **Source master checkpoint:** c0ae28d4dc3c5ca80034af9eee7ffec4cddea05f.
+- **Active implementation:** Draft PR [#138](https://github.com/brianfiszman/dotfiles/pull/138), issue #136, branch feat/js-testing-debugging-e2e-136. Scope is real Jest/Mocha and Node/Jest DAP; Vitest is out.
+- **Neovim agent guidance:** PR [#139](https://github.com/brianfiszman/dotfiles/pull/139) merged as [c0ae28d](https://github.com/brianfiszman/dotfiles/commit/c0ae28d4dc3c5ca80034af9eee7ffec4cddea05f). Native live-RPC guidance is in the existing maintenance skill and adds no runtime/MCP dependency.
 
 ## Verified
 
-- PR #139 implementation head e59c0804679f42ce5431b090a820fe9d198566a8 passed full Neovim 0.12.6 integration [#46047710979](https://github.com/brianfiszman/dotfiles/actions/runs/46047710979).
-- Later checkpoint-only head 67a672a97e4b4bf0bf69f251a4c9c61a442e017f passed fast checks, preflight/process contracts, and integration gate, but full install was skipped. Squash merge was rejected because the master ruleset requires a successful Fresh install context on the exact PR head; skipped is not success.
-- The ruleset is unchanged. Do not spoof a status or report the prior e59 run as an exact-67a check.
-- PR #138 remains open at 152e9110f46c0d2a403b34356b5d4c05f66f415a. Jest reported one pass/one failure; two Mocha-dispatch attempts are exhausted. Mocha results and both DAP E2E paths remain unverified.
+- PR #139 final head 04ec49f102afad9e2605032696a53e1adb305419 passed all five master ruleset contexts. Full Neovim 0.12.6 integration [#46048808416](https://github.com/brianfiszman/dotfiles/actions/runs/46048808416) passed locked restore/builds, native Linux xterm/PTY focus, normal startup, and isolated Python-provider provisioning/fresh-start; preflight and exact-head gate passed in [#46048808391](https://github.com/brianfiszman/dotfiles/actions/runs/46048808391).
+- PR #138 remains open/Draft at head 152e9110f46c0d2a403b34356b5d4c05f66f415a. Jest reported one pass and one failure; two Mocha-dispatch attempts are exhausted. Mocha result reporting and standalone Node/Jest DAP E2E remain unverified.
+- This GitHub-only session did not access a local Neovim shell/socket; no live RPC execution is claimed.
 
 ## Next action
 
-- Make the Neovim maintenance skill description more explicit for config/plugin, LSP, DAP, test-adapter, startup, and live-RPC tasks, and assert its trigger terms in the agent process-contract test.
-- Commit that skill change last, after this state/worklog/test update, so the exact final PR head requires a full install. Do not change the head again after exact-SHA integration passes.
-- Keep live RPC unclaimed: this GitHub-only session has no local shell or explicit NVIM socket. #138's next useful diagnosis remains read-only local inspection of adapter/tree/INFO state, not another same-symptom CI run.
+- For #138, inspect the intended live Neovim instance read-only when an explicit Unix socket or session-aware tool is available: verify PID/buffer/mode/cwd/mapping, active configured Mocha adapter, discovered positions, and INFO notifications. Do not repeat the exhausted CI symptom.
+- On recovery, read this checkpoint, the November worklog, live GitHub state, and the Neovim maintenance skill's live-runtime/RPC reference before acting.
