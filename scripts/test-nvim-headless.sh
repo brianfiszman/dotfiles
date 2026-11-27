@@ -116,6 +116,11 @@ run_nvim() {
     # pager's -- More -- prompt while the synthetic input test is running.
     nvim_args=(--cmd "set nomore")
     use_pty=1
+  elif [[ "$label" == "dap-neotest-javascript-e2e" ]]; then
+    # The Vitest adapter requests DAP's integratedTerminal strategy. Give
+    # Neovim a real PTY/TUI so runInTerminal is exercised at the user boundary.
+    nvim_args=(--cmd "set nomore")
+    use_pty=1
   elif [[ "$label" == checktime-focus-* ]]; then
     # Drive focus reports through Neovim's TUI parser using a real PTY master.
     nvim_args=()
@@ -547,6 +552,11 @@ startup() {
   printf '\n[behavior] Testing a real Node.js debug session with js-debug-adapter.\n'
   run_nvim "dap-js-debugger-e2e" "$NVIM_STARTUP_TIMEOUT" \
     "+luafile $REPO_ROOT/tests/nvim/dap-js-debugger-e2e.lua" \
+    "+qa!"
+
+  printf '\n[behavior] Debugging a real Vitest test through the <leader>td mapping and DAP integrated terminal.\n'
+  run_nvim "dap-neotest-javascript-e2e" "$NVIM_STARTUP_TIMEOUT" \
+    "+luafile $REPO_ROOT/tests/nvim/dap-neotest-javascript-e2e.lua" \
     "+qa!"
 
   printf '\n[behavior] Comparing syntax and manual folding around JavaScript O.\n'

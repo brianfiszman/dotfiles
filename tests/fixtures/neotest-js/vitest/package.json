@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "vitest": "3.2.4"
+    "vitest": "5.1.2"
   }
 }
