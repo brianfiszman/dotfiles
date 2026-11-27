@@ -36,6 +36,15 @@ dap.set_breakpoint()
 -- Load Neotest through Lazy, then exercise its actual Debug Test mapping.
 require("lazy").load({ plugins = { "neotest" } })
 local neotest = require("neotest")
+
+-- Neotest adapter IDs are project-scoped (name + root path).
+local function vitest_counts()
+  for _, adapter_id in ipairs(neotest.state.adapter_ids()) do
+    if vim.startswith(adapter_id, "neotest-vitest:") then
+      return neotest.state.status_counts(adapter_id), adapter_id
+    end
+  end
+end
 if vim.v.vim_did_enter == 0 then
   vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
 end
@@ -81,7 +90,7 @@ local ok, failure = xpcall(function()
 
   dap.continue()
   wait_for("Neotest to receive the completed Vitest result", 60000, function()
-    local counts = neotest.state.status_counts("neotest-vitest")
+    local counts = vitest_counts()
     return terminated and counts and counts.total == 1 and counts.running == 0
       and counts.passed == 1 and counts.failed == 0
   end)
