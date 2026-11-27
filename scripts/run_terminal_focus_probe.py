@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Observe native terminal focus reports on its real foreground TTY.
 
-Runs inside the terminal .command session, requests DECSET 1004, records
+Runs inside a terminal session, requests DECSET 1004, records
 only incoming CSI I / CSI O bytes, and restores terminal state before Neovim
 is exec'd in the same TTY. It never writes a focus-event sequence.
 """
