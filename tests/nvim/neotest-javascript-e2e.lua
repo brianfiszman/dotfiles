@@ -14,6 +14,18 @@ local cases = {
 if vim.v.vim_did_enter == 0 then
   vim.api.nvim_exec_autocmds("VimEnter", { modeline = false })
 end
+local neotest = require("neotest")
+
+-- Neotest scopes adapter state by both adapter name and project root:
+-- "neotest-jest:/path/to/project", not just "neotest-jest".
+local function adapter_counts(adapter_name)
+  for _, adapter_id in ipairs(neotest.state.adapter_ids()) do
+    if vim.startswith(adapter_id, adapter_name .. ":") then
+      return neotest.state.status_counts(adapter_id), adapter_id
+    end
+  end
+end
+
 local lhs = (vim.g.mapleader or "\\") .. "tf"
 wait_for("Neotest file-test mapping registration", 30000, function()
   return vim.fn.maparg(lhs, "n") ~= ""
@@ -28,12 +40,16 @@ for _, case in ipairs(cases) do
   vim.bo.filetype = "javascript"
   print(("STEP: running %s via %s and the real <leader>tf mapping"):format(case.project, case.adapter))
   vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(lhs, true, false, true), "xt", false)
+  local active_adapter_id
   wait_for(case.adapter .. " to report one pass and one failure", 120000, function()
-    local counts = require("neotest").state.status_counts(case.adapter)
+    local counts, adapter_id = adapter_counts(case.adapter)
+    active_adapter_id = adapter_id or active_adapter_id
     return counts and counts.total == 2 and counts.running == 0
       and counts.passed == 1 and counts.failed == 1
   end)
-  local counts = require("neotest").state.status_counts(case.adapter)
+  local counts = adapter_counts(case.adapter)
+  assert(counts, ("Neotest did not register project-scoped adapter %s; active adapters: %s")
+    :format(case.adapter, vim.inspect(neotest.state.adapter_ids())))
   assert(counts.total == 2 and counts.passed == 1 and counts.failed == 1,
     ("%s returned unexpected results: %s"):format(case.adapter, vim.inspect(counts)))
   print(("PASS: %s ran 2 real tests (passed=%d, failed=%d)"):format(
