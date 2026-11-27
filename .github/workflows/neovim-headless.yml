@@ -321,10 +321,8 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          if ! command -v gdb >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install --yes --no-install-recommends gdb libc6-dbg
-          fi
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends gdb libc6-dbg
 
       - name: Restore locked plugins and run configured build hooks
         shell: bash
