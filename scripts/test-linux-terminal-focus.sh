@@ -158,7 +158,7 @@ printf '[linux-focus] Xvfb display=%s; Openbox is ready.\n' "$DISPLAY"
 cat > "$TEST_ROOT/target-session.sh" <<'TARGET'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-printf '[launcher] target shell pid=%s tty=%s\n' "$" "$(tty)" >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
+printf '[launcher] target shell pid=%s tty=%s\n' "$BASHPID" "$(tty)" >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
 printf '%s\n' "$(tty)" > "$DOTFILES_TERMINAL_FOCUS_TTY_FILE"
 : > "$DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG"
 printf '[launcher] Neovim stderr capture started\n' >> "$DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG"
