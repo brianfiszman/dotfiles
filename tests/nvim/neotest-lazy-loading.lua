@@ -12,7 +12,6 @@ local lazy_modules = {
   "neotest",
   "neotest-vim-test",
   "neotest-python",
-  "neotest-vitest",
   "neotest-plenary",
   "neotest-zig",
   "neotest-go",
@@ -62,7 +61,6 @@ end)
 for _, module in ipairs({
   "neotest-vim-test",
   "neotest-python",
-  "neotest-vitest",
   "neotest-plenary",
   "neotest-zig",
   "neotest-go",
