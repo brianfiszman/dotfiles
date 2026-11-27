@@ -162,7 +162,9 @@ test("plugin restore runs configured build hooks on cold and cached paths, seria
   }
 });
 test("Tree-sitter provisioning installs only missing parsers and updates only after a plugin revision change", () => {
-  assert.match(treesitter, /ensure_installed = \{ \{ "tree-sitter-cli", version = "v0\.27\.2" \} \}/);
+  assert.match(treesitter, /ensure_installed = \{[\s\S]*\{ "tree-sitter-cli", version = "v0\.27\.2" \}[\s\S]*\}/);
+  assert.match(treesitter, /"prettier"/, "Prettier must be ensured by the normal Mason startup list");
+  assert.match(treesitter, /"js-debug-adapter"/, "the JavaScript DAP adapter must be ensured by the normal Mason startup list");
   assert.match(treesitter, /mason_registry_version = vim\.env\.DOTFILES_MASON_REGISTRY_VERSION/);
   assert.match(treesitter, /registries = \{ mason_registry \}/);
   assert.match(treesitter, /local function provision_missing_parsers\(\)/);
