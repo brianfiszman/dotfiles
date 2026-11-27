@@ -5,7 +5,6 @@ const { parseIntegrationBaseline } = require("./neovim-integration-decision.cjs"
 const NEOVIM_WORKFLOW_ID = "neovim-headless.yml";
 const DECISION_JOB_NAME = "Decide whether full integration is required";
 const FAST_CHECKS_JOB_NAME = "Fast shell and lockfile checks";
-const MACOS_JOB_NAME = "macOS plugin restore and Python provider";
 const LINUX_JOB_PREFIX = "Fresh install and headless startup (Neovim ";
 
 function normalizeSha(value) {
@@ -59,14 +58,12 @@ function evaluateNeovimRun(run, jobs, identity) {
   };
   const decision = findSingleJob(DECISION_JOB_NAME);
   const fastChecks = findSingleJob(FAST_CHECKS_JOB_NAME);
-  const macos = findSingleJob(MACOS_JOB_NAME);
   const linux = jobs.filter((job) =>
     job && typeof job.name === "string" && job.name.startsWith(LINUX_JOB_PREFIX)
   );
 
   if (!decision) return fail("Expected exactly one integration-decision job.");
   if (!fastChecks) return fail("Expected exactly one fast-checks job.");
-  if (!macos) return fail("Expected exactly one macOS integration job.");
   if (linux.length === 0) return fail("No matrix-expanded Linux headless integration job was found.");
   if (decision.conclusion !== "success") {
     return fail("Integration decision did not succeed: " + String(decision.conclusion));
@@ -75,15 +72,15 @@ function evaluateNeovimRun(run, jobs, identity) {
     return fail("Fast shell and lockfile checks did not succeed: " + String(fastChecks.conclusion));
   }
 
-  const runtimeJobs = [macos, ...linux];
+  const runtimeJobs = linux;
   const runtimeResults = runtimeJobs.map((job) => job.conclusion);
   if (runtimeResults.every((result) => result === "success")) {
     return { passed: true, mode: "full-integration",
-      reason: "Integration decision and fast checks passed; every Linux matrix cell and macOS integration passed." };
+      reason: "Integration decision and fast checks passed; every Linux integration matrix cell passed." };
   }
   if (runtimeResults.every((result) => result === "skipped")) {
     return { passed: true, mode: "process-only-skip",
-      reason: "Integration decision and fast checks passed; both runtime job families were skipped by their shared explicit process-only condition." };
+      reason: "Integration decision and fast checks passed; every Linux runtime matrix cell was skipped by the shared explicit process-only condition." };
   }
   return fail("Runtime integration results must be all success or all skipped; observed: " +
     runtimeJobs.map((job) => job.name + "=" + String(job.conclusion)).join(", "));

@@ -164,6 +164,7 @@ jobs:
             x11-utils
             xauth
             xterm
+            xfonts-base
             xvfb
             libreadline-dev
             liblua5.1-0-dev
