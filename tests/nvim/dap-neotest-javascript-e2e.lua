@@ -38,10 +38,10 @@ require("lazy").load({ plugins = { "neotest" } })
 local neotest = require("neotest")
 
 -- Neotest adapter IDs are project-scoped (name + root path).
-local function vitest_counts()
+local function find_vitest_adapter_id()
   for _, adapter_id in ipairs(neotest.state.adapter_ids()) do
     if vim.startswith(adapter_id, "neotest-vitest:") then
-      return neotest.state.status_counts(adapter_id), adapter_id
+      return adapter_id
     end
   end
 end
@@ -89,8 +89,13 @@ local ok, failure = xpcall(function()
   print("PASS: <leader>td reached a real Vitest source breakpoint and evaluated local state")
 
   dap.continue()
+  local vitest_adapter_id
+  wait_for("Neotest to register the project-scoped Vitest adapter", 30000, function()
+    vitest_adapter_id = find_vitest_adapter_id()
+    return vitest_adapter_id ~= nil
+  end)
   wait_for("Neotest to receive the completed Vitest result", 60000, function()
-    local counts = vitest_counts()
+    local counts = neotest.state.status_counts(vitest_adapter_id)
     return terminated and counts and counts.total == 1 and counts.running == 0
       and counts.passed == 1 and counts.failed == 0
   end)
