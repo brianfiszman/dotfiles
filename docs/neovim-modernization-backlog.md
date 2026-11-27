@@ -42,12 +42,16 @@ _No open issues at this priority._
 
 ## Open — P2: CI performance and reliability
 
-- [#91](https://github.com/brianfiszman/dotfiles/issues/91) — first feedback
-  optimization slice merged in [PR #92](https://github.com/brianfiszman/dotfiles/pull/92)
-  as [`7857e87`](https://github.com/brianfiszman/dotfiles/commit/7857e8774471d4a756190e73d563ea4f537782d5).
-  Remaining work is broad plugin/Mason caching and behavior-suite
-  parallelization (both deferred pending safety evidence), plus the
-  Python-provider path-classifier regression documented in the issue.
+- [#91](https://github.com/brianfiszman/dotfiles/issues/91) — first fast-check
+  split merged in [PR #92](https://github.com/brianfiszman/dotfiles/pull/92);
+  exact-key lazy.nvim, Mason, and Tree-sitter caches plus safe warm build hooks
+  merged in [PR #124](https://github.com/brianfiszman/dotfiles/pull/124) as
+  [`d60ee4a`](https://github.com/brianfiszman/dotfiles/commit/d60ee4aa82cdda18d0bde7d41951506558d03e7e).
+  The LuaSnip warm-cache shutdown crash is fixed with atomic native-library
+  replacement and a real finalizer regression. The Python-provider
+  path-classifier regression is already implemented in PR #114. Remaining work
+  is controlled end-to-end timing analysis and any separately scoped
+  behavior-suite parallelization after mutable-state isolation is proven.
 
 ## Open — research and documentation
 
