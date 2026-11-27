@@ -11,8 +11,10 @@ on:
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
-      - "scripts/test-macos-terminal-focus.sh"
-      - "scripts/test-python-provider-macos.sh"
+      - "scripts/test-linux-terminal-focus.sh"
+      - "scripts/run_terminal_focus_probe.py"
+      - "tests/ci/test_terminal_focus_probe.py"
+      - "scripts/test-python-provider.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
       - "scripts/ci/**"
@@ -82,8 +84,10 @@ jobs:
           set -Eeuo pipefail
           bash -n install.sh
           bash -n scripts/test-nvim-headless.sh
-          bash -n scripts/test-python-provider-macos.sh
-          bash -n scripts/test-macos-terminal-focus.sh
+          bash -n scripts/test-python-provider.sh
+          bash -n scripts/test-linux-terminal-focus.sh
+          python3 -m py_compile scripts/run_terminal_focus_probe.py
+          python3 tests/ci/test_terminal_focus_probe.py
 
       - name: Validate lazy.nvim lockfile JSON
         run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
@@ -94,80 +98,6 @@ jobs:
       - name: Test real lazy.nvim bootstrap failure and recovery paths
         run: node --test tests/ci/neovim-bootstrap.test.cjs
 
-
-  python-provider-macos:
-    name: macOS plugin restore and Python provider
-    needs: integration-decision
-    if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
-    runs-on: macos-15
-    timeout-minutes: 60
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Set up Python for the provider test
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-
-      - name: Install pinned Neovim
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-
-          case "$(uname -m)" in
-            arm64)
-              archive_name="nvim-macos-arm64.tar.gz"
-              archive_sha256="1dbd148222b051ba6c307c4d17a318ed083df018a4f6a5a0ce46955ffc9ab87b"
-              install_dir="nvim-macos-arm64"
-              ;;
-            x86_64)
-              archive_name="nvim-macos-x86_64.tar.gz"
-              archive_sha256="481424f1dbc85f637d57e47d27d042aa9c883e5a4fe9ee64fc4ee9573b221998"
-              install_dir="nvim-macos-x86_64"
-              ;;
-            *)
-              printf 'Unsupported macOS runner architecture: %s\n' "$(uname -m)" >&2
-              exit 1
-              ;;
-          esac
-
-          archive="$RUNNER_TEMP/$archive_name"
-          curl --fail --location --retry 3 \
-            "https://github.com/neovim/neovim/releases/download/v0.12.6/$archive_name" \
-            --output "$archive"
-          printf '%s  %s\n' "$archive_sha256" "$archive" | shasum --algorithm 256 --check
-          xattr -c "$archive"
-          tar -xzf "$archive" -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/$install_dir/bin" >> "$GITHUB_PATH"
-
-      - name: Verify the macOS runtime
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          nvim --version | sed -n '1,3p'
-          python3 --version
-          command -v git
-
-      - name: Prepare isolated Neovim install for macOS plugin restore
-        env:
-          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
-        run: bash ./scripts/test-nvim-headless.sh prepare
-
-      - name: Restore locked plugins and verify Avante prebuilt libraries on macOS
-        env:
-          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
-          NVIM_RESTORE_TIMEOUT: 25m
-        run: bash ./scripts/test-nvim-headless.sh restore
-
-      - name: Verify Terminal.app window activation reports native Neovim focus events
-        env:
-          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
-          NVIM_BIN: nvim
-        run: bash ./scripts/test-macos-terminal-focus.sh
-
-      - name: Run isolated real provider provisioning and fresh-start checks
-        run: bash ./scripts/test-python-provider-macos.sh
 
   headless-startup:
     name: Fresh install and headless startup (Neovim ${{ matrix.neovim-version }})
@@ -228,6 +158,13 @@ jobs:
 
           required_packages=(
             fd-find
+            openbox
+            procps
+            wmctrl
+            x11-utils
+            xauth
+            xterm
+            xvfb
             libreadline-dev
             liblua5.1-0-dev
             lua5.1
@@ -297,10 +234,19 @@ jobs:
         env:
           NVIM_RESTORE_TIMEOUT: 20m
 
+      - name: Verify native Linux xterm focus reaches Neovim through a real PTY
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-smoke
+          NVIM_BIN: nvim
+        run: bash ./scripts/test-linux-terminal-focus.sh
+
       - name: Start Neovim normally after plugin restore
         run: bash ./scripts/test-nvim-headless.sh startup
         env:
           NVIM_STARTUP_TIMEOUT: 30m
+
+      - name: Run isolated real Python provider provisioning and fresh-start checks
+        run: bash ./scripts/test-python-provider.sh
 
       - name: Upload headless logs
         if: always()

@@ -4,11 +4,6 @@ set -Eeuo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NVIM_BIN="${NVIM_BIN:-nvim}"
 
-if [[ "$(uname -s)" != "Darwin" ]]; then
-  printf 'Error: this provider integration script must run on macOS.\n' >&2
-  exit 2
-fi
-
 for required_command in "$NVIM_BIN" python3 git tar grep tee; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'Error: required command not found: %s\n' "$required_command" >&2
@@ -23,7 +18,7 @@ if sys.version_info < (3, 9):
 print("Provider test Python:", sys.version.split()[0])
 PY
 
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-python-provider-macos.XXXXXX")"
+WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-python-provider.XXXXXX")"
 cleanup() {
   rm -rf -- "$WORK_DIR"
 }
@@ -36,10 +31,10 @@ export XDG_STATE_HOME="$WORK_DIR/state"
 export XDG_CACHE_HOME="$WORK_DIR/cache"
 mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 
-printf '[macOS provider] Neovim: '
+printf '[Python provider] Neovim: '
 "$NVIM_BIN" --version | sed -n '1p'
 
-printf '[macOS provider] Installing dotfiles into isolated XDG paths.\n'
+printf '[Python provider] Installing dotfiles into isolated XDG paths.\n'
 bash "$REPO_ROOT/install.sh" --nvim
 NVIM_CONFIG="$XDG_CONFIG_HOME/nvim"
 [[ -f "$NVIM_CONFIG/lua/core/python-provider.lua" ]] || {
@@ -58,7 +53,7 @@ run_provider_test() {
   local log_file="$WORK_DIR/$label.log"
   local status=0
 
-  printf '\n[macOS provider] Running %s.\n' "$label"
+  printf '\n[Python provider] Running %s.\n' "$label"
   DOTFILES_NVIM_CONFIG="$NVIM_CONFIG" \
     DOTFILES_NVIM_TEST_SCRIPT="$test_file" \
     "$NVIM_BIN" --headless -u "$REPO_ROOT/tests/nvim/python-provider-test-init.lua" \
@@ -86,4 +81,4 @@ run_provider_test \
   "$REPO_ROOT/tests/nvim/python-provider-host.lua" \
   "PASS: fresh-launch Python provider and :checkhealth vim.provider integration"
 
-printf '\nPASS: isolated Neovim Python provider integration on macOS.\n'
+printf '\nPASS: isolated Neovim Python provider integration.\n'
