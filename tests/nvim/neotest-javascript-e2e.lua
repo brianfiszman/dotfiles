@@ -133,6 +133,7 @@ local ok, failure = xpcall(function()
         end
         local counts = neotest.state.status_counts(adapter_id)
         return counts and counts.total == 2 and counts.running == 0
+          and counts.passed + counts.failed + counts.skipped == counts.total
       end, 100)
     end
 
