@@ -235,10 +235,11 @@ jobs:
         env:
           NVIM_RESTORE_TIMEOUT: 20m
 
-      - name: Verify native Linux xterm focus reaches Neovim through a real PTY
+      - name: Verify native Linux xterm focus reaches Neovim through a real PTY (diagnostic-only launch probe)
         env:
           NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-smoke
           NVIM_BIN: nvim
+          DOTFILES_TERMINAL_FOCUS_DIAGNOSTIC_ONLY: "1"
         run: bash ./scripts/test-linux-terminal-focus.sh
 
       - name: Start Neovim normally after plugin restore

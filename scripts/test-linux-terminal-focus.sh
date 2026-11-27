@@ -47,8 +47,11 @@ NVIM_LOST="$TEST_ROOT/neovim-focus-lost.count"
 NVIM_GAINED="$TEST_ROOT/neovim-focus-gained.count"
 VERBOSE_LOG="$TEST_ROOT/neovim-verbose.log"
 STARTUP_LOG="$TEST_ROOT/neovim-startuptime.log"
+NVIM_STDERR_LOG="$TEST_ROOT/neovim-stderr.log"
+NVIM_EXIT_LOG="$TEST_ROOT/neovim-exit.log"
 WM_LOG="$TEST_ROOT/openbox.log"
 XTERM_TARGET_LOG="$TEST_ROOT/xterm-target.log"
+XTERM_TARGET_SESSION_LOG="$TEST_ROOT/xterm-target-session.log"
 XTERM_AWAY_LOG="$TEST_ROOT/xterm-away.log"
 
 TARGET_TITLE="dotfiles-focus-target-$$"
@@ -61,7 +64,7 @@ AWAY_WINDOW=""
 
 print_diagnostics() {
   printf '\n[linux-focus] Diagnostics from %s\n' "$TEST_ROOT" >&2
-  for log in "$LAUNCHER_LOG" "$RAW_LOG" "$STARTUP_LOG" "$WM_LOG" "$XTERM_TARGET_LOG" "$XTERM_AWAY_LOG"; do
+  for log in "$LAUNCHER_LOG" "$RAW_LOG" "$NVIM_STDERR_LOG" "$NVIM_EXIT_LOG" "$STARTUP_LOG" "$VERBOSE_LOG" "$XTERM_TARGET_SESSION_LOG" "$WM_LOG" "$XTERM_TARGET_LOG" "$XTERM_AWAY_LOG"; do
     if [[ -s "$log" ]]; then
       printf '\n--- %s ---\n' "${log##*/}" >&2
       tail -n 100 "$log" >&2 || true
@@ -73,11 +76,18 @@ print_diagnostics() {
   fi
 }
 
+terminate_process_tree() {
+  local parent="$1"
+  local child
+  while IFS= read -r child; do
+    [[ "$child" =~ ^[0-9]+$ ]] || continue
+    terminate_process_tree "$child"
+  done < <(pgrep -P "$parent" || true)
+  kill "$parent" 2>/dev/null || true
+}
+
 cleanup() {
   local status=$?
-  if ((status != 0)); then
-    print_diagnostics
-  fi
   : > "$RAW_RELEASE" 2>/dev/null || true
   for window in "$TARGET_WINDOW" "$AWAY_WINDOW"; do
     if [[ -n "$window" ]]; then
@@ -86,25 +96,27 @@ cleanup() {
   done
   for pid in "$TARGET_PID" "$AWAY_PID" "$WM_PID"; do
     if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
-      local child
-      while read -r child; do
-        [[ "$child" =~ ^[0-9]+$ ]] && kill "$child" 2>/dev/null || true
-      done < <(pgrep -P "$pid" || true)
-      kill "$pid" 2>/dev/null || true
+      terminate_process_tree "$pid"
       wait "$pid" 2>/dev/null || true
     fi
   done
+  if ((status != 0)); then
+    print_diagnostics
+  fi
   for pair in \
     "$LAUNCHER_LOG:linux-terminal-focus-launcher.log" \
     "$RAW_LOG:linux-terminal-focus-raw.log" \
+    "$NVIM_STDERR_LOG:linux-terminal-focus-neovim-stderr.log" \
+    "$NVIM_EXIT_LOG:linux-terminal-focus-neovim-exit.log" \
     "$STARTUP_LOG:linux-terminal-focus-startuptime.log" \
     "$VERBOSE_LOG:linux-terminal-focus-verbose.log" \
+    "$XTERM_TARGET_SESSION_LOG:linux-terminal-focus-target-session.log" \
     "$WM_LOG:linux-terminal-focus-openbox.log" \
     "$XTERM_TARGET_LOG:linux-terminal-focus-target-xterm.log" \
     "$XTERM_AWAY_LOG:linux-terminal-focus-away-xterm.log"; do
     source="${pair%%:*}"
     destination="${pair#*:}"
-    [[ ! -s "$source" ]] || cp "$source" "$NVIM_TEST_DIR/$destination"
+    [[ ! -e "$source" ]] || cp "$source" "$NVIM_TEST_DIR/$destination"
   done
   if ((status == 0)); then
     rm -rf "$TEST_ROOT"
@@ -146,8 +158,11 @@ printf '[linux-focus] Xvfb display=%s; Openbox is ready.\n' "$DISPLAY"
 cat > "$TEST_ROOT/target-session.sh" <<'TARGET'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-printf '[launcher] target shell pid=%s tty=%s\n' "$$" "$(tty)" >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
+printf '[launcher] target shell pid=%s tty=%s\n' "$" "$(tty)" >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
 printf '%s\n' "$(tty)" > "$DOTFILES_TERMINAL_FOCUS_TTY_FILE"
+: > "$DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG"
+printf '[launcher] Neovim stderr capture started\n' >> "$DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG"
+: > "$DOTFILES_TERMINAL_FOCUS_NVIM_EXIT_LOG"
 if python3 "$DOTFILES_TERMINAL_FOCUS_PROBE" \
   "$DOTFILES_TERMINAL_FOCUS_RAW_READY" \
   "$DOTFILES_TERMINAL_FOCUS_RAW_RELEASE" \
@@ -163,12 +178,12 @@ if [[ "$(cat "$DOTFILES_TERMINAL_FOCUS_RAW_DONE")" != "ok" ]]; then
   printf '[launcher] raw focus probe did not restore the TTY cleanly (exit=%s).\n' "$probe_status" >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
   exit 1
 fi
-printf '[launcher] raw probe restored termios; execing Neovim on the same TTY.\n' >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
-exec "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" \
-  --cmd 'set nomore shortmess+=I' \
-  --startuptime "$DOTFILES_TERMINAL_FOCUS_STARTUP_LOG" \
-  "-V12$DOTFILES_TERMINAL_FOCUS_VERBOSE_LOG" \
-  -u "$DOTFILES_TERMINAL_FOCUS_INIT" \
+
+nvim_args=(
+  --cmd 'set nomore shortmess+=I'
+  --startuptime "$DOTFILES_TERMINAL_FOCUS_STARTUP_LOG"
+  "-V12$DOTFILES_TERMINAL_FOCUS_VERBOSE_LOG"
+  -u "$DOTFILES_TERMINAL_FOCUS_INIT"
   -c 'lua
     local lost = vim.env.DOTFILES_TERMINAL_FOCUS_NVIM_LOST
     local gained = vim.env.DOTFILES_TERMINAL_FOCUS_NVIM_GAINED
@@ -183,6 +198,34 @@ exec "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" \
     vim.api.nvim_create_autocmd("FocusGained", { callback = function() increment(gained); print("NATIVE FocusGained") end })
     assert(vim.fn.writefile({ "1" }, ready) == 0, "could not publish Neovim readiness")
     print("UI ready on Linux xterm PTY")'
+)
+
+printf '[launcher] raw probe restored termios; launching Neovim child on the same TTY.\n' >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
+printf '[launcher] executable=%s executable_file=%s\n' \
+  "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" \
+  "$([[ -x "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" ]] && echo yes || echo no)" \
+  >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
+{
+  printf '[launcher] argv:'
+  printf ' %q' "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" "${nvim_args[@]}"
+  printf '\n'
+} >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
+
+if [[ ! -x "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" ]]; then
+  nvim_status=127
+  printf '[launcher] ERROR: Neovim executable is missing or not executable.\n' \
+    >> "$DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG"
+elif "$DOTFILES_TERMINAL_FOCUS_NVIM_BIN" "${nvim_args[@]}" \
+  2>> "$DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG"; then
+  nvim_status=0
+else
+  nvim_status=$?
+fi
+
+printf 'exit_status=%s\n' "$nvim_status" > "$DOTFILES_TERMINAL_FOCUS_NVIM_EXIT_LOG"
+printf '[launcher] Neovim child exited with status=%s.\n' "$nvim_status" \
+  >> "$DOTFILES_TERMINAL_FOCUS_LAUNCHER_LOG"
+exit "$nvim_status"
 TARGET
 chmod +x "$TEST_ROOT/target-session.sh"
 
@@ -198,6 +241,8 @@ export DOTFILES_TERMINAL_FOCUS_RAW_LOST="$RAW_LOST"
 export DOTFILES_TERMINAL_FOCUS_RAW_GAINED="$RAW_GAINED"
 export DOTFILES_TERMINAL_FOCUS_RAW_LOG="$RAW_LOG"
 export DOTFILES_TERMINAL_FOCUS_NVIM_BIN="$(command -v "$NVIM_BIN")"
+export DOTFILES_TERMINAL_FOCUS_NVIM_STDERR_LOG="$NVIM_STDERR_LOG"
+export DOTFILES_TERMINAL_FOCUS_NVIM_EXIT_LOG="$NVIM_EXIT_LOG"
 export DOTFILES_TERMINAL_FOCUS_INIT="$NVIM_CONFIG"
 export DOTFILES_TERMINAL_FOCUS_NVIM_READY="$NVIM_READY"
 export DOTFILES_TERMINAL_FOCUS_NVIM_LOST="$NVIM_LOST"
@@ -207,6 +252,7 @@ export DOTFILES_TERMINAL_FOCUS_VERBOSE_LOG="$VERBOSE_LOG"
 
 printf '[linux-focus] Starting target xterm window and raw TTY observer.\n'
 xterm -T "$TARGET_TITLE" -geometry 100x30+20+20 \
+  -l -lf "$XTERM_TARGET_SESSION_LOG" \
   -e /bin/bash "$TEST_ROOT/target-session.sh" >"$XTERM_TARGET_LOG" 2>&1 &
 TARGET_PID=$!
 
@@ -318,8 +364,13 @@ tty_path="$(tr -d '\r\n' < "$TTY_FILE")"
   printf 'Expected a real Linux PTY under /dev/pts, got %s.\n' "$tty_path" >&2
   exit 1
 }
-printf '[linux-focus] Neovim will exec on the same PTY: %s\n' "$tty_path"
+printf '[linux-focus] Neovim will launch on the same PTY: %s\n' "$tty_path"
 wait_for_file_value "$NVIM_READY" "1" "Neovim TUI registered native focus callbacks and became ready"
+
+if [[ "${DOTFILES_TERMINAL_FOCUS_DIAGNOSTIC_ONLY:-0}" == "1" ]]; then
+  printf 'DIAGNOSTIC ONLY: Neovim reached TUI readiness; native FocusLost/FocusGained callback assertions were intentionally not run.\n' >&2
+  exit 86
+fi
 
 lost_before="$(read_counter "$NVIM_LOST")"
 activate_window "$AWAY_WINDOW"
