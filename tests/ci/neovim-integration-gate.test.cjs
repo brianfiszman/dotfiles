@@ -26,11 +26,10 @@ function workflowRun(overrides = {}) {
   };
 }
 
-function jobs({ decision = "success", fast = "success", macos = "success", linux = ["success"] } = {}) {
+function jobs({ decision = "success", fast = "success", linux = ["success"] } = {}) {
   return [
     { name: "Decide whether full integration is required", conclusion: decision },
     { name: "Fast shell and lockfile checks", conclusion: fast },
-    { name: "macOS plugin restore and Python provider", conclusion: macos },
     ...linux.map((conclusion, index) => ({
       name: "Fresh install and headless startup (Neovim v0.12." + (6 + index) + ")",
       conclusion,
@@ -54,15 +53,15 @@ test("run selection requires the exact PR association, head SHA, and immutable b
   assert.equal(selectLatestMatchingRun([], IDENTITY), null);
 });
 
-test("full integration passes only when decision, fast checks, Linux matrix, and macOS all pass", () => {
+test("full integration passes only when decision, fast checks, and every Linux matrix cell pass", () => {
   const result = evaluateNeovimRun(workflowRun(), jobs({ linux: ["success", "success"] }), IDENTITY);
   assert.equal(result.passed, true);
   assert.equal(result.mode, "full-integration");
 });
 
-test("process-only changes may skip runtime integration only when both runtime job families are skipped", () => {
+test("process-only changes may skip runtime integration only when all Linux matrix cells are skipped", () => {
   const result = evaluateNeovimRun(workflowRun(), jobs({
-    macos: "skipped", linux: ["skipped", "skipped"],
+    linux: ["skipped", "skipped"],
   }), IDENTITY);
   assert.equal(result.passed, true);
   assert.equal(result.mode, "process-only-skip");
@@ -70,11 +69,9 @@ test("process-only changes may skip runtime integration only when both runtime j
 
 test("mixed success and skipped runtime results fail closed", () => {
   for (const runtime of [
-    { macos: "success", linux: ["skipped"] },
-    { macos: "skipped", linux: ["success"] },
-    { macos: "failure", linux: ["success"] },
-    { macos: "success", linux: ["failure"] },
-    { macos: "cancelled", linux: ["success"] },
+    { linux: ["success", "skipped"] },
+    { linux: ["failure", "success"] },
+    { linux: ["cancelled", "success"] },
   ]) {
     const result = evaluateNeovimRun(workflowRun(), jobs(runtime), IDENTITY);
     assert.equal(result.passed, false);
@@ -84,13 +81,13 @@ test("mixed success and skipped runtime results fail closed", () => {
 
 test("decision and fast checks are mandatory even when runtime jobs are skipped", () => {
   const decisionFailure = evaluateNeovimRun(workflowRun(), jobs({
-    decision: "failure", macos: "skipped", linux: ["skipped"],
+    decision: "failure", linux: ["skipped"],
   }), IDENTITY);
   assert.equal(decisionFailure.passed, false);
   assert.match(decisionFailure.reason, /Integration decision did not succeed/);
 
   const fastFailure = evaluateNeovimRun(workflowRun(), jobs({
-    fast: "failure", macos: "skipped", linux: ["skipped"],
+    fast: "failure", linux: ["skipped"],
   }), IDENTITY);
   assert.equal(fastFailure.passed, false);
   assert.match(fastFailure.reason, /Fast shell and lockfile checks did not succeed/);
@@ -99,7 +96,6 @@ test("decision and fast checks are mandatory even when runtime jobs are skipped"
 test("missing or duplicate required jobs fail closed", () => {
   const valid = jobs();
   for (const invalid of [
-    valid.filter((job) => job.name !== "macOS plugin restore and Python provider"),
     valid.filter((job) => !job.name.startsWith("Fresh install and headless startup")),
     valid.concat(valid[0]),
     valid.concat(valid[2]),
@@ -134,7 +130,7 @@ test("runtime jobs are skipped only under the same explicit process-only decisio
   );
   const expectedCondition = "$" +
     "{{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}";
-  for (const jobName of ["python-provider-macos", "headless-startup"]) {
+  for (const jobName of ["headless-startup"]) {
     const start = workflow.indexOf("  " + jobName + ":\n");
     assert.notEqual(start, -1, "missing runtime job: " + jobName);
     const tail = workflow.slice(start + ("  " + jobName + ":\n").length);
@@ -144,6 +140,9 @@ test("runtime jobs are skipped only under the same explicit process-only decisio
     assert.ok(condition, "runtime job has no explicit condition: " + jobName);
     assert.equal(condition[1], expectedCondition, jobName);
   }
+  assert.match(workflow, /Verify native Linux xterm focus reaches Neovim through a real PTY/);
+  assert.match(workflow, /Run isolated real Python provider provisioning and fresh-start checks/);
+  assert.doesNotMatch(workflow, /macos-15|iTerm2|python-provider-macos/);
   assert.doesNotMatch(workflow, /^  integration-gate:/m);
   assert.doesNotMatch(workflow, /name: Neovim integration gate/);
 });

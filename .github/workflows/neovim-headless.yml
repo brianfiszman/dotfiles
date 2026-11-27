@@ -11,8 +11,10 @@ on:
       - ".agents/skills/**"
       - "install.sh"
       - "scripts/test-nvim-headless.sh"
-      - "scripts/test-macos-terminal-focus.sh"
-      - "scripts/test-python-provider-macos.sh"
+      - "scripts/test-linux-terminal-focus.sh"
+      - "scripts/run_terminal_focus_probe.py"
+      - "tests/ci/test_terminal_focus_probe.py"
+      - "scripts/test-python-provider.sh"
       - ".github/workflows/neovim-headless.yml"
       - "README.md"
       - "scripts/ci/**"
@@ -82,8 +84,10 @@ jobs:
           set -Eeuo pipefail
           bash -n install.sh
           bash -n scripts/test-nvim-headless.sh
-          bash -n scripts/test-python-provider-macos.sh
-          bash -n scripts/test-macos-terminal-focus.sh
+          bash -n scripts/test-python-provider.sh
+          bash -n scripts/test-linux-terminal-focus.sh
+          python3 -m py_compile scripts/run_terminal_focus_probe.py
+          python3 tests/ci/test_terminal_focus_probe.py
 
       - name: Validate lazy.nvim lockfile JSON
         run: python3 -m json.tool .config/nvim/lazy-lock.json > /dev/null
@@ -103,109 +107,6 @@ jobs:
       - name: Test real lazy.nvim bootstrap failure and recovery paths
         run: node --test tests/ci/neovim-bootstrap.test.cjs
 
-
-  python-provider-macos:
-    name: macOS plugin restore and Python provider
-    needs: integration-decision
-    if: ${{ !cancelled() && (needs.integration-decision.result != 'success' || needs.integration-decision.outputs.required != 'false') }}
-    runs-on: macos-15
-    timeout-minutes: 60
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Set up Python for the provider test
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-
-      - name: Install pinned Neovim
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-
-          case "$(uname -m)" in
-            arm64)
-              archive_name="nvim-macos-arm64.tar.gz"
-              archive_sha256="1dbd148222b051ba6c307c4d17a318ed083df018a4f6a5a0ce46955ffc9ab87b"
-              install_dir="nvim-macos-arm64"
-              ;;
-            x86_64)
-              archive_name="nvim-macos-x86_64.tar.gz"
-              archive_sha256="481424f1dbc85f637d57e47d27d042aa9c883e5a4fe9ee64fc4ee9573b221998"
-              install_dir="nvim-macos-x86_64"
-              ;;
-            *)
-              printf 'Unsupported macOS runner architecture: %s\n' "$(uname -m)" >&2
-              exit 1
-              ;;
-          esac
-
-          archive="$RUNNER_TEMP/$archive_name"
-          curl --fail --location --retry 3 \
-            "https://github.com/neovim/neovim/releases/download/v0.12.6/$archive_name" \
-            --output "$archive"
-          printf '%s  %s\n' "$archive_sha256" "$archive" | shasum --algorithm 256 --check
-          xattr -c "$archive"
-          tar -xzf "$archive" -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/$install_dir/bin" >> "$GITHUB_PATH"
-
-      - name: Verify the macOS runtime
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          nvim --version | sed -n '1,3p'
-          python3 --version
-          command -v git
-
-      - name: Fingerprint macOS plugin-build toolchain
-        id: toolchain
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          {
-            printf 'runner=%s/%s\n' "$ImageOS" "$ImageVersion"
-            for tool in clang git node npm python3 go rustc cargo cmake make; do
-              if command -v "$tool" >/dev/null 2>&1; then
-                printf '%s=%s\n' "$tool" "$("$tool" --version 2>&1 | sed -n '1p')"
-              else
-                printf '%s=missing\n' "$tool"
-              fi
-            done
-            xcodebuild -version 2>&1 | sed -n '1,2p'
-          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
-          fingerprint="$(shasum -a 256 "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
-          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
-
-      - name: Prepare isolated Neovim install for macOS plugin restore
-        env:
-          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
-        run: bash ./scripts/test-nvim-headless.sh prepare
-
-      - name: Restore locked lazy.nvim plugin checkouts
-        id: lazy-plugin-cache
-        if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: actions/cache@v6
-        with:
-          path: ${{ runner.temp }}/nvim-headless-macos/data/nvim/lazy
-          key: nvim-lazy-${{ runner.os }}-${{ runner.arch }}-nvim-0.12.6-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/**/*.lua', 'scripts/test-nvim-headless.sh', '.github/workflows/neovim-headless.yml') }}
-
-      - name: Restore locked plugins and verify Avante prebuilt libraries on macOS
-        env:
-          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
-          NVIM_RESTORE_TIMEOUT: 25m
-          DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}
-        run: bash ./scripts/test-nvim-headless.sh restore
-
-      - name: Verify Terminal.app window activation reports native Neovim focus events
-        timeout-minutes: 5
-        env:
-          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
-          NVIM_BIN: nvim
-        run: bash ./scripts/test-macos-terminal-focus.sh
-
-      - name: Run isolated real provider provisioning and fresh-start checks
-        run: bash ./scripts/test-python-provider-macos.sh
 
   headless-startup:
     name: Fresh install and headless startup (Neovim ${{ matrix.neovim-version }})
@@ -250,9 +151,7 @@ jobs:
             }
           done
 
-          timeout_version="$(gnutimeout --version 2>&1)"
-          timeout_version="${timeout_version%%$'\n'*}"
-          printf 'Timeout supervisor: %s (%s)\n' "$(command -v gnutimeout)" "$timeout_version"
+          printf 'Timeout supervisor: %s (%s)\n' "$(command -v gnutimeout)" "$(gnutimeout --version 2>&1 | sed -n '1p')"
 
           printf 'Runner image: %s\n' "$ImageOS / $ImageVersion"
           printf 'Node: '; node --version
@@ -263,7 +162,6 @@ jobs:
           printf 'G++: '; g++ --version | sed -n '1p'
           printf 'Python: '; python3 --version
 
-
       - name: Install only missing Neovim build prerequisites
         shell: bash
         run: |
@@ -271,6 +169,15 @@ jobs:
 
           required_packages=(
             fd-find
+            openbox
+            procps
+            wmctrl
+            x11-utils
+            xauth
+            xterm
+            xfonts-base
+            xdotool
+            xvfb
             libreadline-dev
             liblua5.1-0-dev
             lua5.1
@@ -302,30 +209,6 @@ jobs:
           python3 -m venv --help > /dev/null
           test -f /usr/include/readline/readline.h
           test -f /usr/include/lua5.1/lua.h
-
-      - name: Fingerprint installed Linux plugin-build toolchain
-        id: toolchain
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          {
-            printf 'runner=%s/%s\n' "$ImageOS" "$ImageVersion"
-            printf 'neovim=%s\n' "$NEOVIM_VERSION"
-            printf 'node=%s\n' "$(node --version)"
-            printf 'npm=%s\n' "$(npm --version)"
-            printf 'go=%s\n' "$(go version)"
-            printf 'cmake=%s\n' "$(cmake --version | sed -n '1p')"
-            printf 'gcc=%s\n' "$(gcc --version | sed -n '1p')"
-            printf 'g++=%s\n' "$(g++ --version | sed -n '1p')"
-            printf 'python=%s\n' "$(python3 --version)"
-            printf 'rust=%s\n' "$(rustc --version 2>/dev/null || echo missing)"
-            printf 'cargo=%s\n' "$(cargo --version 2>/dev/null || echo missing)"
-            for package in fd-find libreadline-dev liblua5.1-0-dev lua5.1 python3-venv ripgrep zsh; do
-              printf 'apt:%s=%s\n' "$package" "$(dpkg-query -W "$package" | awk '{print $2}')"
-            done
-          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
-          fingerprint="$(sha256sum "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
-          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
 
       - name: Install pinned Neovim
         run: |
@@ -377,8 +260,33 @@ jobs:
           echo "version=$registry_version" >> "$GITHUB_OUTPUT"
           echo "DOTFILES_MASON_REGISTRY_VERSION=$registry_version" >> "$GITHUB_ENV"
 
-      # Scheduled/manual runs bypass dependency caches and prove a cold installation.
-      # Exact keys only: incompatible plugin sources or compiled binaries must rebuild.
+      - name: Fingerprint installed Linux plugin-build toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            printf 'runner=%s/%s\n' "$ImageOS" "$ImageVersion"
+            printf 'neovim=%s\n' "$NEOVIM_VERSION"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'npm=%s\n' "$(npm --version)"
+            printf 'go=%s\n' "$(go version)"
+            printf 'cmake=%s\n' "$(cmake --version | sed -n '1p')"
+            printf 'gcc=%s\n' "$(gcc --version | sed -n '1p')"
+            printf 'g++=%s\n' "$(g++ --version | sed -n '1p')"
+            printf 'python=%s\n' "$(python3 --version)"
+            printf 'gnutimeout=%s\n' "$(gnutimeout --version 2>&1 | sed -n '1p')"
+            printf 'rust=%s\n' "$(rustc --version 2>/dev/null || echo missing)"
+            printf 'cargo=%s\n' "$(cargo --version 2>/dev/null || echo missing)"
+            for package in fd-find openbox procps wmctrl x11-utils xauth xterm xfonts-base xdotool xvfb libreadline-dev liblua5.1-0-dev lua5.1 python3-venv ripgrep zsh; do
+              printf 'apt:%s=%s\n' "$package" "$(dpkg-query -W -f='${Version}' "$package")"
+            done
+          } | tee "$RUNNER_TEMP/plugin-toolchain.txt"
+          fingerprint="$(sha256sum "$RUNNER_TEMP/plugin-toolchain.txt" | awk '{print $1}')"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+
+      # Caches are exact-key only, and only trusted same-repository PRs can read/write them.
+      # Schedule/manual dispatch intentionally stay cold to validate clean installation.
       - name: Restore locked lazy.nvim plugin checkouts
         id: lazy-plugin-cache
         if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
@@ -402,23 +310,69 @@ jobs:
         if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/cache@v6
         with:
-          # The parser install is a coherent set: compiled binaries, query links, and revision metadata.
           path: |
             ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser
             ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/queries
             ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser-info
-          key: nvim-treesitter-runtime-v2-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua') }}
+          key: nvim-treesitter-runtime-v2-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua', 'tests/nvim/treesitter-provisioning.lua') }}
+
+      - name: Install GDB for a cache-hit build backtrace
+        if: ${{ steps.lazy-plugin-cache.outputs.cache-hit == 'true' }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if ! command -v gdb >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends gdb
+          fi
 
       - name: Restore locked plugins and run configured build hooks
-        run: bash ./scripts/test-nvim-headless.sh restore
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ "${{ steps.lazy-plugin-cache.outputs.cache-hit }}" == "true" ]]; then
+            wrapper="$RUNNER_TEMP/nvim-gdb-cache-build"
+            cat > "$wrapper" <<'WRAPPER'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          real_nvim="$(command -v nvim)"
+          for arg in "$@"; do
+            if [[ "$arg" == "+Lazy! build all" ]]; then
+              printf '[cache-build-debug] Capturing a native backtrace for the forced build pass.\n' >&2
+              exec gdb --batch --quiet --return-child-result \
+                -ex 'set pagination off' \
+                -ex 'set confirm off' \
+                -ex 'set debuginfod enabled off' \
+                -ex run \
+                -ex 'info threads' \
+                -ex 'thread apply all bt full' \
+                --args "$real_nvim" "$@"
+            fi
+          done
+          exec "$real_nvim" "$@"
+          WRAPPER
+            chmod 700 "$wrapper"
+            NVIM_BIN="$wrapper" bash ./scripts/test-nvim-headless.sh restore
+          else
+            bash ./scripts/test-nvim-headless.sh restore
+          fi
         env:
           NVIM_RESTORE_TIMEOUT: 20m
           DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}
+
+      - name: Verify native Linux xterm focus reaches Neovim through a real PTY
+        env:
+          NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-smoke
+          NVIM_BIN: nvim
+        run: bash ./scripts/test-linux-terminal-focus.sh
 
       - name: Start Neovim normally after plugin restore
         run: bash ./scripts/test-nvim-headless.sh startup
         env:
           NVIM_STARTUP_TIMEOUT: 30m
+
+      - name: Run isolated real Python provider provisioning and fresh-start checks
+        run: bash ./scripts/test-python-provider.sh
 
       - name: Upload headless logs
         if: always()

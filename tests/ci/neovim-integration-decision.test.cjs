@@ -311,7 +311,8 @@ test("configuration and test changes require integration", async () => {
     "tests/nvim/lazydev-lazy-loading.lua",
     "tests/ci/neovim-cache-contract.test.cjs",
     "scripts/ci/neovim-bootstrap.cjs",
-    "scripts/test-macos-terminal-focus.sh",
+    "scripts/test-linux-terminal-focus.sh",
+    "scripts/run_terminal_focus_probe.py",
   ]) {
     const github = fakeGithub({
       comparison: { status: "ahead", total_commits: 1, files: [{ filename }] },
@@ -424,12 +425,12 @@ test("the Neovim runtime workflow stays separate from the process-only integrati
   assert.doesNotMatch(workflow, /name: Neovim integration gate/);
 });
 
-test("a Python provider macOS script-only delta requires full integration", async () => {
+test("a Python provider script-only delta requires full integration", async () => {
   const github = fakeGithub({
     comparison: {
       status: "ahead",
       total_commits: 1,
-      files: [{ filename: "scripts/test-python-provider-macos.sh" }],
+      files: [{ filename: "scripts/test-python-provider.sh" }],
     },
   });
   const result = await determineIntegrationRequirement({ context: makeContext(), github });
@@ -445,8 +446,8 @@ test("path classifier keeps runtime paths mandatory and isolates only explicit a
     "scripts/ci/neovim-bootstrap.cjs",
     "tests/ci/neovim-cache-contract.test.cjs",
     "scripts/test-nvim-headless.sh",
-    "scripts/test-python-provider-macos.sh",
-    "scripts/test-macos-terminal-focus.sh",
+    "scripts/test-python-provider.sh",
+    "scripts/test-linux-terminal-focus.sh",
     ".github/workflows/neovim-headless.yml",
     "install.sh",
     "README.md",

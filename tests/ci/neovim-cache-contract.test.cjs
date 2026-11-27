@@ -13,7 +13,6 @@ const treesitterCurrentApiPath = resolve(__dirname, "../nvim/treesitter-current-
 const lspConfigPath = resolve(__dirname, "../../.config/nvim/lua/lsp/config.lua");
 const focusTestPath = resolve(__dirname, "../nvim/checktime-focus.lua");
 const lockfilePath = resolve(__dirname, "../../.config/nvim/lazy-lock.json");
-const macosFocusScriptPath = resolve(__dirname, "../../scripts/test-macos-terminal-focus.sh");
 const luasnipIdleLifetimePath = resolve(__dirname, "../nvim/luasnip-idle-lifetime.lua");
 const pluginConfigPath = resolve(__dirname, "../../.config/nvim/lua/plugins.lua");
 
@@ -25,7 +24,6 @@ const treesitterCurrentApi = readFileSync(treesitterCurrentApiPath, "utf8");
 const lspConfig = readFileSync(lspConfigPath, "utf8");
 const focusTest = readFileSync(focusTestPath, "utf8");
 const lockfile = JSON.parse(readFileSync(lockfilePath, "utf8"));
-const macosFocusScript = readFileSync(macosFocusScriptPath, "utf8");
 const luasnipIdleLifetime = readFileSync(luasnipIdleLifetimePath, "utf8");
 const pluginConfig = readFileSync(pluginConfigPath, "utf8");
 
@@ -38,9 +36,9 @@ function cacheStepBlocks() {
 }
 
 test("all dependency caches use exact keys and are restricted to trusted push/PR runs", () => {
-  assert.equal((workflow.match(/uses: actions\/cache@v6/g) || []).length, 4);
+  assert.equal((workflow.match(/uses: actions\/cache@v6/g) || []).length, 3);
   const blocks = cacheStepBlocks();
-  assert.equal(blocks.length, 4);
+  assert.equal(blocks.length, 3);
 
   for (const block of blocks) {
     assert.ok(block.includes("if: " + trustedCacheCondition), block.split("\n")[0]);
@@ -62,15 +60,6 @@ test("Linux plugin cache key includes OS, architecture, Neovim, build toolchain 
   assert.match(block, /steps\.toolchain\.outputs\.fingerprint/);
   assert.match(block, /hashFiles\('\.config\/nvim\/lazy-lock\.json'/);
   assert.match(block, /scripts\/test-nvim-headless\.sh/);
-});
-
-test("macOS plugin cache is isolated by OS/architecture/toolchain and lockfile", () => {
-  const block = cacheStepBlocks().find((entry) =>
-    entry.includes("path: " + "$" + "{{ runner.temp }}" + "/nvim-headless-macos/data/nvim/lazy"));
-  assert.ok(block, "macOS lazy.nvim source cache must exist");
-  assert.match(block, /nvim-lazy-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}/);
-  assert.match(block, /steps\.toolchain\.outputs\.fingerprint/);
-  assert.match(block, /hashFiles\('\.config\/nvim\/lazy-lock\.json'/);
 });
 
 test("Mason cache is keyed by the exact release and includes package data plus refresh state", () => {
@@ -104,9 +93,10 @@ test("Linux parser cache fingerprint is computed after supplemental APT dependen
   assert.ok(aptIndex >= 0 && fingerprintIndex > aptIndex && cacheIndex > fingerprintIndex,
     "native dependency versions must be fingerprinted after APT and before cache restore");
   const fingerprintStep = workflow.slice(fingerprintIndex, cacheIndex);
-  for (const packageName of ["libreadline-dev", "liblua5.1-0-dev", "lua5.1", "python3-venv", "ripgrep", "zsh"]) {
+  for (const packageName of ["fd-find", "openbox", "procps", "wmctrl", "x11-utils", "xauth", "xterm", "xfonts-base", "xdotool", "xvfb", "libreadline-dev", "liblua5.1-0-dev", "lua5.1", "python3-venv", "ripgrep", "zsh"]) {
     assert.ok(fingerprintStep.includes(packageName), "toolchain fingerprint omits " + packageName);
   }
+  assert.ok(fingerprintStep.includes("gnutimeout="), "toolchain fingerprint omits the GNU timeout version");
 });
 
 test("Tree-sitter runtime cache preserves parser binaries, query links, and revision metadata", () => {
@@ -136,7 +126,7 @@ test("Linux headless runner selects and reports GNU timeout on Ubuntu", () => {
     "do not invoke the ambiguous generic timeout directly");
   assert.ok(workflow.includes("sha256sum gnutimeout find grep tee tar unzip"),
     "Ubuntu runner preflight must require GNU timeout");
-  assert.ok(workflow.includes('timeout_version="$(gnutimeout --version 2>&1)"'),
+  assert.ok(workflow.includes("gnutimeout --version 2>&1 | sed -n '1p'"),
     "Ubuntu runner preflight must log the GNU timeout version");
 });
 
@@ -228,66 +218,19 @@ test("headless LuaSnip fixture queues real typed input without blocking Insert m
     "blocking feedkeys execution must not hold the event loop while Insert mode remains active");
 });
 
-test("macOS Terminal focus launch uses bounded native Launch Services transitions without RPC", () => {
-  const focusStep = workflow.slice(
-    workflow.indexOf("- name: Verify Terminal.app window activation reports native Neovim focus events"),
-    workflow.indexOf("- name: Run isolated real provider provisioning and fresh-start checks")
-  );
-  assert.match(focusStep, /timeout-minutes: 5/);
-  assert.ok(macosFocusScript.includes('open -a Terminal "$command_file"'));
-  assert.ok(macosFocusScript.includes("open -a Finder"));
-  assert.ok(macosFocusScript.includes("open -a Terminal"));
-  assert.match(macosFocusScript, /wait_for_launcher/);
-  assert.match(macosFocusScript, /wait_for_ready/);
-  assert.match(macosFocusScript, /wait_for_terminal_tty/);
-  assert.ok(macosFocusScript.includes("FocusLost"));
-  assert.ok(macosFocusScript.includes("FocusGained"));
-  const nvimLaunch = macosFocusScript.slice(
-    macosFocusScript.indexOf("exec $q_nvim"),
-    macosFocusScript.indexOf("\nEOF", macosFocusScript.indexOf("exec $q_nvim"))
-  );
-  assert.ok(nvimLaunch.indexOf("-u $q_init") < nvimLaunch.indexOf("-c 'lua"),
-    "native focus autocmds must be registered after init.lua, matching the post-config command phase");
-  assert.ok(macosFocusScript.includes('open -a Finder "$test_root"'),
-    "Finder must open a real window before the focus transition");
-  assert.ok(macosFocusScript.includes('activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"'),
-    "the test must explicitly activate Finder and verify it became frontmost before asserting FocusLost");
-  assert.match(macosFocusScript, /NSWorkspace\.shared\.frontmostApplication/,
-    "the native activation helper must verify the actual frontmost application");
-  assert.ok(macosFocusScript.includes("CGWindowListCopyWindowInfo"),
-    "identify the exact Terminal.app window created for the Neovim TTY");
-  assert.ok(macosFocusScript.includes("CGEventSource(stateID: .combinedSessionState)"),
-    "synthetic input from this logged-in runner must use the combined session state");
-  assert.doesNotMatch(macosFocusScript, /CGEventSource\\(stateID: \\.hidSystemState\\)/,
-    "the hardware-only event state is not appropriate for a user-session test");
-  assert.ok(macosFocusScript.includes("CGDisplayBounds(CGMainDisplayID())"),
-    "report the main display coordinate space alongside the target window and click");
-  assert.ok(macosFocusScript.includes("mouseEventSource: source"),
-    "construct a real window-specific mouse event");
-  assert.ok(macosFocusScript.includes("target.bounds.midY"));
-  assert.ok(macosFocusScript.includes("mouseCursorPosition: contentPoint"));
-  assert.ok(!macosFocusScript.includes("titleBarPoint"),
-    "focus must be delivered by clicking the Terminal TTY content area");
-  assert.ok(macosFocusScript.includes("as? NSDictionary"));
-  assert.ok(macosFocusScript.includes("boundsObject as CFDictionary"));
-  assert.ok(!macosFocusScript.includes("as? CFDictionary"),
-    "avoid Swift's always-successful conditional CFDictionary downcast");
-  assert.ok(macosFocusScript.includes("mouseDown.post(tap: .cghidEventTap)"),
-    "post the click through the native WindowServer event stream");
-  const terminalLaunchLines = macosFocusScript.split("\n")
-    .filter((line) => line.trim() === 'open -a Terminal "$command_file"');
-  assert.equal(terminalLaunchLines.length, 1,
-    "open Terminal only for the initial TTY launch, not as an app-wide focus substitute");
-  const targetedTerminalActivations = macosFocusScript.split("\n")
-    .filter((line) => line.trim() === 'activate_neovim_terminal_window "$terminal_windows_before"');
-  assert.equal(targetedTerminalActivations.length, 2,
-    "both focus-gain assertions must target the same exact Neovim Terminal.app window");
-  assert.ok(macosFocusScript.includes('swift "$terminal_window_focus_script" activate'),
-    "activate only the newly-created Neovim Terminal.app window");
-  assert.doesNotMatch(macosFocusScript, /activate_and_wait_for_frontmost_application "com\.apple\.Terminal"/,
-    "do not activate every Terminal.app window and steal focus from the Neovim TTY session");
-  assert.doesNotMatch(macosFocusScript, /remote_expr|nvim-rpc|--remote-expr|--server/);
-  assert.doesNotMatch(macosFocusScript, /run_terminal_applescript|NSAppleScript/,
-    "focus activation must not block on Terminal AppleEvents");
-  assert.match(treesitterCurrentApi, /syntax ~= ""/);
+test("runtime integration stays Linux-only and retains native PTY focus and Python provider coverage", () => {
+  assert.match(workflow, /Verify native Linux xterm focus reaches Neovim through a real PTY/);
+  assert.match(workflow, /run: bash \.\/scripts\/test-linux-terminal-focus\.sh/);
+  assert.match(workflow, /Run isolated real Python provider provisioning and fresh-start checks/);
+  assert.match(workflow, /run: bash \.\/scripts\/test-python-provider\.sh/);
+  assert.doesNotMatch(workflow, /macos-15|macOS plugin restore|Terminal\.app|test-macos-terminal-focus|python-provider-macos/);
+  assert.doesNotMatch(restoreScript, /test-macos-terminal-focus|python-provider-macos/);
+});
+
+test("a cache-hit build is wrapped by GDB to capture the exhausted forced-build crash", () => {
+  assert.match(workflow, /Install GDB for a cache-hit build backtrace/);
+  assert.match(workflow, /steps\.lazy-plugin-cache\.outputs\.cache-hit == 'true'/);
+  assert.match(workflow, /gdb --batch --quiet --return-child-result/);
+  assert.match(workflow, /thread apply all bt full/);
+  assert.match(workflow, /\+Lazy! build all/);
 });
