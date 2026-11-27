@@ -15,7 +15,7 @@ if [[ -z "$NVIM_TEST_DIR" || ! -d "$NVIM_TEST_DIR" ]]; then
   exit 2
 fi
 
-for required_command in "$NVIM_BIN" python3 xvfb-run openbox xterm wmctrl xprop; do
+for required_command in "$NVIM_BIN" python3 xvfb-run openbox xterm wmctrl xprop xdotool; do
   command -v "$required_command" >/dev/null 2>&1 || {
     printf 'Required Linux terminal-focus command is missing: %s\n' "$required_command" >&2
     exit 1
@@ -330,6 +330,28 @@ activate_window() {
   return 1
 }
 
+wait_for_startup_prompt_and_dismiss() {
+  local prompt="Press ENTER or type command to continue"
+  local deadline=$((SECONDS + 5))
+  while ((SECONDS < deadline)); do
+    if grep -aFq -- "$prompt" "$XTERM_TARGET_SESSION_LOG"; then
+      # This is a real Return key event to dismiss Neovim's known VimEnter
+      # hit-enter prompt; it never writes or synthesizes a focus report.
+      activate_window "$TARGET_WINDOW"
+      xdotool key --clearmodifiers Return
+      printf '[linux-focus] Dismissed the Neovim startup hit-enter prompt with Return; no focus bytes were injected.\n'
+      sleep 0.2
+      return 0
+    fi
+    if ! kill -0 "$TARGET_PID" 2>/dev/null; then
+      printf 'Target xterm exited while waiting for the Neovim startup prompt.\n' >&2
+      return 1
+    fi
+    sleep 0.05
+  done
+  printf '[linux-focus] No startup hit-enter prompt appeared; no key input was sent.\n'
+}
+
 wait_for_counter_gt() {
   local path="$1"
   local previous="$2"
@@ -371,6 +393,7 @@ tty_path="$(tr -d '\r\n' < "$TTY_FILE")"
 }
 printf '[linux-focus] Neovim will launch on the same PTY: %s\n' "$tty_path"
 wait_for_file_value "$NVIM_READY" "1" "Neovim TUI registered native focus callbacks and became ready"
+wait_for_startup_prompt_and_dismiss
 
 lost_before="$(read_counter "$NVIM_LOST")"
 activate_window "$AWAY_WINDOW"
