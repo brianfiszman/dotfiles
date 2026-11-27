@@ -217,10 +217,10 @@ test("Treesitter indentation regression waits for deferred FileType configuratio
 });
 
 test("LuaSnip build hook atomically replaces native libraries instead of overwriting loaded files", () => {
-  assert.match(pluginConfig, /build = require\\(["']snippets\\.luasnip_build["']\\)\\.build/);
+  assert.match(pluginConfig, /build = require\(["']snippets\.luasnip_build["']\)\.build/);
   assert.match(luasnipBuild, /make", "jsregexp/);
-  assert.match(luasnipBuild, /vim\\.uv\\.fs_copyfile/);
-  assert.match(luasnipBuild, /vim\\.uv\\.fs_rename/);
+  assert.match(luasnipBuild, /vim\.uv\.fs_copyfile/);
+  assert.match(luasnipBuild, /vim\.uv\.fs_rename/);
   assert.doesNotMatch(luasnipBuild, /install_jsregexp/);
 });
 
