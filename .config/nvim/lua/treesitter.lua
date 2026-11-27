@@ -272,7 +272,12 @@ local M = {
         end
       end,
       opts = {
-        ensure_installed = { { "tree-sitter-cli", version = "v0.27.2" } },
+        ensure_installed = {
+          { "tree-sitter-cli", version = "v0.27.2" },
+          -- Conform's JS/TS fallback formatter and the Microsoft JavaScript DAP adapter.
+          "prettier",
+          "js-debug-adapter",
+        },
         auto_update = false,
         run_on_start = false,
         start_delay = 0,
