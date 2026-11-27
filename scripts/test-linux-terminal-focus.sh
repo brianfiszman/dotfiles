@@ -188,7 +188,7 @@ nvim_args=(
     local lost = vim.env.DOTFILES_TERMINAL_FOCUS_NVIM_LOST
     local gained = vim.env.DOTFILES_TERMINAL_FOCUS_NVIM_GAINED
     local ready = vim.env.DOTFILES_TERMINAL_FOCUS_NVIM_READY
-    assert(#vim.api.nvim_list_uis() > 0, "Neovim did not attach to xterm's real TUI")
+    assert(#vim.api.nvim_list_uis() > 0, "Neovim did not attach to the xterm TUI")
     local function increment(path)
       local lines = vim.fn.readfile(path)
       local count = tonumber(lines[1] or "0") or 0
@@ -228,6 +228,11 @@ printf '[launcher] Neovim child exited with status=%s.\n' "$nvim_status" \
 exit "$nvim_status"
 TARGET
 chmod +x "$TEST_ROOT/target-session.sh"
+if ! bash -n "$TEST_ROOT/target-session.sh"; then
+  printf 'Generated target-session launcher has invalid Bash syntax.\n' >&2
+  exit 1
+fi
+printf '[linux-focus] Generated target-session launcher passed bash -n.\n'
 
 export DOTFILES_SKIP_MASON_LSP_INSTALL=1
 export DOTFILES_SKIP_TREESITTER_PROVISIONING=1
