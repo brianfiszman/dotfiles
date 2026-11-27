@@ -23,11 +23,13 @@ function M.setAdapters(js_based_languages, dap, dap_utils)
       {
         type = "pwa-node",
         request = "launch",
-        name = "Launch project and attach",
-        runtimeExecutable = "yarn",
-        runtimeArgs = { "start:debug:neovim" },
+        name = "Launch current Node.js file",
+        runtimeExecutable = "node",
         program = "${file}",
         cwd = "${workspaceFolder}",
+        console = "internalConsole",
+        sourceMaps = true,
+        skipFiles = { "<node_internals>/**" },
       },
       {
         type = "pwa-node",

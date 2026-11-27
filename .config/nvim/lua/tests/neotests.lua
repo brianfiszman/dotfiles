@@ -39,7 +39,6 @@ local M = {
     "adrigzr/neotest-mocha",
     "rouge8/neotest-rust",
     "lawrence-laz/neotest-zig",
-    "rcasia/neotest-bash",
     "antoinemadec/FixCursorHold.nvim",
     "nvim-lua/plenary.nvim",
   },
@@ -109,17 +108,11 @@ function M.config()
       require "neotest-plenary",
       require "neotest-zig",
       require "neotest-go",
-      require('neotest-mocha')({
-        command = "yarn test:neovim",
-        env = { CI = true },
-        cwd = function() return vim.fn.getcwd() end,
-      }),
-      require('neotest-jest')({
-        jestCommand = "yarn test --silent",
-        jestConfigFile = "scripts/vscode-mocharc.yml",
-        env = { CI = true },
-        cwd = function() return vim.fn.getcwd() end,
-      }),
+      -- Each adapter discovers its runner and configuration in the workspace.
+      -- Neotest is used across unrelated projects; do not hard-code this repo's
+      -- yarn scripts or a non-existent config file.
+      require("neotest-mocha")({}),
+      require("neotest-jest")({}),
     },
   }
 end
