@@ -35,6 +35,9 @@ _No open issues at this priority._
 
 ## Open — P1: developer tooling and portability
 
+- [#136](https://github.com/brianfiszman/dotfiles/issues/136) — automatically
+  provision common JavaScript/TypeScript language servers, Prettier, and the
+  JavaScript debugger adapter on startup without eagerly loading DAP.
 - [#40](https://github.com/brianfiszman/dotfiles/issues/40) — pass user arguments
   through the real Node debug adapter.
 - [#45](https://github.com/brianfiszman/dotfiles/issues/45) — make shell, font,
