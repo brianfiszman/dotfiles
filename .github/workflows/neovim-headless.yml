@@ -316,62 +316,8 @@ jobs:
             ${{ runner.temp }}/nvim-headless-smoke/data/nvim/site/parser-info
           key: nvim-treesitter-runtime-v2-${{ runner.os }}-${{ runner.arch }}-nvim-${{ env.NEOVIM_VERSION }}-cli-v0.27.2-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('.config/nvim/lazy-lock.json', '.config/nvim/lua/treesitter.lua', 'tests/nvim/treesitter-current-api.lua', 'tests/nvim/treesitter-provisioning.lua') }}
 
-      - name: Install GDB for a cache-hit build backtrace
-        if: ${{ steps.lazy-plugin-cache.outputs.cache-hit == 'true' }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends gdb libc6-dbg
-
       - name: Restore locked plugins and run configured build hooks
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          if [[ "${{ steps.lazy-plugin-cache.outputs.cache-hit }}" == "true" ]]; then
-            wrapper="$RUNNER_TEMP/nvim-gdb-cache-build"
-            cat > "$wrapper" <<'WRAPPER'
-          #!/usr/bin/env bash
-          set -Eeuo pipefail
-          real_nvim="$(command -v nvim)"
-          for arg in "$@"; do
-            if [[ "$arg" == "+Lazy! build all" ]]; then
-              printf '[cache-build-debug] Capturing loader finalization trace and symbolized native backtrace.\n' >&2
-              trace_prefix="$RUNNER_TEMP/nvim-headless-smoke/loader-debug"
-              set +e
-              gdb --batch --quiet --return-child-result \
-                -ex 'set pagination off' \
-                -ex 'set confirm off' \
-                -ex 'set debuginfod enabled off' \
-                -ex 'set environment LD_DEBUG files' \
-                -ex "set environment LD_DEBUG_OUTPUT $trace_prefix" \
-                -ex run \
-                -ex 'info sharedlibrary' \
-                -ex 'info proc mappings' \
-                -ex 'info threads' \
-                -ex 'thread apply all bt full' \
-                --args "$real_nvim" "$@"
-              status=$?
-              shopt -s nullglob
-              trace_files=("$trace_prefix".*)
-              if ((${#trace_files[@]} > 0)); then
-                for trace_file in "${trace_files[@]}"; do
-                  printf '\n===== %s =====\n' "$trace_file"
-                  cat "$trace_file"
-                done > "$RUNNER_TEMP/nvim-headless-smoke/loader-debug.log"
-              else
-                printf '[cache-build-debug] LD_DEBUG produced no trace files.\n' > "$RUNNER_TEMP/nvim-headless-smoke/loader-debug.log"
-              fi
-              exit "$status"
-            fi
-          done
-          exec "$real_nvim" "$@"
-          WRAPPER
-            chmod 700 "$wrapper"
-            NVIM_BIN="$wrapper" bash ./scripts/test-nvim-headless.sh restore
-          else
-            bash ./scripts/test-nvim-headless.sh restore
-          fi
+        run: bash ./scripts/test-nvim-headless.sh restore
         env:
           NVIM_RESTORE_TIMEOUT: 20m
           DOTFILES_PLUGIN_CACHE_HIT: ${{ steps.lazy-plugin-cache.outputs.cache-hit }}
