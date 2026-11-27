@@ -78,6 +78,38 @@ A successful run uploaded a 271 MB ZIP because the artifact path included the
 entire isolated workspace. Upload only root-level phase logs and relevant XDG
 state logs; exclude `data/`, `cache/`, plugin checkouts, and Mason packages.
 
+
+## LuaSnip native extension overwritten while loaded
+
+On a lazy.nvim cache hit, the forced `:Lazy! build all` pass starts a fresh
+Neovim process with the normal config. That config loads LuaSnip and its native
+`deps/luasnip-jsregexp.so` extension before the build task runs. At the pinned
+LuaSnip revision
+[`03c8e67`](https://github.com/L3MON4D3/LuaSnip/tree/03c8e67eb7293c404845b3982db895d59c0d1538),
+`make install_jsregexp` copies the freshly built extension directly over that
+same destination. `cp` truncates and rewrites the existing inode; it is unsafe
+when the process still has the shared object mapped.
+
+The exact cache-hit diagnostic in PR #124 run
+[#759](https://github.com/brianfiszman/dotfiles/actions/runs/45939844248)
+recorded Neovim loading `LuaSnip/deps/luasnip-jsregexp.so`, then the loader's
+first finalizer call at shutdown was for that same library. GDB stopped at
+`0x3c40` in `_dl_call_fini`, called by `_dl_fini` and libc `exit()`.
+A local Linux reproducer confirmed the filesystem mechanism: `dlopen(A)`,
+then `cp B A`, caused exit status 139; copying B to a sibling temporary file
+and renaming it over A preserved A's mapped image and its finalizer completed
+successfully.
+
+The safe build hook is `snippets.luasnip_build`: it still compiles LuaSnip's
+pinned jsregexp submodule and runs on cold and warm paths, but installs the
+native extension by copying to a same-directory temporary file and using
+`vim.uv.fs_rename` for atomic replacement. The regression
+`tests/nvim/luasnip-native-library-replacement.lua` loads a real test shared
+object, invokes the same replacement helper, and asserts that the original
+loaded library's finalizer runs after Neovim exits. Keep this test wired into
+the fast CI cache-contract suite. Do not restore the upstream in-place copy or
+skip the configured LuaSnip build hook on cache hits.
+
 ## Cross-references
 
 - Workflow/check interpretation:
