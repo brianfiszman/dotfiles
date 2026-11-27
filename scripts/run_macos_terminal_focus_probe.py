@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Observe native Terminal.app focus reports on its real foreground TTY.
+"""Observe native iTerm2 focus reports on its real foreground TTY.
 
-Runs inside the Terminal.app .command session, requests DECSET 1004, records
+Runs inside the iTerm2 .command session, requests DECSET 1004, records
 only incoming CSI I / CSI O bytes, and restores terminal state before Neovim
 is exec'd in the same TTY. It never writes a focus-event sequence.
 """
@@ -93,13 +93,13 @@ def run_probe(
 
     try:
         if not os.isatty(fd):
-            raise RuntimeError("stdin is not Terminal.app's foreground TTY")
+            raise RuntimeError("stdin is not iTerm2's foreground TTY")
         original_attributes = termios.tcgetattr(fd)
         tty.setraw(fd, termios.TCSANOW)
         os.write(fd, FOCUS_REPORTING_ENABLE)
         tracking_enabled = True
         atomic_write(ready_file, "1")
-        log_line(log_file, "probe ready; requested DECSET 1004 on the actual Terminal.app TTY")
+        log_line(log_file, "probe ready; requested DECSET 1004 on the actual iTerm2 TTY")
 
         while not release_file.exists():
             try:
@@ -110,7 +110,7 @@ def run_probe(
                 continue
             chunk = os.read(fd, 4096)
             if not chunk:
-                raise RuntimeError("Terminal.app TTY reached EOF during raw focus observation")
+                raise RuntimeError("iTerm2 TTY reached EOF during raw focus observation")
             log_line(log_file, f"tty input hex={chunk.hex()}")
             for event in decoder.feed(chunk):
                 target = focus_lost_file if event == "focus_lost" else focus_gained_file
@@ -142,7 +142,7 @@ def run_probe(
         atomic_write(done_file, "error" if error else "ok")
 
     if error:
-        print(f"Terminal.app raw focus probe failed: {error}", file=sys.stderr)
+        print(f"iTerm2 raw focus probe failed: {error}", file=sys.stderr)
         return 1
     return 0
 

@@ -6,7 +6,7 @@ NVIM_BIN="${NVIM_BIN-nvim}"
 NVIM_TEST_DIR="${NVIM_TEST_DIR-}"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  printf 'This integration test requires macOS and Terminal.app.\n' >&2
+  printf 'This integration test requires macOS and iTerm2.\n' >&2
   exit 2
 fi
 if [[ -z "$NVIM_TEST_DIR" ]]; then
@@ -35,7 +35,7 @@ done
 test_root="${RUNNER_TEMP-${TMPDIR-/tmp}}/nvim-terminal-focus-${GITHUB_RUN_ID-local}-$$"
 mkdir -p "$test_root"
 command_file="$test_root/start-neovim.command"
-terminal_window_focus_script="$test_root/terminal-window-focus.swift"
+iterm_window_focus_script="$test_root/iterm-window-focus.swift"
 pid_file="$test_root/neovim.pid"
 tty_file="$test_root/terminal.tty"
 probe_script="$REPO_ROOT/scripts/run_macos_terminal_focus_probe.py"
@@ -86,10 +86,8 @@ printf -v q_launcher_log '%q' "$launcher_log"
 printf -v q_verbose_log '%q' "$startup_verbose_log"
 printf -v q_timing_log '%q' "$startup_timing_log"
 
-# Launch Neovim on Terminal.app's actual terminal PTY. Launch Services opens
-# the .command file first; Terminal's AppleScript do-script command is a
-# fallback for runners where opening the document does not execute it.
-# The Finder/Terminal focus transition remains native and never synthesizes
+# Launch Neovim on iTerm2's actual session PTY using a dedicated iTerm2 window.
+# The Finder/iTerm2 focus transition remains native and never synthesizes
 # terminal focus bytes or uses System Events UI/Accessibility scripting.
 cat > "$command_file" <<EOF
 #!/bin/bash
@@ -100,7 +98,7 @@ export XDG_DATA_HOME=$q_data
 export XDG_STATE_HOME=$q_state
 export XDG_CACHE_HOME=$q_cache
 export TERM=xterm-256color
-# This test validates native Terminal.app focus events only. The independent
+# This test validates native iTerm2 focus events only. The independent
 # startup/LSP integration path covers Mason package installation.
 export DOTFILES_SKIP_MASON_LSP_INSTALL=1
 export DOTFILES_SKIP_TREESITTER_PROVISIONING=1
@@ -124,20 +122,19 @@ exec $q_nvim --cmd 'set nomore shortmess+=I' \
 EOF
 chmod 700 "$command_file"
 
-# Snapshot Terminal.app's existing windows before Launch Services opens the
-# dedicated .command session. The return transition clicks that exact new
-# window's title bar instead of activating every Terminal window at once.
-cat > "$terminal_window_focus_script" <<'SWIFT'
+# Snapshot iTerm2's existing windows before AppleScript creates the dedicated
+# test window. The return transition selects that exact Neovim session window.
+cat > "$iterm_window_focus_script" <<'SWIFT'
 import AppKit
 import CoreGraphics
 import Foundation
 
-let terminalBundleID = "com.apple.Terminal"
+let itermBundleID = "com.googlecode.iterm2"
 let mode = CommandLine.arguments.dropFirst().first ?? ""
 
-func terminalWindows() -> [(id: CGWindowID, bounds: CGRect, name: String)] {
-  guard let terminal = NSRunningApplication.runningApplications(
-    withBundleIdentifier: terminalBundleID
+func itermWindows() -> [(id: CGWindowID, bounds: CGRect, name: String)] {
+  guard let iterm2 = NSRunningApplication.runningApplications(
+    withBundleIdentifier: itermBundleID
   ).first else {
     return []
   }
@@ -149,7 +146,7 @@ func terminalWindows() -> [(id: CGWindowID, bounds: CGRect, name: String)] {
 
   return entries.compactMap { entry in
     guard
-      (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == terminal.processIdentifier,
+      (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == iterm2.processIdentifier,
       (entry[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
       let number = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
       let boundsObject = entry[kCGWindowBounds as String] as? NSDictionary
@@ -236,7 +233,7 @@ func logOnScreenWindowStack(click: CGPoint, targetID: CGWindowID) {
 }
 
 if mode == "snapshot" {
-  print(terminalWindows().map { String($0.id) }.joined(separator: ","))
+  print(itermWindows().map { String($0.id) }.joined(separator: ","))
   exit(0)
 }
 if mode == "frontmost" {
@@ -245,25 +242,25 @@ if mode == "frontmost" {
 }
 
 guard mode == "activate", CommandLine.arguments.count == 3 else {
-  fputs("Usage: terminal-window-focus.swift snapshot | frontmost | activate <previous-window-ids>\n", stderr)
+  fputs("Usage: iterm-window-focus.swift snapshot | frontmost | activate <previous-window-ids>\n", stderr)
   exit(2)
 }
 
 let previousIDs = Set(CommandLine.arguments[2].split(separator: ",").compactMap { UInt32($0) })
-let candidates = terminalWindows().filter { !previousIDs.contains($0.id) }
+let candidates = itermWindows().filter { !previousIDs.contains($0.id) }
 guard candidates.count == 1, let target = candidates.first else {
-  let details = terminalWindows().map {
+  let details = itermWindows().map {
     "id=\($0.id) name=\($0.name) bounds=\($0.bounds)"
   }.joined(separator: "; ")
-  fputs("Expected exactly one new Terminal.app window for the Neovim TTY; found \(candidates.count). Windows: \(details)\n", stderr)
+  fputs("Expected exactly one new iTerm2 window for the Neovim TTY; found \(candidates.count). Windows: \(details)\n", stderr)
   exit(1)
 }
 guard target.bounds.width > 100, target.bounds.height > 80 else {
-  fputs("Terminal.app target window has unusable bounds: \(target.bounds)\n", stderr)
+  fputs("iTerm2 target window has unusable bounds: \(target.bounds)\n", stderr)
   exit(1)
 }
 guard CGPreflightPostEventAccess() else {
-  fputs("The runner cannot post a native mouse event to activate the Terminal.app window.\n", stderr)
+  fputs("The runner cannot post a native mouse event to activate the iTerm2 window.\n", stderr)
   exit(1)
 }
 guard let source = CGEventSource(stateID: .combinedSessionState) else {
@@ -272,12 +269,12 @@ guard let source = CGEventSource(stateID: .combinedSessionState) else {
 }
 
 // Click inside the content area of the one window created for this test. A
-// title-bar click can select the window without focusing the Terminal TTY view.
+// title-bar click can select the window without focusing the iTerm2 TTY view.
 // This is a real WindowServer event, not a synthetic Neovim focus notification.
 let contentPoint = CGPoint(x: target.bounds.midX, y: target.bounds.midY)
 let mainDisplayBounds = CGDisplayBounds(CGMainDisplayID())
 guard target.bounds.contains(contentPoint) else {
-  fputs("Computed click point \(contentPoint) is outside Terminal.app window \(target.id) bounds \(target.bounds).\n", stderr)
+  fputs("Computed click point \(contentPoint) is outside iTerm2 window \(target.id) bounds \(target.bounds).\n", stderr)
   exit(1)
 }
 print("[macos-focus] WindowServer target: id=\(target.id) name=\(target.name) bounds=\(target.bounds); mainDisplay=\(mainDisplayBounds); click=\(contentPoint); sourceState=combinedSessionState; tap=cghidEventTap")
@@ -297,7 +294,7 @@ guard
     mouseButton: .left
   )
 else {
-  fputs("Could not construct native mouse events for Terminal.app window \(target.id).\n", stderr)
+  fputs("Could not construct native mouse events for iTerm2 window \(target.id).\n", stderr)
   exit(1)
 }
 
@@ -308,15 +305,15 @@ mouseUp.post(tap: .cghidEventTap)
 let deadline = Date().addingTimeInterval(5)
 while Date() < deadline {
   let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-  if frontmost == terminalBundleID, terminalWindows().first?.id == target.id {
-    print("[macos-focus] Clicked and selected the exact Neovim Terminal.app window id=\(target.id) at \(contentPoint), bounds=\(target.bounds)")
+  if frontmost == itermBundleID, itermWindows().first?.id == target.id {
+    print("[macos-focus] Clicked and selected the exact Neovim iTerm2 window id=\(target.id) at \(contentPoint), bounds=\(target.bounds)")
     exit(0)
   }
   Thread.sleep(forTimeInterval: 0.1)
 }
 
 let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown"
-fputs("Terminal.app window \(target.id) did not become the frontmost Terminal window after the native click; bounds=\(target.bounds), click=\(contentPoint), mainDisplay=\(mainDisplayBounds), frontmost app=\(frontmost).\n", stderr)
+fputs("iTerm2 window \(target.id) did not become the frontmost iTerm2 window after the native click; bounds=\(target.bounds), click=\(contentPoint), mainDisplay=\(mainDisplayBounds), frontmost app=\(frontmost).\n", stderr)
 exit(1)
 SWIFT
 
@@ -349,17 +346,19 @@ wait_for_launcher() {
   return 1
 }
 
-launch_through_terminal_scripting() {
-  printf '[macos-focus] Launch Services opened Terminal.app but did not execute the .command; trying Terminal scripting.\n'
+launch_through_iterm2_scripting() {
+  printf '[macos-focus] Creating a dedicated iTerm2 window and launching the real-TTY harness.\n'
   python3 - "$command_file" <<'PY'
 import subprocess
 import sys
 
 script = """on run argv
   set commandPath to item 1 of argv
-  tell application "Terminal"
+  set shellCommand to "bash " & quoted form of commandPath
+  tell application "iTerm2"
     activate
-    do script "bash " & quoted form of commandPath
+    set testWindow to (create window with default profile command shellCommand)
+    return id of testWindow
   end tell
 end run
 """
@@ -370,11 +369,11 @@ try:
         input=script,
         text=True,
         check=False,
-        timeout=15,
+        timeout=20,
         capture_output=True,
     )
 except subprocess.TimeoutExpired:
-    print("[macos-focus] Terminal AppleScript fallback exceeded its 15-second deadline", file=sys.stderr)
+    print("[macos-focus] iTerm2 window creation exceeded its 20-second deadline", file=sys.stderr)
     raise SystemExit(124)
 
 if result.stdout:
@@ -430,7 +429,7 @@ wait_for_probe_ready() {
     fi
     sleep 0.1
   done
-  printf 'Terminal.app did not start the raw TTY focus probe within 15 seconds.\n' >&2
+  printf 'iTerm2 did not start the raw TTY focus probe within 15 seconds.\n' >&2
   [[ -s "$probe_log" ]] && cat "$probe_log" >&2
   return 1
 }
@@ -495,7 +494,7 @@ wait_for_ready() {
     fi
     sleep 0.2
   done
-  printf 'Terminal.app did not complete Neovim startup within 30 seconds.\n' >&2
+  printf 'iTerm2 did not complete Neovim startup within 30 seconds.\n' >&2
   print_startup_diagnostics >&2
   return 1
 }
@@ -518,22 +517,22 @@ wait_for_counter_gt() {
   return 1
 }
 
-wait_for_terminal_tty() {
+wait_for_iterm_tty() {
   local deadline=$((SECONDS + 10))
   while ((SECONDS < deadline)); do
     if [[ -s "$tty_file" ]]; then
       local target_tty
       target_tty="$(tr -d '\r\n' < "$tty_file")"
       [[ "$target_tty" == /dev/ttys* ]] || {
-        printf 'Unexpected Neovim Terminal.app TTY: %s\n' "$target_tty" >&2
+        printf 'Unexpected Neovim iTerm2 TTY: %s\n' "$target_tty" >&2
         return 1
       }
-      printf '[macos-focus] Terminal.app launch session is attached to TTY %s.\n' "$target_tty"
+      printf '[macos-focus] iTerm2 launch session is attached to TTY %s.\n' "$target_tty"
       return 0
     fi
     sleep 0.1
   done
-  printf 'Terminal.app did not publish the Neovim session TTY within 10 seconds at %s\n' "$tty_file" >&2
+  printf 'iTerm2 did not publish the Neovim session TTY within 10 seconds at %s\n' "$tty_file" >&2
   return 1
 }
  
@@ -641,8 +640,8 @@ if result.returncode != 0:
     raise SystemExit(result.returncode)
 PY
 }
-run_terminal_window_helper() {
-  python3 - "$terminal_window_focus_script" "$@" <<'PY'
+run_iterm_window_helper() {
+  python3 - "$iterm_window_focus_script" "$@" <<'PY'
 import subprocess
 import sys
 
@@ -655,7 +654,7 @@ try:
         timeout=20,
     )
 except subprocess.TimeoutExpired:
-    print("[macos-focus] Terminal window helper exceeded its 20-second deadline.", file=sys.stderr)
+    print("[macos-focus] iTerm2 window helper exceeded its 20-second deadline.", file=sys.stderr)
     raise SystemExit(124)
 
 if result.stdout:
@@ -669,55 +668,65 @@ PY
 
 assert_finder_frontmost() {
   local frontmost
-  frontmost="$(run_terminal_window_helper frontmost)"
+  frontmost="$(run_iterm_window_helper frontmost)"
   [[ "$frontmost" == "com.apple.finder" ]] || {
     printf '[macos-focus] Expected Finder to remain frontmost after closing test windows; got %s\n' "$frontmost" >&2
     return 1
   }
   printf '[macos-focus] Finder remains frontmost with test-created windows closed.\n'
 }
-activate_neovim_terminal_window() {
+activate_neovim_iterm_window() {
   local previous_window_ids="$1"
-  printf '[macos-focus] Bringing Terminal.app to the foreground before selecting its exact Neovim TTY window.\n'
-  activate_and_wait_for_frontmost_application "com.apple.Terminal" "Terminal.app"
-  run_terminal_window_helper activate "$previous_window_ids"
+  printf '[macos-focus] Bringing iTerm2 to the foreground before selecting its exact Neovim TTY window.\n'
+  activate_and_wait_for_frontmost_application "com.googlecode.iterm2" "iTerm2"
+  run_iterm_window_helper activate "$previous_window_ids"
 }
 
-terminal_windows_before="$(run_terminal_window_helper snapshot)"
-printf '[macos-focus] Terminal.app window IDs before test launch: %s\n' "${terminal_windows_before:-none}"
-printf '[macos-focus] Starting native raw-TTY focus probe in Terminal.app.\n'
-open -a Terminal "$command_file"
-if ! wait_for_launcher; then
-  launch_through_terminal_scripting
-  wait_for_launcher || {
-    printf '[macos-focus] Terminal.app did not execute the generated launcher after either launch path.\n' >&2
-    print_startup_diagnostics >&2
-    exit 1
-  }
-fi
-wait_for_terminal_tty
+open -a "/Applications/iTerm.app"
+iterm_launch_deadline=$((SECONDS + 15))
+while ((SECONDS < iterm_launch_deadline)); do
+  if [[ "$(run_iterm_window_helper frontmost)" == "com.googlecode.iterm2" ]]; then
+    break
+  fi
+  sleep 0.1
+done
+[[ "$(run_iterm_window_helper frontmost)" == "com.googlecode.iterm2" ]] || {
+  printf 'iTerm2 did not become the frontmost application within 15 seconds.\n' >&2
+  exit 1
+}
+activate_and_wait_for_frontmost_application "com.googlecode.iterm2" "iTerm2"
+iterm_windows_before="$(run_iterm_window_helper snapshot)"
+printf '[macos-focus] iTerm2 window IDs before test launch: %s\n' "${iterm_windows_before:-none}"
+printf '[macos-focus] Starting native raw-TTY focus probe in a dedicated iTerm2 window.\n'
+launch_through_iterm2_scripting
+wait_for_launcher || {
+  printf '[macos-focus] iTerm2 did not start the generated launcher within 5 seconds.\n' >&2
+  print_startup_diagnostics >&2
+  exit 1
+}
+wait_for_iterm_tty
 wait_for_probe_ready
 
-# First isolate Terminal.app -> TTY. This receiver runs on the actual Terminal
+# First isolate iTerm2 -> TTY. This receiver runs on the actual iTerm2
 # PTY and counts only bytes returned by the terminal emulator; it never injects
 # CSI I/O. A successful raw pass proves the native terminal boundary.
-printf '[macos-focus] Selecting the exact Terminal.app window for the raw TTY probe.\n'
-activate_neovim_terminal_window "$terminal_windows_before"
+printf '[macos-focus] Selecting the exact iTerm2 window for the raw TTY probe.\n'
+activate_neovim_iterm_window "$iterm_windows_before"
 probe_lost_before="$(read_probe_counter "$probe_focus_lost_file")"
 printf '[macos-focus] Raw probe: opening the unique Finder fixture folder.\n'
 open -a Finder "$test_root"
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 wait_for_probe_counter_gt "$probe_focus_lost_file" "$probe_lost_before" \
-  'Terminal.app delivered native FocusLost bytes to its real TTY'
+  'iTerm2 delivered native FocusLost bytes to its real TTY'
 close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 assert_finder_frontmost
 
 probe_gained_before="$(read_probe_counter "$probe_focus_gained_file")"
-printf '[macos-focus] Raw probe: clicking the exact Terminal.app TTY window.\n'
-activate_neovim_terminal_window "$terminal_windows_before"
+printf '[macos-focus] Raw probe: clicking the exact iTerm2 TTY window.\n'
+activate_neovim_iterm_window "$iterm_windows_before"
 wait_for_probe_counter_gt "$probe_focus_gained_file" "$probe_gained_before" \
-  'Terminal.app delivered native FocusGained bytes to its real TTY'
+  'iTerm2 delivered native FocusGained bytes to its real TTY'
 : > "$probe_release_file"
 wait_for_probe_done
 printf '[macos-focus] Raw TTY evidence: FocusLost=%s FocusGained=%s\n' \
@@ -726,9 +735,9 @@ printf '[macos-focus] Raw TTY evidence: FocusLost=%s FocusGained=%s\n' \
 cat "$probe_log"
 
 # The probe restored the saved termios state and disabled DECSET 1004 before
-# this same shell execs Neovim on the same Terminal.app PTY.
+# this same shell execs Neovim on the same iTerm2 PTY.
 wait_for_ready
-wait_for_terminal_tty
+wait_for_iterm_tty
 
 lost_initial_before="$(read_file_counter dotfiles_macos_focus_lost)"
 gained_before="$(read_file_counter dotfiles_macos_focus_gained)"
@@ -741,10 +750,10 @@ close_test_owned_finder_window
 activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 assert_finder_frontmost
 
-printf '[macos-focus] Clicking the exact Neovim Terminal.app window and requiring a native FocusGained event.\n'
-activate_neovim_terminal_window "$terminal_windows_before"
+printf '[macos-focus] Clicking the exact Neovim iTerm2 window and requiring a native FocusGained event.\n'
+activate_neovim_iterm_window "$iterm_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_before" \
-  'Terminal.app activation generated a real Neovim FocusGained event'
+  'iTerm2 activation generated a real Neovim FocusGained event'
 
 lost_before="$(read_file_counter dotfiles_macos_focus_lost)"
 printf '[macos-focus] Neovim-native second transition: opening the unique Finder fixture folder.\n'
@@ -757,12 +766,12 @@ activate_and_wait_for_frontmost_application "com.apple.finder" "Finder"
 assert_finder_frontmost
 
 gained_after="$(read_file_counter dotfiles_macos_focus_gained)"
-printf '[macos-focus] Clicking the same Neovim Terminal.app window again and requiring another native FocusGained event.\n'
-activate_neovim_terminal_window "$terminal_windows_before"
+printf '[macos-focus] Clicking the same Neovim iTerm2 window again and requiring another native FocusGained event.\n'
+activate_neovim_iterm_window "$iterm_windows_before"
 wait_for_counter_gt dotfiles_macos_focus_gained "$gained_after" \
-  'Terminal.app reactivation generated a real Neovim FocusGained event'
+  'iTerm2 reactivation generated a real Neovim FocusGained event'
 lost_final="$(read_file_counter dotfiles_macos_focus_lost)"
 gained_final="$(read_file_counter dotfiles_macos_focus_gained)"
 printf '[macos-focus] Final native event counts: FocusLost=%s FocusGained=%s\n' \
   "$lost_final" "$gained_final"
-printf 'PASS: macOS Terminal.app -> Finder -> Terminal.app focus transition reached Neovim through the real TUI PTY.\n'
+printf 'PASS: macOS iTerm2 -> Finder -> iTerm2 focus transition reached Neovim through the real TUI PTY.\n'

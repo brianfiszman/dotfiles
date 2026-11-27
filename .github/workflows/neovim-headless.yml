@@ -163,7 +163,25 @@ jobs:
           NVIM_RESTORE_TIMEOUT: 25m
         run: bash ./scripts/test-nvim-headless.sh restore
 
-      - name: Verify Terminal.app window activation reports native Neovim focus events
+      - name: Install iTerm2 for native macOS focus integration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          brew install --cask iterm2
+          app_path="/Applications/iTerm.app"
+          [[ -d "$app_path" ]] || {
+            printf 'Homebrew installed iTerm2 but %s is missing.\n' "$app_path" >&2
+            exit 1
+          }
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Contents/Info.plist")"
+          [[ "$bundle_id" == "com.googlecode.iterm2" ]] || {
+            printf 'Unexpected iTerm2 bundle identifier: %s\n' "$bundle_id" >&2
+            exit 1
+          }
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app_path/Contents/Info.plist")"
+          printf 'Installed iTerm2 %s (%s).\n' "$version" "$bundle_id"
+
+      - name: Verify native iTerm2 window focus reports Neovim focus events
         env:
           NVIM_TEST_DIR: ${{ runner.temp }}/nvim-headless-macos
           NVIM_BIN: nvim
